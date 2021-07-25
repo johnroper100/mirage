@@ -1,0 +1,23 @@
+{
+    "name": "Home",
+    "template": "home",
+    "sections": [
+        {
+            "name": "Header",
+            "fields": [
+                {
+                    "name": "Title",
+                    "type": "text",
+                    "id": "headerTitle",
+                    "value": "A Bootstrap 5 template for modern businesses"
+                },
+                {
+                    "name": "Subtitle",
+                    "type": "text",
+                    "id": "headerSubtitle",
+                    "value": "Quickly design and customize responsive mobile-first sites with Bootstrap, the world’s most popular front-end open source toolkit!"
+                }
+            ]
+        }
+    ]
+}
