@@ -108,7 +108,7 @@
                 </div>
             </nav>
             <!-- Page content-->
-            <div class="container-fluid pt-4 pb-3 ps-5 pe-4">
+            <div class="container-fluid pt-3 pb-3 ps-5 pe-4">
                 <div v-if="viewPage == 0">
                     <h2 class="d-inline-block"><span class="text-capitalize" v-if="pageType != 'page'">{{pageType}}</span> Pages:</h2>
                     <button class="d-inline-block btn btn-success float-end">Add Page</button>
