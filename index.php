@@ -17,15 +17,27 @@ $m = new Mustache_Engine(array(
 $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
 
-Route::add('/', function() {
+Route::add('/', function () {
     echo 'Welcome :-)';
 });
 
-Route::add('/admin', function() {
-    echo 'admin';
+Route::add('/admin', function () {
+    include "admin.php";
 });
 
-Route::add('/(.*)', function($who) {
+Route::add('/api/page', function () {
+    global $pageStore;
+    $allPages = $pageStore->findAll();
+    $myJSON = json_encode($allPages);
+    echo $myJSON;
+});
+
+Route::add('/api/page/([0-9]*)', function ($who) {
+    global $pageStore;
+    $pageStore->deleteById($who);
+}, 'DELETE');
+
+Route::add('/(.*)', function ($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null) {
@@ -34,6 +46,7 @@ Route::add('/(.*)', function($who) {
         echo $m->render($page["templateName"], $page);
     }
 });
+
 
 Route::run(BASEPATH);
 

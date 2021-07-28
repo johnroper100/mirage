@@ -1,6 +1,6 @@
 <?php
 
-$strJsonFileContents = file_get_contents("../templates/mirage/home.json");
+$strJsonFileContents = file_get_contents("../templates/mirage/template_defs/home.json");
 $array = json_decode($strJsonFileContents, true);
 
 ?>
