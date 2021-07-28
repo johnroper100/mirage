@@ -22,6 +22,8 @@ $page["templateName"] = $data["templateName"];
 $page["title"] = $data["title"];
 $page["path"] = $data["path"];
 $page["type"] = $data["template"]["type"];
+$page["draft"] = false;
+$page["deleted"] = false;
 
 $page = $pageStore->insert($page);
 
