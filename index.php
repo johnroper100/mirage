@@ -17,10 +17,6 @@ $m = new Mustache_Engine(array(
 $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
 
-Route::add('/', function () {
-    echo 'Welcome :-)';
-});
-
 Route::add('/admin', function () {
     include "admin.php";
 });
@@ -44,7 +40,7 @@ Route::add('/api/page/([0-9]*)', function ($who) {
     $pageStore->deleteById($who);
 }, 'DELETE');
 
-Route::add('/(.*)', function ($who) {
+Route::add('(.*)', function ($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null) {

@@ -117,7 +117,7 @@
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
                                     <h4>{{page.title}}</h4>
-                                    <h6 class="text-secondary">/{{page.path}}</h6>
+                                    <h6 class="text-secondary">{{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
                                     <a class="btn btn-primary btn-sm me-1">Edit</a>
