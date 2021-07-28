@@ -8,9 +8,15 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     <title>Mirage Admin</title>
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
         #app {
             overflow-x: hidden;
         }
@@ -55,17 +61,27 @@
                 margin-left: -15rem;
             }
         }
+
+        .sidebarItem {
+            width: 85%;
+            margin: 0 auto;
+            border-radius: 0.5rem;
+        }
+
+        .sidebarItem:hover {
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
     <div class="d-flex" id="app">
         <!-- Sidebar-->
-        <div class="border-end bg-white" id="sidebar-wrapper">
-            <div class="sidebar-heading border-bottom bg-light">Mirage Dashboard</div>
+        <div class="bg-dark text-light" id="sidebar-wrapper">
+            <div class="sidebar-heading bg-dark text-light">Mirage Dashboard</div>
             <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" @click="getPages('page')">Pages</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" @click="viewPage = 1">Settings</a>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages('page')" :class="{'bg-success': viewPage == 0 && pageType == 'page'}">Pages</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 1" :class="{'bg-success': viewPage == 1}">Settings</span>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -73,7 +89,7 @@
             <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
+                    <button class="btn btn-dark" id="sidebarToggle">Toggle Menu</button>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
@@ -92,7 +108,7 @@
                 </div>
             </nav>
             <!-- Page content-->
-            <div class="container-fluid pt-2">
+            <div class="container-fluid pt-4 pb-3 ps-5 pe-4">
                 <div v-if="viewPage == 0">
                     <h2 class="d-inline-block"><span class="text-capitalize" v-if="pageType != 'page'">{{pageType}}</span> Pages:</h2>
                     <button class="d-inline-block btn btn-success float-end">Add Page</button>
