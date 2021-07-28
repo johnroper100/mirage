@@ -29,7 +29,7 @@ Route::add('/(.*)', function($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null) {
-
+        header('HTTP/1.0 404 Not Found');
     } else {
         echo $m->render($page["templateName"], $page);
     }
