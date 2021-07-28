@@ -64,7 +64,7 @@
         <div class="border-end bg-white" id="sidebar-wrapper">
             <div class="sidebar-heading border-bottom bg-light">Mirage Dashboard</div>
             <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" @click="getPages">Pages</a>
+                <a class="list-group-item list-group-item-action list-group-item-light p-3" @click="getPages('page')">Pages</a>
                 <a class="list-group-item list-group-item-action list-group-item-light p-3" @click="viewPage = 1">Settings</a>
             </div>
         </div>
@@ -94,7 +94,7 @@
             <!-- Page content-->
             <div class="container-fluid pt-2">
                 <div v-if="viewPage == 0">
-                    <h2 class="d-inline-block">Pages:</h2>
+                    <h2 class="d-inline-block"><span class="text-capitalize" v-if="pageType != 'page'">{{pageType}}</span> Pages:</h2>
                     <button class="d-inline-block btn btn-success float-end">Add Page</button>
                     <ul class="list-group mt-2">
                         <li v-for="page in pages" class="list-group-item">
@@ -110,7 +110,7 @@
                             </div>
                         </li>
                         <li v-if="pages.length == 0" class="list-group-item">
-                            No pages have been created! Use the <i>Add Page</i> button above to start your website.
+                            No <span v-if="pageType != 'page'">{{pageType}}</span> pages have been created! Use the <i>Add Page</i> button above to create content.
                         </li>
                     </ul>
                 </div>
@@ -146,18 +146,20 @@
             data() {
                 return {
                     viewPage: 0,
-                    pages: {}
+                    pages: {},
+                    pageType: "",
                 }
             },
             methods: {
-                getPages() {
+                getPages(type) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
                         comp.pages = JSON.parse(this.responseText);
                         comp.viewPage = 0;
+                        comp.pageType = type;
                     }
-                    xmlhttp.open("GET", "/mirage/api/page", true);
+                    xmlhttp.open("GET", "/mirage/api/page/" + type, true);
                     xmlhttp.send();
                 },
                 deletePage(page) {
@@ -166,7 +168,7 @@
                         var xmlhttp = new XMLHttpRequest();
                         xmlhttp.onload = function() {
                             console.log(this.responseText);
-                            comp.getPages();
+                            comp.getPages(page.type);
                         }
                         xmlhttp.open("DELETE", "/mirage/api/page/" + page._id, true);
                         xmlhttp.send();
@@ -174,7 +176,7 @@
                 }
             },
             mounted() {
-                this.getPages();
+                this.getPages('page');
             }
         }
 

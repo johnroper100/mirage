@@ -32,6 +32,13 @@ Route::add('/api/page', function () {
     echo $myJSON;
 });
 
+Route::add('/api/page/(.*)', function ($who) {
+    global $pageStore;
+    $allPages = $pageStore->findBy(["type", "=", $who]);
+    $myJSON = json_encode($allPages);
+    echo $myJSON;
+});
+
 Route::add('/api/page/([0-9]*)', function ($who) {
     global $pageStore;
     $pageStore->deleteById($who);
