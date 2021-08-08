@@ -83,6 +83,7 @@
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'bg-success': viewPage == 0}">Dashboard</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'bg-success': viewPage == 1 && activeCollection.id == collection.id}" v-for="collection in theme.collections">{{collection.name}}</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 2" :class="{'bg-success': viewPage == 2}">Settings</span>
+                <span class="p-2 ps-3 sidebarItem mt-2">Log Out</span>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -90,15 +91,15 @@
             <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-dark" id="sidebarToggle">T</button>
+                    <button class="btn btn-dark" id="sidebarToggle">=</button>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 0">Dashboard</h4>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 2">Settings</h4>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <button class="btn btn-primary me-md-2 mb-2 mb-md-0">View Site</button>
-                            <button class="btn btn-primary">View Site2</button>
+                            <button class="btn btn-primary" v-if="viewPage == 0">View Site</button>
+                            <button class="btn btn-success" v-if="viewPage == 1">Add Page</button>
                         </div>
                     </div>
                 </div>
@@ -120,7 +121,7 @@
                             </div>
                         </li>
                         <li v-if="pages.length == 0" class="list-group-item">
-                            No {{activeCollection.name}} have been created! Use the <i>Add Page</i> button above to create content.
+                            No <span class="text-lowercase">{{activeCollection.name}}</span> have been created! Use the <i>Add Page</i> button above to create content.
                         </li>
                     </ul>
                 </div>
