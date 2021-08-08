@@ -75,7 +75,10 @@ $array = json_decode($strJsonFileContents, true);
                         template: this.template,
                         templateName: this.templateName,
                         title: this.title,
-                        path: this.path
+                        path: this.path,
+                        collection: "pages",
+                        draft: false,
+                        deleted: false
                     }
                     var xhr = new XMLHttpRequest();
                     xhr.open("POST", "generate.php", true);

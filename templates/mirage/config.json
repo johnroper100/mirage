@@ -1,0 +1,21 @@
+{
+    "name": "Mirage",
+    "version": 1.0,
+    "author": "John Roper",
+    "templates": [
+        {
+            "name": "Home",
+            "id": "home",
+            "file": "home.json"
+        }
+    ],
+    "collections": [
+        {
+            "name": "Pages",
+            "id": "pages",
+            "allowed_templates": [
+                "home"
+            ]
+        }
+    ]
+}

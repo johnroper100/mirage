@@ -78,8 +78,8 @@
     <div class="d-flex" id="app">
         <!-- Sidebar-->
         <div class="bg-dark text-light" id="sidebar-wrapper">
-            <div class="sidebar-heading bg-dark text-light">Mirage Dashboard</div>
-            <div class="list-group list-group-flush">
+            <div class="sidebar-heading bg-secondary text-light">Mirage Dashboard</div>
+            <div class="list-group list-group-flush mt-3">
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages('page')" :class="{'bg-success': viewPage == 0 && pageType == 'page'}">Pages</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 1" :class="{'bg-success': viewPage == 1}">Settings</span>
             </div>
@@ -89,7 +89,7 @@
             <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-dark" id="sidebarToggle">Toggle Menu</button>
+                    <button class="btn btn-dark" id="sidebarToggle">T</button> <h4 class="mb-0 ms-3">Dashboard</h4>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
@@ -117,7 +117,7 @@
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
                                     <h4>{{page.title}}</h4>
-                                    <h6 class="text-secondary">{{page.path}}</h6>
+                                    <h6 class="text-secondary">{{page.path}} -> {{page.templateName}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
                                     <a class="btn btn-primary btn-sm me-1">Edit</a>

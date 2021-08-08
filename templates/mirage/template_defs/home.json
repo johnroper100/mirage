@@ -1,7 +1,5 @@
 {
     "name": "Home",
-    "template": "home",
-    "type": "page",
     "sections": [
         {
             "name": "Header",
