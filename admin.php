@@ -118,6 +118,13 @@
             padding: .375rem .75rem !important;
             font-size: 1rem !important;
         }
+
+        .nav-tabs .nav-item.show .nav-link,
+        .nav-tabs .nav-link.active,
+        .tab-content>.active,
+        .nav-tabs {
+            border: 0 !important;
+        }
     </style>
 </head>
 
@@ -125,7 +132,7 @@
     <div class="d-flex" id="app">
         <!-- Sidebar-->
         <div class="bg-dark text-light" id="sidebar-wrapper">
-            <div class="sidebar-heading bg-secondary text-light text-center text-uppercase">Mirage Admin</div>
+            <div class="sidebar-heading bg-secondary text-light text-center text-uppercase shadow-sm">Mirage Admin</div>
             <div class="list-group list-group-flush mt-2">
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge me-1"></i> General</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
@@ -136,7 +143,7 @@
         <!-- Page content wrapper-->
         <div id="page-content-wrapper">
             <!-- Top navigation-->
-            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
                 <div class="container-fluid">
                     <button class="btn btn-dark" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 0"><i class="fa-solid fa-gauge me-1"></i> General</h4>
@@ -155,7 +162,7 @@
             <!-- Page content-->
             <div class="container-fluid pt-3 pb-3 ps-5 pe-4">
                 <div v-if="viewPage == 1">
-                    <ul class="list-group mt-2">
+                    <ul class="list-group mt-2 shadow-sm">
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
@@ -174,7 +181,20 @@
                     </ul>
                 </div>
                 <div v-if="viewPage == 2">
-                    Add Page
+                    <div class="bg-light shadow-sm">
+                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab" aria-controls="content" aria-selected="true">Content</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="options-tab" data-bs-toggle="tab" data-bs-target="#options" type="button" role="tab" aria-controls="options" aria-selected="false">Options</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="myTabContent">
+                            <div class="tab-pane fade show active p-3" id="content" role="tabpanel" aria-labelledby="content-tab">Content</div>
+                            <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">Options</div>
+                        </div>
+                    </div>
                 </div>
                 <div v-if="viewPage == 3">
                     Settings
