@@ -17,6 +17,22 @@
             font-family: 'Roboto', sans-serif;
         }
 
+        .bg-dark {
+            background-color: #212529 !important;
+        }
+
+        .btn-dark {
+            color: #fff;
+            background-color: #212529;
+            border-color: #212529;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: #2f9e44;
+            border-color: #2f9e44;
+        }
+
         #app {
             overflow-x: hidden;
         }
@@ -62,14 +78,17 @@
             }
         }
 
-        .sidebarItem {
-            width: 85%;
-            margin: 0 auto;
-            border-radius: 0.5rem;
-        }
-
         .sidebarItem:hover {
             cursor: pointer;
+        }
+
+        .sidebarItem {
+            border-left: solid 5px transparent;
+        }
+
+        .sidebarItem.active {
+            border-left: solid 5px #37b24d;
+            background-color: #343a40;
         }
     </style>
 </head>
@@ -78,11 +97,11 @@
     <div class="d-flex" id="app">
         <!-- Sidebar-->
         <div class="bg-dark text-light" id="sidebar-wrapper">
-            <div class="sidebar-heading bg-secondary text-light">Mirage Dashboard</div>
-            <div class="list-group list-group-flush mt-3">
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'bg-success': viewPage == 0}">Dashboard</span>
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'bg-success': viewPage == 1 && activeCollection.id == collection.id}" v-for="collection in theme.collections">{{collection.name}}</span>
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 2" :class="{'bg-success': viewPage == 2}">Settings</span>
+            <div class="sidebar-heading bg-secondary text-light text-center">Mirage Dashboard</div>
+            <div class="list-group list-group-flush mt-2">
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}">General</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': viewPage == 1 && activeCollection.id == collection.id}" v-for="collection in theme.collections">{{collection.name}}</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 2" :class="{'active': viewPage == 2}">Settings</span>
                 <span class="p-2 ps-3 sidebarItem mt-2">Log Out</span>
             </div>
         </div>
@@ -92,7 +111,7 @@
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
                     <button class="btn btn-dark" id="sidebarToggle">=</button>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">Dashboard</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">General</h4>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
                     <h4 class="mb-0 ms-3" v-if="viewPage == 2">Settings</h4>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>

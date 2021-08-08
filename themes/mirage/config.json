@@ -16,6 +16,16 @@
             "allowed_templates": [
                 "home"
             ]
+        },
+        {
+            "name": "Blog Posts",
+            "id": "blog_posts",
+            "allowed_templates": []
+        },
+        {
+            "name": "Instruments",
+            "id": "instruments",
+            "allowed_templates": []
         }
     ]
 }
