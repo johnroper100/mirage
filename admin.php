@@ -10,27 +10,48 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+    <script defer src="all.min.js"></script>
     <title>Mirage Admin</title>
     <style>
+        * {
+            border-radius: 0 !important;
+            font-family: 'Montserrat', sans-serif;
+        }
+
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f8f9fa;
         }
 
         .bg-dark {
             background-color: #212529 !important;
         }
 
+        .bg-secondary {
+            background-color: #343a40 !important;
+        }
+
+        .bg-light {
+            background-color: #f1f3f5 !important;
+        }
+
         .btn-dark {
-            color: #fff;
+            color: #f8f9fa;
             background-color: #212529;
             border-color: #212529;
         }
 
         .btn-success {
-            color: #fff;
+            color: #f8f9fa;
             background-color: #2f9e44;
             border-color: #2f9e44;
+        }
+
+        .btn-primary {
+            color: #f8f9fa;
+            background-color: #1971c2;
+            border-color: #1971c2;
         }
 
         #app {
@@ -90,6 +111,13 @@
             border-left: solid 5px #37b24d;
             background-color: #343a40;
         }
+
+        .navbar-toggler {
+            line-height: 1.5 !important;
+            color: #f8f9fa !important;
+            padding: .375rem .75rem !important;
+            font-size: 1rem !important;
+        }
     </style>
 </head>
 
@@ -97,12 +125,12 @@
     <div class="d-flex" id="app">
         <!-- Sidebar-->
         <div class="bg-dark text-light" id="sidebar-wrapper">
-            <div class="sidebar-heading bg-secondary text-light text-center">Mirage Dashboard</div>
+            <div class="sidebar-heading bg-secondary text-light text-center text-uppercase">Mirage Admin</div>
             <div class="list-group list-group-flush mt-2">
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}">General</span>
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': viewPage == 1 && activeCollection.id == collection.id}" v-for="collection in theme.collections">{{collection.name}}</span>
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 2" :class="{'active': viewPage == 2}">Settings</span>
-                <span class="p-2 ps-3 sidebarItem mt-2">Log Out</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge me-1"></i> General</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 3" :class="{'active': viewPage == 3}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+                <span class="p-2 ps-3 sidebarItem mt-2"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</span>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -110,15 +138,16 @@
             <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-dark" id="sidebarToggle">=</button>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">General</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 2">Settings</h4>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                    <button class="btn btn-dark" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 0"><i class="fa-solid fa-gauge me-1"></i> General</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 1"><i class="fa-solid me-1" :class="activeCollection.icon"></i> {{activeCollection.name}}</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 2"><i class="fa-solid fa-file-plus me-1"></i> Add Page</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 3"><i class="fa-solid fa-gears me-1"></i> Settings</h4>
+                    <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
                             <button class="btn btn-primary" v-if="viewPage == 0">View Site</button>
-                            <button class="btn btn-success" v-if="viewPage == 1">Add Page</button>
+                            <button class="btn btn-success" v-if="viewPage == 1" @click="addPage">Add Page</button>
                         </div>
                     </div>
                 </div>
@@ -145,7 +174,10 @@
                     </ul>
                 </div>
                 <div v-if="viewPage == 2">
-                    settings
+                    Add Page
+                </div>
+                <div v-if="viewPage == 3">
+                    Settings
                 </div>
             </div>
         </div>
@@ -213,6 +245,9 @@
                         xmlhttp.open("DELETE", "/mirage/api/page/" + page._id, true);
                         xmlhttp.send();
                     }
+                },
+                addPage() {
+                    this.viewPage = 2;
                 }
             },
             mounted() {

@@ -13,6 +13,7 @@
         {
             "name": "Pages",
             "id": "pages",
+            "icon": "fa-memo",
             "allowed_templates": [
                 "home"
             ]
@@ -20,11 +21,13 @@
         {
             "name": "Blog Posts",
             "id": "blog_posts",
+            "icon": "fa-block-quote",
             "allowed_templates": []
         },
         {
             "name": "Instruments",
             "id": "instruments",
+            "icon": "fa-images",
             "allowed_templates": []
         }
     ]
