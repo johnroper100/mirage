@@ -11,7 +11,7 @@ define('BASEPATH', '/mirage');
 
 Mustache_Autoloader::register();
 $m = new Mustache_Engine(array(
-    'loader' => new Mustache_Loader_FilesystemLoader(dirname(__FILE__) . '/templates/mirage'),
+    'loader' => new Mustache_Loader_FilesystemLoader(dirname(__FILE__) . '/themes/mirage'),
 ));
 
 $databaseDirectory = __DIR__ . "/database";
@@ -21,6 +21,10 @@ Route::add('/admin', function () {
     include "admin.php";
 });
 
+Route::add('/api/theme', function () {
+    echo file_get_contents("./themes/mirage/config.json");
+});
+
 Route::add('/api/page', function () {
     global $pageStore;
     $allPages = $pageStore->findAll();
@@ -28,9 +32,9 @@ Route::add('/api/page', function () {
     echo $myJSON;
 });
 
-Route::add('/api/page/(.*)', function ($who) {
+Route::add('/api/page/collection/(.*)', function ($who) {
     global $pageStore;
-    $allPages = $pageStore->findBy(["type", "=", $who]);
+    $allPages = $pageStore->findBy(["collection", "=", $who]);
     $myJSON = json_encode($allPages);
     echo $myJSON;
 });
@@ -56,5 +60,3 @@ Route::add('(.*)', function ($who) {
 
 
 Route::run(BASEPATH);
-
-?>

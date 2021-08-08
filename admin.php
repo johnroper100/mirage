@@ -80,8 +80,9 @@
         <div class="bg-dark text-light" id="sidebar-wrapper">
             <div class="sidebar-heading bg-secondary text-light">Mirage Dashboard</div>
             <div class="list-group list-group-flush mt-3">
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages('page')" :class="{'bg-success': viewPage == 0 && pageType == 'page'}">Pages</span>
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 1" :class="{'bg-success': viewPage == 1}">Settings</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'bg-success': viewPage == 0}">Dashboard</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'bg-success': viewPage == 1 && activeCollection.id == collection.id}" v-for="collection in theme.collections">{{collection.name}}</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 2" :class="{'bg-success': viewPage == 2}">Settings</span>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -89,29 +90,22 @@
             <!-- Top navigation-->
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
                 <div class="container-fluid">
-                    <button class="btn btn-dark" id="sidebarToggle">T</button> <h4 class="mb-0 ms-3">Dashboard</h4>
+                    <button class="btn btn-dark" id="sidebarToggle">T</button>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">Dashboard</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 2">Settings</h4>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <li class="nav-item"><a class="nav-link" href="#!">View Your Site</a></li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">johnroper100</a>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="#!">Action</a>
-                                    <a class="dropdown-item" href="#!">Another action</a>
-                                    <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="#!">Log Out</a>
-                                </div>
-                            </li>
-                        </ul>
+                        <div class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            <button class="btn btn-primary me-md-2 mb-2 mb-md-0">View Site</button>
+                            <button class="btn btn-primary">View Site2</button>
+                        </div>
                     </div>
                 </div>
             </nav>
             <!-- Page content-->
             <div class="container-fluid pt-3 pb-3 ps-5 pe-4">
-                <div v-if="viewPage == 0">
-                    <h2 class="d-inline-block"><span class="text-capitalize" v-if="pageType != 'page'">{{pageType}}</span> Pages:</h2>
-                    <button class="d-inline-block btn btn-success float-end">Add Page</button>
+                <div v-if="viewPage == 1">
                     <ul class="list-group mt-2">
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
@@ -126,11 +120,11 @@
                             </div>
                         </li>
                         <li v-if="pages.length == 0" class="list-group-item">
-                            No <span v-if="pageType != 'page'">{{pageType}}</span> pages have been created! Use the <i>Add Page</i> button above to create content.
+                            No {{activeCollection.name}} have been created! Use the <i>Add Page</i> button above to create content.
                         </li>
                     </ul>
                 </div>
-                <div v-if="viewPage == 1">
+                <div v-if="viewPage == 2">
                     settings
                 </div>
             </div>
@@ -162,20 +156,30 @@
             data() {
                 return {
                     viewPage: 0,
-                    pages: {},
-                    pageType: "",
+                    activeCollection: {},
+                    theme: {},
+                    pages: {}
                 }
             },
             methods: {
-                getPages(type) {
+                getTheme() {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.theme = JSON.parse(this.responseText);
+                    }
+                    xmlhttp.open("GET", "/mirage/api/theme", true);
+                    xmlhttp.send();
+                },
+                getPages(collection) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
                         comp.pages = JSON.parse(this.responseText);
-                        comp.viewPage = 0;
-                        comp.pageType = type;
+                        comp.viewPage = 1;
+                        comp.activeCollection = collection;
                     }
-                    xmlhttp.open("GET", "/mirage/api/page/" + type, true);
+                    xmlhttp.open("GET", "/mirage/api/page/collection/" + collection.id, true);
                     xmlhttp.send();
                 },
                 deletePage(page) {
@@ -192,7 +196,7 @@
                 }
             },
             mounted() {
-                this.getPages('page');
+                this.getTheme();
             }
         }
 
