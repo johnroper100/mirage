@@ -157,7 +157,7 @@
                             <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Site</button>
                             <button class="btn btn-success" v-if="viewPage == 1" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
                             <button class="btn btn-danger me-2" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
-                            <button class="btn btn-success" v-if="viewPage == 2"><i class="fa-solid fa-floppy-disks me-1"></i> Save</button>
+                            <button class="btn btn-success" v-if="viewPage == 2" @click="savePage"><i class="fa-solid fa-floppy-disks me-1"></i> Save</button>
                         </div>
                     </div>
                 </div>
@@ -196,8 +196,12 @@
                         <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active p-3" id="content" role="tabpanel" aria-labelledby="content-tab">
                                 <div class="mb-3">
-                                    <label class="form-label">Title:</label>
+                                    <label class="form-label">Page Title:</label>
                                     <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Page Path:</label>
+                                    <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                                 </div>
                                 <div class="accordion">
                                     <div class="accordion-item" v-for="(section, index) in editingTemplate.sections">
@@ -233,8 +237,12 @@
                             </div>
                             <div class="modal-body">
                                 <div class="mb-3">
-                                    <label class="form-label">Title:</label>
+                                    <label class="form-label">Page Title:</label>
                                     <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Page Path:</label>
+                                    <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Page Template:</label>
@@ -294,6 +302,7 @@
                     editingTemplateName: "",
                     editingPath: "",
                     editingMode: 0,
+                    editingID: null
                 }
             },
             methods: {
@@ -322,8 +331,7 @@
                         var comp = this;
                         var xmlhttp = new XMLHttpRequest();
                         xmlhttp.onload = function() {
-                            console.log(this.responseText);
-                            comp.getPages(page.type);
+                            comp.getPages(comp.activeCollection);
                         }
                         xmlhttp.open("DELETE", "/mirage/api/page/" + page._id, true);
                         xmlhttp.send();
@@ -338,7 +346,6 @@
                 editNewPage() {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
-                    console.log(comp.editingTemplateName);
                     xmlhttp.onload = function() {
                         comp.editingTemplate = JSON.parse(this.responseText);
                         comp.viewPage = 2;
@@ -347,6 +354,39 @@
                     }
                     xmlhttp.open("GET", "/mirage/api/template/" + comp.editingTemplateName, true);
                     xmlhttp.send();
+                },
+                savePage() {
+                    if (this.editingMode == 0) {
+                        this.editingTemplate.sections.forEach(function(section) {
+                            section.fields.forEach(function(field) {
+                                if (field.type == 'list') {
+                                    field.value = [];
+                                    if (field.items != null && field.items.length > 0) {
+                                        field.items.forEach(function(item) {
+                                            let itemValue = {};
+                                            item.forEach(function(subItem) {
+                                                itemValue[subItem.id] = subItem.value;
+                                            });
+                                            field.value.push(itemValue);
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                        var data = {
+                            template: this.editingTemplate,
+                            templateName: this.editingTemplateName,
+                            title: this.editingTitle,
+                            path: this.editingPath,
+                            collection: this.activeCollection.id,
+                            draft: false,
+                            deleted: false
+                        }
+                        var xhr = new XMLHttpRequest();
+                        xhr.open("POST", "admin_test/generate.php", true);
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.send(JSON.stringify(data));
+                    }
                 }
             },
             mounted() {
