@@ -207,16 +207,23 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <select class="form-select" aria-label="Available Tamples">
-                                    <option selected disabled>Select a Template</option>
-                                    <template v-for="template in theme.templates" :key="template.id">
-                                        <option v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
-                                    </template>
-                                </select>
+                                <div class="mb-3">
+                                    <label for="exampleInputEmail1" class="form-label">Title:</label>
+                                    <input v-model="editingTitle" type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="My awesome page">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="exampleInputEmail1" class="form-label">Page Template:</label>
+                                    <select v-model="editingTemplateName" class="form-select" aria-label="Available Tamples">
+                                        <option selected disabled value="">Select a Template</option>
+                                        <template v-for="template in theme.templates" :key="template.id">
+                                            <option v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
+                                        </template>
+                                    </select>
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary">Add Page</button>
+                                <button type="button" class="btn btn-primary" @click="editPage">Add Page</button>
                             </div>
                         </div>
                     </div>
@@ -228,6 +235,8 @@
     <script src="https://unpkg.com/vue@next"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script>
+        var myModal;
+
         window.addEventListener('DOMContentLoaded', event => {
 
             // Toggle the side navigation
@@ -244,6 +253,8 @@
                 });
             }
 
+            myModal = new bootstrap.Modal(document.getElementById('exampleModal'), {});
+
         });
 
         const App = {
@@ -252,7 +263,11 @@
                     viewPage: 0,
                     activeCollection: {},
                     theme: {},
-                    pages: {}
+                    pages: {},
+                    editingTemplate: {},
+                    editingTitle: "",
+                    editingTemplateName: "",
+                    editingPath: ""
                 }
             },
             methods: {
@@ -289,9 +304,11 @@
                     }
                 },
                 addPage() {
-                    var myModal = new bootstrap.Modal(document.getElementById('exampleModal'), {});
                     myModal.show();
-                    //this.viewPage = 2;
+                },
+                editPage() {
+                    this.viewPage = 2;
+                    myModal.hide();
                 }
             },
             mounted() {
