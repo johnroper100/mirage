@@ -199,6 +199,28 @@
                 <div v-if="viewPage == 3">
                     Settings
                 </div>
+                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">Add a Page to <b>{{activeCollection.name}}</b></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <select class="form-select" aria-label="Available Tamples">
+                                    <option selected disabled>Select a Template</option>
+                                    <template v-for="template in theme.templates" :key="template.id">
+                                        <option v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary">Add Page</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -267,7 +289,9 @@
                     }
                 },
                 addPage() {
-                    this.viewPage = 2;
+                    var myModal = new bootstrap.Modal(document.getElementById('exampleModal'), {});
+                    myModal.show();
+                    //this.viewPage = 2;
                 }
             },
             mounted() {
