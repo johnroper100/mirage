@@ -48,6 +48,31 @@ Route::add('/api/page/([0-9]*)', function ($who) {
     $pageStore->deleteById($who);
 }, 'DELETE');
 
+Route::add('/api/page/generate', function () {
+    global $pageStore;
+
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    $page = [];
+
+    foreach ($data["template"]["sections"] as $section) {
+        foreach ($section["fields"] as $field) {
+            $page[$field['id']] = $field['value'];
+        }
+    }
+
+    $page["templateName"] = $data["templateName"];
+    $page["title"] = $data["title"];
+    $page["path"] = $data["path"];
+    $page["collection"] = $data["collection"];
+    $page["draft"] = $data["draft"];
+    $page["deleted"] = $data["deleted"];
+
+    $page = $pageStore->insert($page);
+    $myJSON = json_encode($page);
+    echo $myJSON;
+}, 'POST');
+
 Route::add('(.*)', function ($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);

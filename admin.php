@@ -356,37 +356,43 @@
                     xmlhttp.send();
                 },
                 savePage() {
-                    if (this.editingMode == 0) {
-                        this.editingTemplate.sections.forEach(function(section) {
-                            section.fields.forEach(function(field) {
-                                if (field.type == 'list') {
-                                    field.value = [];
-                                    if (field.items != null && field.items.length > 0) {
-                                        field.items.forEach(function(item) {
-                                            let itemValue = {};
-                                            item.forEach(function(subItem) {
-                                                itemValue[subItem.id] = subItem.value;
-                                            });
-                                            field.value.push(itemValue);
+                    this.editingTemplate.sections.forEach(function(section) {
+                        section.fields.forEach(function(field) {
+                            if (field.type == 'list') {
+                                field.value = [];
+                                if (field.items != null && field.items.length > 0) {
+                                    field.items.forEach(function(item) {
+                                        let itemValue = {};
+                                        item.forEach(function(subItem) {
+                                            itemValue[subItem.id] = subItem.value;
                                         });
-                                    }
+                                        field.value.push(itemValue);
+                                    });
                                 }
-                            });
+                            }
                         });
-                        var data = {
-                            template: this.editingTemplate,
-                            templateName: this.editingTemplateName,
-                            title: this.editingTitle,
-                            path: this.editingPath,
-                            collection: this.activeCollection.id,
-                            draft: false,
-                            deleted: false
-                        }
-                        var xhr = new XMLHttpRequest();
-                        xhr.open("POST", "admin_test/generate.php", true);
-                        xhr.setRequestHeader('Content-Type', 'application/json');
-                        xhr.send(JSON.stringify(data));
+                    });
+                    var data = {
+                        template: this.editingTemplate,
+                        templateName: this.editingTemplateName,
+                        title: this.editingTitle,
+                        path: this.editingPath,
+                        collection: this.activeCollection.id,
+                        draft: false,
+                        deleted: false
                     }
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.editingID = JSON.parse(this.responseText)._id;
+                    }
+                    if (this.editingMode == 0) {
+                        xmlhttp.open("POST", "/mirage/api/page/generate", true);
+                    } else {
+
+                    }
+                    xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                    xmlhttp.send(JSON.stringify(data));
                 }
             },
             mounted() {
