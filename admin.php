@@ -146,15 +146,18 @@
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
                 <div class="container-fluid">
                     <button class="btn btn-dark" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 0"><i class="fa-solid fa-gauge me-1"></i> General</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 1"><i class="fa-solid me-1" :class="activeCollection.icon"></i> {{activeCollection.name}}</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 2"><i class="fa-solid fa-file-plus me-1"></i> Add Page</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 3"><i class="fa-solid fa-gears me-1"></i> Settings</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">General</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 2 && editingMode == 0">Add Page</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 2 && editingMode == 1">Edit Page</h4>
+                    <h4 class="mb-0 ms-3" v-if="viewPage == 3">Settings</h4>
                     <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <button class="btn btn-primary" v-if="viewPage == 0">View Site</button>
-                            <button class="btn btn-success" v-if="viewPage == 1" @click="addPage">Add Page</button>
+                            <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Site</button>
+                            <button class="btn btn-success" v-if="viewPage == 1" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
+                            <button class="btn btn-danger me-2" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                            <button class="btn btn-success" v-if="viewPage == 2"><i class="fa-solid fa-floppy-disks me-1"></i> Save</button>
                         </div>
                     </div>
                 </div>
@@ -170,8 +173,8 @@
                                     <h6 class="text-secondary">{{page.path}} -> {{page.templateName}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
-                                    <a class="btn btn-primary btn-sm me-1">Edit</a>
-                                    <a class="btn btn-danger btn-sm" @click="deletePage(page)">Delete</a>
+                                    <a class="btn btn-primary btn-sm me-1"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
+                                    <a class="btn btn-danger btn-sm" @click="deletePage(page)"><i class="fa-solid fa-trash-can me-1"></i> Delete</a>
                                 </div>
                             </div>
                         </li>
@@ -191,7 +194,29 @@
                             </li>
                         </ul>
                         <div class="tab-content" id="myTabContent">
-                            <div class="tab-pane fade show active p-3" id="content" role="tabpanel" aria-labelledby="content-tab">Content</div>
+                            <div class="tab-pane fade show active p-3" id="content" role="tabpanel" aria-labelledby="content-tab">
+                                <div class="mb-3">
+                                    <label class="form-label">Title:</label>
+                                    <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
+                                </div>
+                                <div class="accordion">
+                                    <div class="accordion-item" v-for="(section, index) in editingTemplate.sections">
+                                        <h2 class="accordion-header" :id="'heading'+index">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#collapse'+index" aria-expanded="false" v-bind:aria-controls="'#collapse'+index">
+                                                {{section.name}}
+                                            </button>
+                                        </h2>
+                                        <div :id="'collapse'+index" class="accordion-collapse collapse" aria-labelledby="'heading'+index">
+                                            <div class="accordion-body">
+                                                <div class="mb-3" v-for="field in section.fields">
+                                                    <label class="form-label">{{field.name}}:</label>
+                                                    <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">Options</div>
                         </div>
                     </div>
@@ -208,22 +233,22 @@
                             </div>
                             <div class="modal-body">
                                 <div class="mb-3">
-                                    <label for="exampleInputEmail1" class="form-label">Title:</label>
-                                    <input v-model="editingTitle" type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="My awesome page">
+                                    <label class="form-label">Title:</label>
+                                    <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="exampleInputEmail1" class="form-label">Page Template:</label>
-                                    <select v-model="editingTemplateName" class="form-select" aria-label="Available Tamples">
+                                    <label class="form-label">Page Template:</label>
+                                    <select v-model="editingTemplateName" class="form-select" aria-label="Available Templates">
                                         <option selected disabled value="">Select a Template</option>
                                         <template v-for="template in theme.templates" :key="template.id">
-                                            <option v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
+                                            <option :value="template.id" v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
                                         </template>
                                     </select>
                                 </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" @click="editPage">Add Page</button>
+                                <button type="button" class="btn btn-primary" @click="editNewPage" :class="{'disabled': editingTitle == '' || editingTemplateName == ''}">Add Page</button>
                             </div>
                         </div>
                     </div>
@@ -267,7 +292,8 @@
                     editingTemplate: {},
                     editingTitle: "",
                     editingTemplateName: "",
-                    editingPath: ""
+                    editingPath: "",
+                    editingMode: 0,
                 }
             },
             methods: {
@@ -305,10 +331,22 @@
                 },
                 addPage() {
                     myModal.show();
+                    this.editingTitle = "";
+                    this.editingPath = "";
+                    this.editingTemplateName = "";
                 },
-                editPage() {
-                    this.viewPage = 2;
-                    myModal.hide();
+                editNewPage() {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    console.log(comp.editingTemplateName);
+                    xmlhttp.onload = function() {
+                        comp.editingTemplate = JSON.parse(this.responseText);
+                        comp.viewPage = 2;
+                        comp.editingMode = 0;
+                        myModal.hide();
+                    }
+                    xmlhttp.open("GET", "/mirage/api/template/" + comp.editingTemplateName, true);
+                    xmlhttp.send();
                 }
             },
             mounted() {

@@ -3,6 +3,7 @@
     "sections": [
         {
             "name": "Header",
+            "id": "headerSection",
             "fields": [
                 {
                     "name": "Title",

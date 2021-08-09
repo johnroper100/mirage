@@ -13,7 +13,7 @@
         {
             "name": "Pages",
             "id": "pages",
-            "icon": "fa-memo",
+            "icon": "fa-file-heart",
             "allowed_templates": [
                 "home"
             ]

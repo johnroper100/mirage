@@ -25,6 +25,10 @@ Route::add('/api/theme', function () {
     echo file_get_contents("./themes/mirage/config.json");
 });
 
+Route::add('/api/template/(.*)', function ($who) {
+    echo file_get_contents("./themes/mirage/template_defs/".$who.".json");
+});
+
 Route::add('/api/page', function () {
     global $pageStore;
     $allPages = $pageStore->findAll();
