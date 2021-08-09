@@ -26,7 +26,7 @@ Route::add('/api/theme', function () {
 });
 
 Route::add('/api/template/(.*)', function ($who) {
-    echo file_get_contents("./themes/mirage/template_defs/".$who.".json");
+    echo file_get_contents("./themes/mirage/template_defs/" . $who . ".json");
 });
 
 Route::add('/api/page', function () {
@@ -64,3 +64,5 @@ Route::add('(.*)', function ($who) {
 
 
 Route::run(BASEPATH);
+
+?>
