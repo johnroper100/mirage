@@ -37,9 +37,18 @@ $m = new Mustache_Engine(array(
 
 $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
+$userStore = new Store("users", $databaseDirectory);
 
 Route::add('/admin', function () {
-    include "admin.php";
+    if (isset($_SESSION['loggedin'])) {
+        include "admin.php";
+    } else {
+        header('Location: '.dirname($_SERVER[PHP_SELF]).'/login');
+    }
+});
+
+Route::add('/login', function () {
+    include "login.php";
 });
 
 Route::add('/api/theme', function () {
@@ -127,7 +136,7 @@ Route::add('/api/page/generate', function () {
 Route::add('(.*)', function ($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);
-    if ($page == null) {
+    if ($page == null || ($page["draft"] == true && !isset($_SESSION['loggedin']))) {
         header('HTTP/1.0 404 Not Found');
     } else {
         $page["basepath"] = dirname($_SERVER[PHP_SELF]);
