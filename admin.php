@@ -119,11 +119,14 @@
             font-size: 1rem !important;
         }
 
+        .nav-tabs .nav-link {
+            color: #f1f3f5 !important;
+        }
+
         .nav-tabs .nav-item.show .nav-link,
-        .nav-tabs .nav-link.active,
-        .tab-content>.active,
-        .nav-tabs {
-            border: 0 !important;
+        .nav-tabs .nav-link.active {
+            color: #495057 !important;
+            background-color: #f1f3f5 !important;
         }
     </style>
 </head>
@@ -173,7 +176,7 @@
                                     <h6 class="text-secondary">{{page.path}} <i class="fa-solid fa-arrow-right-long"></i> {{page.templateName}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
-                                    <a class="btn btn-primary btn-sm me-1"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
+                                    <a class="btn btn-primary btn-sm me-1" @click="editPage(page)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
                                     <a class="btn btn-danger btn-sm" @click="deletePage(page)"><i class="fa-solid fa-trash-can me-1"></i> Delete</a>
                                 </div>
                             </div>
@@ -185,7 +188,7 @@
                 </div>
                 <div v-if="viewPage == 2">
                     <div class="bg-light shadow-sm">
-                        <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <ul class="nav nav-tabs bg-secondary" id="myTab" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab" aria-controls="content" aria-selected="true">Content</button>
                             </li>
@@ -326,6 +329,16 @@
                     xmlhttp.open("GET", "/mirage/api/page/collection/" + collection.id, true);
                     xmlhttp.send();
                 },
+                editPage(page) {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        var pageDetails = JSON.parse(this.responseText);
+                        comp.editPageTemplate(pageDetails);
+                    }
+                    xmlhttp.open("GET", "/mirage/api/page/" + page._id, true);
+                    xmlhttp.send();
+                },
                 deletePage(page) {
                     if (confirm("Are you sure you want to delete this?") == true) {
                         var comp = this;
@@ -353,6 +366,28 @@
                         myModal.hide();
                     }
                     xmlhttp.open("GET", "/mirage/api/template/" + comp.editingTemplateName, true);
+                    xmlhttp.send();
+                },
+                editPageTemplate(page) {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.editingTemplate = JSON.parse(this.responseText);
+                        comp.editingTemplateName = page.templateName;
+                        comp.viewPage = 2;
+                        comp.editingMode = 1;
+                        comp.editingTitle = page.title;
+                        comp.editingPath = page.path;
+                        comp.editingID = page._id;
+                        comp.editingTemplate.sections.forEach(function(section) {
+                            section.fields.forEach(function(field) {
+                                if (page[field.id] != null) {
+                                    field.value = page[field.id];
+                                }
+                            });
+                        });
+                    }
+                    xmlhttp.open("GET", "/mirage/api/template/" + page.templateName, true);
                     xmlhttp.send();
                 },
                 savePage() {
@@ -384,12 +419,12 @@
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
-                        comp.editingID = JSON.parse(this.responseText)._id;
+                        comp.editPage(JSON.parse(this.responseText));
                     }
                     if (this.editingMode == 0) {
                         xmlhttp.open("POST", "/mirage/api/page/generate", true);
                     } else {
-
+                        xmlhttp.open("POST", "/mirage/api/page/" + comp.editingID, true);
                     }
                     xmlhttp.setRequestHeader('Content-Type', 'application/json');
                     xmlhttp.send(JSON.stringify(data));

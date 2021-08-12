@@ -45,6 +45,38 @@ Route::add('/api/page/collection/(.*)', function ($who) {
 
 Route::add('/api/page/([0-9]*)', function ($who) {
     global $pageStore;
+    $selectedPage = $pageStore->findById($who);
+    $myJSON = json_encode($selectedPage);
+    echo $myJSON;
+});
+
+Route::add('/api/page/([0-9]*)', function ($who) {
+    global $pageStore;
+
+    $json = file_get_contents('php://input');
+    $data = json_decode($json, true);
+    $page = [];
+
+    foreach ($data["template"]["sections"] as $section) {
+        foreach ($section["fields"] as $field) {
+            $page[$field['id']] = $field['value'];
+        }
+    }
+
+    $page["templateName"] = $data["templateName"];
+    $page["title"] = $data["title"];
+    $page["path"] = $data["path"];
+    $page["collection"] = $data["collection"];
+    $page["draft"] = $data["draft"];
+    $page["deleted"] = $data["deleted"];
+
+    $page = $pageStore->updateById($who, $page);
+    $myJSON = json_encode($page);
+    echo $myJSON;
+}, 'POST');
+
+Route::add('/api/page/([0-9]*)', function ($who) {
+    global $pageStore;
     $pageStore->deleteById($who);
 }, 'DELETE');
 
@@ -77,11 +109,7 @@ Route::add('(.*)', function ($who) {
     global $pageStore, $m;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null) {
-        if ($who == "/") {
-            header("Location: admin");
-        } else {
-            header('HTTP/1.0 404 Not Found');
-        }
+        header('HTTP/1.0 404 Not Found');
     } else {
         echo $m->render($page["templateName"], $page);
     }
