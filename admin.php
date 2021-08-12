@@ -172,8 +172,8 @@
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
-                                    <h4>{{page.title}}</h4>
-                                    <h6 class="text-secondary">{{page.path}} <i class="fa-solid fa-arrow-right-long"></i> {{page.templateName}}</h6>
+                                    <h4><i class="fa-solid fa-xs fa-compass-drafting me-1 text-warning" v-if="page.draft"></i> {{page.title}}</h4>
+                                    <h6 class="text-secondary">{{page.templateName}} <i class="fa-solid fa-arrow-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
                                     <a class="btn btn-primary btn-sm me-1" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
@@ -202,10 +202,6 @@
                                     <label class="form-label">Page Title:</label>
                                     <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Page Path:</label>
-                                    <input v-model="editingPath" type="text" class="form-control" placeholder="/">
-                                </div>
                                 <div class="accordion">
                                     <div class="accordion-item" v-for="(section, index) in editingTemplate.sections">
                                         <h2 class="accordion-header" :id="'heading'+index">
@@ -224,7 +220,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">Options</div>
+                            <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">
+                                <div class="mb-3">
+                                    <label class="form-label">Page Path:</label>
+                                    <input v-model="editingPath" type="text" class="form-control" placeholder="/">
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingDraft" v-bind:value="editingDraft">
+                                    <label class="form-check-label" for="flexSwitchCheckDefault">Page Is Draft</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -305,7 +310,8 @@
                     editingTemplateName: "",
                     editingPath: "",
                     editingMode: 0,
-                    editingID: null
+                    editingID: null,
+                    editingDraft: true
                 }
             },
             methods: {
@@ -363,6 +369,7 @@
                         comp.editingTemplate = JSON.parse(this.responseText);
                         comp.viewPage = 2;
                         comp.editingMode = 0;
+                        comp.editingDraft = true;
                         myModal.hide();
                     }
                     xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/template/" + comp.editingTemplateName, true);
@@ -379,6 +386,7 @@
                         comp.editingTitle = page.title;
                         comp.editingPath = page.path;
                         comp.editingID = page._id;
+                        comp.editingDraft = page.draft;
                         comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
                                 if (page[field.id] != null) {
@@ -413,8 +421,7 @@
                         title: this.editingTitle,
                         path: this.editingPath,
                         collection: this.activeCollection.id,
-                        draft: false,
-                        deleted: false
+                        draft: this.editingDraft
                     }
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();

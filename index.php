@@ -89,7 +89,6 @@ Route::add('/api/page/([0-9]*)', function ($who) {
     $page["path"] = $data["path"];
     $page["collection"] = $data["collection"];
     $page["draft"] = $data["draft"];
-    $page["deleted"] = $data["deleted"];
 
     $page = $pageStore->updateById($who, $page);
     $myJSON = json_encode($page);
@@ -119,7 +118,6 @@ Route::add('/api/page/generate', function () {
     $page["path"] = $data["path"];
     $page["collection"] = $data["collection"];
     $page["draft"] = $data["draft"];
-    $page["deleted"] = $data["deleted"];
 
     $page = $pageStore->insert($page);
     $myJSON = json_encode($page);
@@ -132,6 +130,7 @@ Route::add('(.*)', function ($who) {
     if ($page == null) {
         header('HTTP/1.0 404 Not Found');
     } else {
+        $page["basepath"] = dirname($_SERVER[PHP_SELF]);
         echo $m->render($page["templateName"], $page);
     }
 });
