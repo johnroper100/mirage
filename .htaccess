@@ -1,6 +1,6 @@
 DirectoryIndex index.php
 RewriteEngine on
-RewriteBase /mirage
+RewriteBase /test/mirage
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA]

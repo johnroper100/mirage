@@ -315,7 +315,7 @@
                     xmlhttp.onload = function() {
                         comp.theme = JSON.parse(this.responseText);
                     }
-                    xmlhttp.open("GET", "/mirage/api/theme", true);
+                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/theme", true);
                     xmlhttp.send();
                 },
                 getPages(collection) {
@@ -326,7 +326,7 @@
                         comp.viewPage = 1;
                         comp.activeCollection = collection;
                     }
-                    xmlhttp.open("GET", "/mirage/api/page/collection/" + collection.id, true);
+                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/collection/" + collection.id, true);
                     xmlhttp.send();
                 },
                 editPage(pageID) {
@@ -336,7 +336,7 @@
                         var pageDetails = JSON.parse(this.responseText);
                         comp.editPageTemplate(pageDetails);
                     }
-                    xmlhttp.open("GET", "/mirage/api/page/" + pageID, true);
+                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + pageID, true);
                     xmlhttp.send();
                 },
                 deletePage(pageID) {
@@ -346,7 +346,7 @@
                         xmlhttp.onload = function() {
                             comp.getPages(comp.activeCollection);
                         }
-                        xmlhttp.open("DELETE", "/mirage/api/page/" + pageID, true);
+                        xmlhttp.open("DELETE", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + pageID, true);
                         xmlhttp.send();
                     }
                 },
@@ -365,7 +365,7 @@
                         comp.editingMode = 0;
                         myModal.hide();
                     }
-                    xmlhttp.open("GET", "/mirage/api/template/" + comp.editingTemplateName, true);
+                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/template/" + comp.editingTemplateName, true);
                     xmlhttp.send();
                 },
                 editPageTemplate(page) {
@@ -387,7 +387,7 @@
                             });
                         });
                     }
-                    xmlhttp.open("GET", "/mirage/api/template/" + page.templateName, true);
+                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/template/" + page.templateName, true);
                     xmlhttp.send();
                 },
                 savePage() {
@@ -423,9 +423,9 @@
                         alert("Page saved!");
                     }
                     if (this.editingMode == 0) {
-                        xmlhttp.open("POST", "/mirage/api/page/generate", true);
+                        xmlhttp.open("POST", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/generate", true);
                     } else {
-                        xmlhttp.open("POST", "/mirage/api/page/" + comp.editingID, true);
+                        xmlhttp.open("POST", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + comp.editingID, true);
                     }
                     xmlhttp.setRequestHeader('Content-Type', 'application/json');
                     xmlhttp.send(JSON.stringify(data));
