@@ -1,5 +1,26 @@
 <?php
 
+if (!file_exists(".htaccess")) {
+    $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
+    $txt = "DirectoryIndex index.php\n";
+    fwrite($myfile, $txt);
+    // Enable apache rewrite engine
+    $txt = "RewriteEngine on\n";
+    fwrite($myfile, $txt);
+    // Set the rewrite base
+    $txt = "RewriteBase /" . basename(dirname($_SERVER[PHP_SELF])) . "\n";
+    fwrite($myfile, $txt);
+    // Deliver the folder or file directly if it exists on the server
+    $txt = "RewriteCond %{REQUEST_FILENAME} !-f\n";
+    fwrite($myfile, $txt);
+    $txt = "RewriteCond %{REQUEST_FILENAME} !-d\n";
+    fwrite($myfile, $txt);
+    // Push every request to index.php
+    $txt = "RewriteRule ^(.*)$ index.php [QSA]\n";
+    fwrite($myfile, $txt);
+    fclose($myfile);
+}
+
 use Steampixel\Route;
 use SleekDB\Store;
 
@@ -7,7 +28,7 @@ include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once './SleekDB/src/Store.php';
 require './mustache/src/Mustache/Autoloader.php';
 
-define('BASEPATH', '/mirage');
+define('BASEPATH', '/' . basename(dirname($_SERVER[PHP_SELF])));
 
 Mustache_Autoloader::register();
 $m = new Mustache_Engine(array(
