@@ -159,7 +159,7 @@
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
                             <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Site</button>
                             <button class="btn btn-success" v-if="viewPage == 1" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
-                            <button class="btn btn-danger me-2" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                            <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
                             <button class="btn btn-success" v-if="viewPage == 2" @click="savePage"><i class="fa-solid fa-floppy-disks me-1"></i> Save</button>
                         </div>
                     </div>
@@ -176,8 +176,8 @@
                                     <h6 class="text-secondary">{{page.path}} <i class="fa-solid fa-arrow-right-long"></i> {{page.templateName}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
-                                    <a class="btn btn-primary btn-sm me-1" @click="editPage(page)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
-                                    <a class="btn btn-danger btn-sm" @click="deletePage(page)"><i class="fa-solid fa-trash-can me-1"></i> Delete</a>
+                                    <a class="btn btn-primary btn-sm me-1" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
+                                    <a class="btn btn-danger btn-sm" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Delete</a>
                                 </div>
                             </div>
                         </li>
@@ -329,24 +329,24 @@
                     xmlhttp.open("GET", "/mirage/api/page/collection/" + collection.id, true);
                     xmlhttp.send();
                 },
-                editPage(page) {
+                editPage(pageID) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
                         var pageDetails = JSON.parse(this.responseText);
                         comp.editPageTemplate(pageDetails);
                     }
-                    xmlhttp.open("GET", "/mirage/api/page/" + page._id, true);
+                    xmlhttp.open("GET", "/mirage/api/page/" + pageID, true);
                     xmlhttp.send();
                 },
-                deletePage(page) {
+                deletePage(pageID) {
                     if (confirm("Are you sure you want to delete this?") == true) {
                         var comp = this;
                         var xmlhttp = new XMLHttpRequest();
                         xmlhttp.onload = function() {
                             comp.getPages(comp.activeCollection);
                         }
-                        xmlhttp.open("DELETE", "/mirage/api/page/" + page._id, true);
+                        xmlhttp.open("DELETE", "/mirage/api/page/" + pageID, true);
                         xmlhttp.send();
                     }
                 },
@@ -419,7 +419,8 @@
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
-                        comp.editPage(JSON.parse(this.responseText));
+                        comp.editPage(JSON.parse(this.responseText)._id);
+                        alert("Page saved!");
                     }
                     if (this.editingMode == 0) {
                         xmlhttp.open("POST", "/mirage/api/page/generate", true);
