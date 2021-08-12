@@ -140,7 +140,7 @@
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge me-1"></i> General</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 3" :class="{'active': viewPage == 3}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
-                <span class="p-2 ps-3 sidebarItem mt-2"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</span>
+                <a class="p-2 ps-3 sidebarItem mt-2 text-light text-decoration-none" href="<?php echo dirname($_SERVER[PHP_SELF]) ?>/logout"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</a>
             </div>
         </div>
         <!-- Page content wrapper-->

@@ -1,5 +1,7 @@
 <?php
 
+session_start();
+
 if (!file_exists(".htaccess")) {
     $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
     $txt = "DirectoryIndex index.php\n";
@@ -43,94 +45,148 @@ Route::add('/admin', function () {
     if (isset($_SESSION['loggedin'])) {
         include "admin.php";
     } else {
-        header('Location: '.dirname($_SERVER[PHP_SELF]).'/login');
+        header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/login');
     }
 });
 
 Route::add('/login', function () {
-    include "login.php";
+    if (isset($_SESSION['loggedin'])) {
+        header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/admin');
+    } else {
+        include "login.php";
+    }
+});
+
+Route::add('/login', function () {
+    global $userStore;
+
+    session_regenerate_id();
+    $_SESSION['loggedin'] = true;
+    $_SESSION['name'] = "John Roper";
+    $_SESSION['id'] = 12345;
+
+    header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/admin');
+}, 'POST');
+
+Route::add('/logout', function () {
+    if (isset($_SESSION['loggedin'])) {
+        session_destroy();
+    }
+    header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/login');
 });
 
 Route::add('/api/theme', function () {
-    echo file_get_contents("./themes/mirage/config.json");
+    if (isset($_SESSION['loggedin'])) {
+        echo file_get_contents("./themes/mirage/config.json");
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
 });
 
 Route::add('/api/template/(.*)', function ($who) {
-    echo file_get_contents("./themes/mirage/template_defs/" . $who . ".json");
+    if (isset($_SESSION['loggedin'])) {
+        echo file_get_contents("./themes/mirage/template_defs/" . $who . ".json");
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
 });
 
 Route::add('/api/page', function () {
-    global $pageStore;
-    $allPages = $pageStore->findAll();
-    $myJSON = json_encode($allPages);
-    echo $myJSON;
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
+        $allPages = $pageStore->findAll();
+        $myJSON = json_encode($allPages);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
 });
 
 Route::add('/api/page/collection/(.*)', function ($who) {
-    global $pageStore;
-    $allPages = $pageStore->findBy(["collection", "=", $who]);
-    $myJSON = json_encode($allPages);
-    echo $myJSON;
-});
-
-Route::add('/api/page/([0-9]*)', function ($who) {
-    global $pageStore;
-    $selectedPage = $pageStore->findById($who);
-    $myJSON = json_encode($selectedPage);
-    echo $myJSON;
-});
-
-Route::add('/api/page/([0-9]*)', function ($who) {
-    global $pageStore;
-
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
-    $page = [];
-
-    foreach ($data["template"]["sections"] as $section) {
-        foreach ($section["fields"] as $field) {
-            $page[$field['id']] = $field['value'];
-        }
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
+        $allPages = $pageStore->findBy(["collection", "=", $who]);
+        $myJSON = json_encode($allPages);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
     }
+});
 
-    $page["templateName"] = $data["templateName"];
-    $page["title"] = $data["title"];
-    $page["path"] = $data["path"];
-    $page["collection"] = $data["collection"];
-    $page["draft"] = $data["draft"];
+Route::add('/api/page/([0-9]*)', function ($who) {
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
+        $selectedPage = $pageStore->findById($who);
+        $myJSON = json_encode($selectedPage);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
+});
 
-    $page = $pageStore->updateById($who, $page);
-    $myJSON = json_encode($page);
-    echo $myJSON;
+Route::add('/api/page/([0-9]*)', function ($who) {
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
+
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+        $page = [];
+
+        foreach ($data["template"]["sections"] as $section) {
+            foreach ($section["fields"] as $field) {
+                $page[$field['id']] = $field['value'];
+            }
+        }
+
+        $page["templateName"] = $data["templateName"];
+        $page["title"] = $data["title"];
+        $page["path"] = $data["path"];
+        $page["collection"] = $data["collection"];
+        $page["draft"] = $data["draft"];
+
+        $page = $pageStore->updateById($who, $page);
+        $myJSON = json_encode($page);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
 }, 'POST');
 
 Route::add('/api/page/([0-9]*)', function ($who) {
-    global $pageStore;
-    $pageStore->deleteById($who);
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
+        $pageStore->deleteById($who);
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
 }, 'DELETE');
 
 Route::add('/api/page/generate', function () {
-    global $pageStore;
+    if (isset($_SESSION['loggedin'])) {
+        global $pageStore;
 
-    $json = file_get_contents('php://input');
-    $data = json_decode($json, true);
-    $page = [];
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+        $page = [];
 
-    foreach ($data["template"]["sections"] as $section) {
-        foreach ($section["fields"] as $field) {
-            $page[$field['id']] = $field['value'];
+        foreach ($data["template"]["sections"] as $section) {
+            foreach ($section["fields"] as $field) {
+                $page[$field['id']] = $field['value'];
+            }
         }
+
+        $page["templateName"] = $data["templateName"];
+        $page["title"] = $data["title"];
+        $page["path"] = $data["path"];
+        $page["collection"] = $data["collection"];
+        $page["draft"] = $data["draft"];
+
+        $page = $pageStore->insert($page);
+        $myJSON = json_encode($page);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
     }
-
-    $page["templateName"] = $data["templateName"];
-    $page["title"] = $data["title"];
-    $page["path"] = $data["path"];
-    $page["collection"] = $data["collection"];
-    $page["draft"] = $data["draft"];
-
-    $page = $pageStore->insert($page);
-    $myJSON = json_encode($page);
-    echo $myJSON;
 }, 'POST');
 
 Route::add('(.*)', function ($who) {
