@@ -214,6 +214,7 @@
                                                 <div class="mb-3" v-for="field in section.fields">
                                                     <label class="form-label">{{field.name}}:</label>
                                                     <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
+                                                    <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
                                                 </div>
                                             </div>
                                         </div>
