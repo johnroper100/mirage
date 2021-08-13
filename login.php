@@ -67,7 +67,7 @@
             <div class="col-12 col-md-5">
                 <div class="card">
                     <div class="card-body">
-                        <form action="<?php echo dirname($_SERVER[PHP_SELF]) ?>/login" method="POST">
+                        <form action="<?php echo BASEPATH ?>/login" method="POST">
                             <div class="mb-3">
                                 <label class="form-label">Email Address:</label>
                                 <input type="email" class="form-control" placeholder="johndoe@mail.com" name="email" id="email">

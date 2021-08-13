@@ -1,5 +1,4 @@
-{{> header}}
-
+<?php include 'header.php'; ?>
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <!-- Header-->
@@ -8,11 +7,11 @@
                 <div class="row gx-5 align-items-center justify-content-center">
                     <div class="col-lg-8 col-xl-7 col-xxl-6">
                         <div class="my-5 text-center text-xl-start">
-                            <h1 class="display-5 fw-bolder text-white mb-2">{{headerTitle}}</h1>
-                            <p class="lead fw-normal text-white-50 mb-4">{{headerSubtitle}}</p>
+                            <h1 class="display-5 fw-bolder text-white mb-2"><?php echo $page["content"]["headerTitle"]; ?></h1>
+                            <p class="lead fw-normal text-white-50 mb-4"><?php echo $page["content"]["headerSubtitle"]; ?></p>
                             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center justify-content-xl-start">
-                                <a class="btn btn-primary btn-lg px-4 me-sm-3" href="{{buttonOneLink}}">{{buttonOneText}}</a>
-                                <a class="btn btn-outline-light btn-lg px-4" href="{{buttonTwoLink}}">{{buttonTwoText}}</a>
+                                <a class="btn btn-primary btn-lg px-4 me-sm-3" href="<?php echo $page["content"]["buttonOneLink"]; ?>"><?php echo $page["content"]["buttonOneText"]; ?></a>
+                                <a class="btn btn-outline-light btn-lg px-4" href="<?php echo $page["content"]["buttonTwoLink"]; ?>"><?php echo $page["content"]["buttonTwoText"]; ?></a>
                             </div>
                         </div>
                     </div>
@@ -21,5 +20,4 @@
             </div>
         </header>
     </main>
-
-{{> footer}}
+<?php include 'footer.php'; ?>

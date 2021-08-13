@@ -1,12 +1,6 @@
 [submodule "simplePHPRouter"]
 	path = simplePHPRouter
 	url = https://github.com/steampixel/simplePHPRouter.git
-[submodule "mustache.php"]
-	path = mustache.php
-	url = https://github.com/bobthecow/mustache.php.git
-[submodule "mustache"]
-	path = mustache
-	url = https://github.com/bobthecow/mustache.php.git
 [submodule "SleekDB"]
 	path = SleekDB
 	url = https://github.com/rakibtg/SleekDB.git

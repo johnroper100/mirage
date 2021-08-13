@@ -10,7 +10,7 @@ if (!file_exists(".htaccess")) {
     $txt = "RewriteEngine on\n";
     fwrite($myfile, $txt);
     // Set the rewrite base
-    $txt = "RewriteBase " . dirname($_SERVER[PHP_SELF]) . "\n";
+    $txt = "RewriteBase " . BASEPATH . "\n";
     fwrite($myfile, $txt);
     // Deliver the folder or file directly if it exists on the server
     $txt = "RewriteCond %{REQUEST_FILENAME} !-f\n";
@@ -28,14 +28,8 @@ use SleekDB\Store;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once './SleekDB/src/Store.php';
-require './mustache/src/Mustache/Autoloader.php';
 
 define('BASEPATH', dirname($_SERVER[PHP_SELF]));
-
-Mustache_Autoloader::register();
-$m = new Mustache_Engine(array(
-    'loader' => new Mustache_Loader_FilesystemLoader(dirname(__FILE__) . '/themes/mirage'),
-));
 
 $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
@@ -45,13 +39,13 @@ Route::add('/admin', function () {
     if (isset($_SESSION['loggedin'])) {
         include "admin.php";
     } else {
-        header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/login');
+        header('Location: ' . BASEPATH . '/login');
     }
 });
 
 Route::add('/login', function () {
     if (isset($_SESSION['loggedin'])) {
-        header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/admin');
+        header('Location: ' . BASEPATH . '/admin');
     } else {
         include "login.php";
     }
@@ -65,14 +59,14 @@ Route::add('/login', function () {
     $_SESSION['name'] = "John Roper";
     $_SESSION['id'] = 12345;
 
-    header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/admin');
+    header('Location: ' . BASEPATH . '/admin');
 }, 'POST');
 
 Route::add('/logout', function () {
     if (isset($_SESSION['loggedin'])) {
         session_destroy();
     }
-    header('Location: ' . dirname($_SERVER[PHP_SELF]) . '/login');
+    header('Location: ' . BASEPATH . '/login');
 });
 
 Route::add('/api/theme', function () {
@@ -131,10 +125,11 @@ Route::add('/api/page/([0-9]*)', function ($who) {
         $json = file_get_contents('php://input');
         $data = json_decode($json, true);
         $page = [];
+        $page["content"] = [];
 
         foreach ($data["template"]["sections"] as $section) {
             foreach ($section["fields"] as $field) {
-                $page[$field['id']] = $field['value'];
+                $page["content"][$field['id']] = $field['value'];
             }
         }
 
@@ -168,10 +163,11 @@ Route::add('/api/page/generate', function () {
         $json = file_get_contents('php://input');
         $data = json_decode($json, true);
         $page = [];
+        $page["content"] = [];
 
         foreach ($data["template"]["sections"] as $section) {
             foreach ($section["fields"] as $field) {
-                $page[$field['id']] = $field['value'];
+                $page["content"][$field['id']] = $field['value'];
             }
         }
 
@@ -190,13 +186,12 @@ Route::add('/api/page/generate', function () {
 }, 'POST');
 
 Route::add('(.*)', function ($who) {
-    global $pageStore, $m;
+    global $pageStore;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null || ($page["draft"] == true && !isset($_SESSION['loggedin']))) {
         header('HTTP/1.0 404 Not Found');
     } else {
-        $page["basepath"] = dirname($_SERVER[PHP_SELF]);
-        echo $m->render($page["templateName"], $page);
+        include './themes/mirage/' . $page["templateName"] . ".php";
     }
 });
 

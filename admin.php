@@ -140,7 +140,7 @@
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge me-1"></i> General</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 3" :class="{'active': viewPage == 3}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
-                <a class="p-2 ps-3 sidebarItem mt-2 text-light text-decoration-none" href="<?php echo dirname($_SERVER[PHP_SELF]) ?>/logout"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</a>
+                <a class="p-2 ps-3 sidebarItem mt-2 text-light text-decoration-none" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</a>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -322,7 +322,7 @@
                     xmlhttp.onload = function() {
                         comp.theme = JSON.parse(this.responseText);
                     }
-                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/theme", true);
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
                     xmlhttp.send();
                 },
                 getPages(collection) {
@@ -333,7 +333,7 @@
                         comp.viewPage = 1;
                         comp.activeCollection = collection;
                     }
-                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/collection/" + collection.id, true);
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/collection/" + collection.id, true);
                     xmlhttp.send();
                 },
                 editPage(pageID) {
@@ -343,7 +343,7 @@
                         var pageDetails = JSON.parse(this.responseText);
                         comp.editPageTemplate(pageDetails);
                     }
-                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + pageID, true);
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/" + pageID, true);
                     xmlhttp.send();
                 },
                 deletePage(pageID) {
@@ -353,7 +353,7 @@
                         xmlhttp.onload = function() {
                             comp.getPages(comp.activeCollection);
                         }
-                        xmlhttp.open("DELETE", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + pageID, true);
+                        xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/page/" + pageID, true);
                         xmlhttp.send();
                     }
                 },
@@ -373,7 +373,7 @@
                         comp.editingDraft = true;
                         myModal.hide();
                     }
-                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/template/" + comp.editingTemplateName, true);
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
                     xmlhttp.send();
                 },
                 editPageTemplate(page) {
@@ -390,13 +390,13 @@
                         comp.editingDraft = page.draft;
                         comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
-                                if (page[field.id] != null) {
-                                    field.value = page[field.id];
+                                if (page["content"][field.id] != null) {
+                                    field.value = page["content"][field.id];
                                 }
                             });
                         });
                     }
-                    xmlhttp.open("GET", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/template/" + page.templateName, true);
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + page.templateName, true);
                     xmlhttp.send();
                 },
                 savePage() {
@@ -431,9 +431,9 @@
                         alert("Page saved!");
                     }
                     if (this.editingMode == 0) {
-                        xmlhttp.open("POST", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/generate", true);
+                        xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/page/generate", true);
                     } else {
-                        xmlhttp.open("POST", "<?php echo dirname($_SERVER[PHP_SELF]) ?>/api/page/" + comp.editingID, true);
+                        xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/page/" + comp.editingID, true);
                     }
                     xmlhttp.setRequestHeader('Content-Type', 'application/json');
                     xmlhttp.send(JSON.stringify(data));
