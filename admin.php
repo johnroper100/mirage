@@ -149,11 +149,11 @@
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
                 <div class="container-fluid">
                     <button class="btn btn-dark" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 0">General</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 1">{{activeCollection.name}}</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 2 && editingMode == 0">Add Page</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 2 && editingMode == 1">Edit Page</h4>
-                    <h4 class="mb-0 ms-3" v-if="viewPage == 3">Settings</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 0">General</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 1">{{activeCollection.name}}</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 2 && editingMode == 0">Add Page</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 2 && editingMode == 1">Edit Page</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 3">Settings</h4>
                     <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
