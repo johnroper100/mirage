@@ -11,49 +11,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
-    <script defer src="all.min.js"></script>
+    <link href="<?php echo BASEPATH; ?>/assets/css/admin.css" rel="stylesheet">
+    <script defer src="<?php echo BASEPATH; ?>/assets/js/all.min.js"></script>
     <title>Mirage Login</title>
-    <style>
-        * {
-            border-radius: 0 !important;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: #f8f9fa;
-        }
-
-        .bg-dark {
-            background-color: #212529 !important;
-        }
-
-        .bg-secondary {
-            background-color: #343a40 !important;
-        }
-
-        .bg-light {
-            background-color: #f1f3f5 !important;
-        }
-
-        .btn-dark {
-            color: #f8f9fa;
-            background-color: #212529;
-            border-color: #212529;
-        }
-
-        .btn-success {
-            color: #f8f9fa;
-            background-color: #2f9e44;
-            border-color: #2f9e44;
-        }
-
-        .btn-primary {
-            color: #f8f9fa;
-            background-color: #1971c2;
-            border-color: #1971c2;
-        }
-    </style>
 </head>
 
 <body>

@@ -1,0 +1,114 @@
+* {
+    border-radius: 0 !important;
+    font-family: 'Montserrat', sans-serif;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #f8f9fa;
+}
+
+.bg-dark {
+    background-color: #212529 !important;
+}
+
+.bg-secondary {
+    background-color: #343a40 !important;
+}
+
+.bg-light {
+    background-color: #f1f3f5 !important;
+}
+
+.btn-dark {
+    color: #f8f9fa;
+    background-color: #212529;
+    border-color: #212529;
+}
+
+.btn-success {
+    color: #f8f9fa;
+    background-color: #2f9e44;
+    border-color: #2f9e44;
+}
+
+.btn-primary {
+    color: #f8f9fa;
+    background-color: #1971c2;
+    border-color: #1971c2;
+}
+
+#app {
+    overflow-x: hidden;
+}
+
+#sidebar-wrapper {
+    min-height: 100vh;
+    margin-left: -15rem;
+    -webkit-transition: margin .25s ease-out;
+    -moz-transition: margin .25s ease-out;
+    -o-transition: margin .25s ease-out;
+    transition: margin .25s ease-out;
+}
+
+#sidebar-wrapper .sidebar-heading {
+    padding: 0.875rem 1.25rem;
+    font-size: 1.2rem;
+}
+
+#sidebar-wrapper .list-group {
+    width: 15rem;
+}
+
+#page-content-wrapper {
+    min-width: 100vw;
+}
+
+body.mirage-sidenav-toggled #app #sidebar-wrapper {
+    margin-left: 0;
+}
+
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    body.mirage-sidenav-toggled #app #sidebar-wrapper {
+        margin-left: -15rem;
+    }
+}
+
+.sidebarItem:hover {
+    cursor: pointer;
+}
+
+.sidebarItem {
+    border-left: solid 5px transparent;
+}
+
+.sidebarItem.active {
+    border-left: solid 5px #37b24d;
+    background-color: #343a40;
+}
+
+.navbar-toggler {
+    line-height: 1.5 !important;
+    color: #f8f9fa !important;
+    padding: .375rem .75rem !important;
+    font-size: 1rem !important;
+}
+
+.nav-tabs .nav-link {
+    color: #f1f3f5 !important;
+}
+
+.nav-tabs .nav-item.show .nav-link,
+.nav-tabs .nav-link.active {
+    color: #495057 !important;
+    background-color: #f1f3f5 !important;
+}

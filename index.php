@@ -36,6 +36,25 @@ $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
 $userStore = new Store("users", $databaseDirectory);
 
+function generatePage($json) {
+    $data = json_decode($json, true);
+    $page = [];
+    $page["content"] = [];
+
+    foreach ($data["template"]["sections"] as $section) {
+        foreach ($section["fields"] as $field) {
+            $page["content"][$field['id']] = $field['value'];
+        }
+    }
+
+    $page["templateName"] = $data["templateName"];
+    $page["title"] = $data["title"];
+    $page["path"] = $data["path"];
+    $page["collection"] = $data["collection"];
+    $page["private"] = $data["private"];
+    return $page;
+}
+
 Route::add('/admin', function () {
     if (isset($_SESSION['loggedin'])) {
         include "admin.php";
@@ -124,23 +143,7 @@ Route::add('/api/page/([0-9]*)', function ($who) {
         global $pageStore;
 
         $json = file_get_contents('php://input');
-        $data = json_decode($json, true);
-        $page = [];
-        $page["content"] = [];
-
-        foreach ($data["template"]["sections"] as $section) {
-            foreach ($section["fields"] as $field) {
-                $page["content"][$field['id']] = $field['value'];
-            }
-        }
-
-        $page["templateName"] = $data["templateName"];
-        $page["title"] = $data["title"];
-        $page["path"] = $data["path"];
-        $page["collection"] = $data["collection"];
-        $page["private"] = $data["private"];
-
-        $page = $pageStore->updateById($who, $page);
+        $page = $pageStore->updateById($who, generatePage($json));
         $myJSON = json_encode($page);
         echo $myJSON;
     } else {
@@ -162,23 +165,7 @@ Route::add('/api/page/generate', function () {
         global $pageStore;
 
         $json = file_get_contents('php://input');
-        $data = json_decode($json, true);
-        $page = [];
-        $page["content"] = [];
-
-        foreach ($data["template"]["sections"] as $section) {
-            foreach ($section["fields"] as $field) {
-                $page["content"][$field['id']] = $field['value'];
-            }
-        }
-
-        $page["templateName"] = $data["templateName"];
-        $page["title"] = $data["title"];
-        $page["path"] = $data["path"];
-        $page["collection"] = $data["collection"];
-        $page["private"] = $data["private"];
-
-        $page = $pageStore->insert($page);
+        $page = $pageStore->insert(generatePage($json));
         $myJSON = json_encode($page);
         echo $myJSON;
     } else {

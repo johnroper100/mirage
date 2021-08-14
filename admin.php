@@ -11,124 +11,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
-    <script defer src="all.min.js"></script>
+    <link href="<?php echo BASEPATH; ?>/assets/css/admin.css" rel="stylesheet">
+    <script defer src="<?php echo BASEPATH; ?>/assets/js/all.min.js"></script>
     <title>Mirage Admin</title>
-    <style>
-        * {
-            border-radius: 0 !important;
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: #f8f9fa;
-        }
-
-        .bg-dark {
-            background-color: #212529 !important;
-        }
-
-        .bg-secondary {
-            background-color: #343a40 !important;
-        }
-
-        .bg-light {
-            background-color: #f1f3f5 !important;
-        }
-
-        .btn-dark {
-            color: #f8f9fa;
-            background-color: #212529;
-            border-color: #212529;
-        }
-
-        .btn-success {
-            color: #f8f9fa;
-            background-color: #2f9e44;
-            border-color: #2f9e44;
-        }
-
-        .btn-primary {
-            color: #f8f9fa;
-            background-color: #1971c2;
-            border-color: #1971c2;
-        }
-
-        #app {
-            overflow-x: hidden;
-        }
-
-        #sidebar-wrapper {
-            min-height: 100vh;
-            margin-left: -15rem;
-            -webkit-transition: margin .25s ease-out;
-            -moz-transition: margin .25s ease-out;
-            -o-transition: margin .25s ease-out;
-            transition: margin .25s ease-out;
-        }
-
-        #sidebar-wrapper .sidebar-heading {
-            padding: 0.875rem 1.25rem;
-            font-size: 1.2rem;
-        }
-
-        #sidebar-wrapper .list-group {
-            width: 15rem;
-        }
-
-        #page-content-wrapper {
-            min-width: 100vw;
-        }
-
-        body.mirage-sidenav-toggled #app #sidebar-wrapper {
-            margin-left: 0;
-        }
-
-        @media (min-width: 768px) {
-            #sidebar-wrapper {
-                margin-left: 0;
-            }
-
-            #page-content-wrapper {
-                min-width: 0;
-                width: 100%;
-            }
-
-            body.mirage-sidenav-toggled #app #sidebar-wrapper {
-                margin-left: -15rem;
-            }
-        }
-
-        .sidebarItem:hover {
-            cursor: pointer;
-        }
-
-        .sidebarItem {
-            border-left: solid 5px transparent;
-        }
-
-        .sidebarItem.active {
-            border-left: solid 5px #37b24d;
-            background-color: #343a40;
-        }
-
-        .navbar-toggler {
-            line-height: 1.5 !important;
-            color: #f8f9fa !important;
-            padding: .375rem .75rem !important;
-            font-size: 1rem !important;
-        }
-
-        .nav-tabs .nav-link {
-            color: #f1f3f5 !important;
-        }
-
-        .nav-tabs .nav-item.show .nav-link,
-        .nav-tabs .nav-link.active {
-            color: #495057 !important;
-            background-color: #f1f3f5 !important;
-        }
-    </style>
 </head>
 
 <body>
@@ -173,7 +58,7 @@
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
                                     <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.private"></i> {{page.title}}</h4>
-                                    <h6 class="text-secondary">{{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
+                                    <h6 class="text-secondary">T: {{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
                                     <a class="btn btn-primary btn-sm me-1" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
