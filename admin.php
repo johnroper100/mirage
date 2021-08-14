@@ -137,10 +137,10 @@
         <div class="bg-dark text-light" id="sidebar-wrapper">
             <div class="sidebar-heading bg-secondary text-light text-center text-uppercase shadow-sm">Mirage Admin</div>
             <div class="list-group list-group-flush mt-2">
-                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge me-1"></i> General</span>
+                <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 0" :class="{'active': viewPage == 0}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="getPages(collection)" :class="{'active': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
                 <span class="p-2 ps-3 sidebarItem mt-2" @click="viewPage = 3" :class="{'active': viewPage == 3}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
-                <a class="p-2 ps-3 sidebarItem mt-2 text-light text-decoration-none" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Log Out</a>
+                <a class="p-2 ps-3 sidebarItem mt-2 text-light text-decoration-none" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
             </div>
         </div>
         <!-- Page content wrapper-->
@@ -157,10 +157,10 @@
                     <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> View Site</button>
+                            <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</button>
                             <button class="btn btn-success" v-if="viewPage == 1" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
                             <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
-                            <button class="btn btn-success" v-if="viewPage == 2" @click="savePage"><i class="fa-solid fa-floppy-disks me-1"></i> Save</button>
+                            <button class="btn btn-success" v-if="viewPage == 2" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         </div>
                     </div>
                 </div>
@@ -172,8 +172,8 @@
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
-                                    <h4><i class="fa-solid fa-xs fa-compass-drafting me-1 text-warning" v-if="page.draft"></i> {{page.title}}</h4>
-                                    <h6 class="text-secondary">{{page.templateName}} <i class="fa-solid fa-arrow-right-long"></i> {{page.path}}</h6>
+                                    <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.private"></i> {{page.title}}</h4>
+                                    <h6 class="text-secondary">{{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
                                     <a class="btn btn-primary btn-sm me-1" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
@@ -227,8 +227,8 @@
                                     <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                                 </div>
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingDraft" v-bind:value="editingDraft">
-                                    <label class="form-check-label" for="flexSwitchCheckDefault">Page Is Draft</label>
+                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingPrivate" v-bind:value="editingPrivate">
+                                    <label class="form-check-label" for="flexSwitchCheckDefault">Page Is Private</label>
                                 </div>
                             </div>
                         </div>
@@ -312,7 +312,7 @@
                     editingPath: "",
                     editingMode: 0,
                     editingID: null,
-                    editingDraft: true
+                    editingPrivate: true
                 }
             },
             methods: {
@@ -370,7 +370,7 @@
                         comp.editingTemplate = JSON.parse(this.responseText);
                         comp.viewPage = 2;
                         comp.editingMode = 0;
-                        comp.editingDraft = true;
+                        comp.editingPrivate = true;
                         myModal.hide();
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
@@ -387,7 +387,7 @@
                         comp.editingTitle = page.title;
                         comp.editingPath = page.path;
                         comp.editingID = page._id;
-                        comp.editingDraft = page.draft;
+                        comp.editingPrivate = page.private;
                         comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
                                 if (page["content"][field.id] != null) {
@@ -422,7 +422,7 @@
                         title: this.editingTitle,
                         path: this.editingPath,
                         collection: this.activeCollection.id,
-                        draft: this.editingDraft
+                        private: this.editingPrivate
                     }
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();

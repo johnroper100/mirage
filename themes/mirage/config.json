@@ -13,7 +13,7 @@
         {
             "name": "Pages",
             "id": "pages",
-            "icon": "fa-file-heart",
+            "icon": "fa-file-invoice",
             "allowed_templates": [
                 "home"
             ]
@@ -21,7 +21,7 @@
         {
             "name": "Blog Posts",
             "id": "blog_posts",
-            "icon": "fa-block-quote",
+            "icon": "fa-align-left",
             "allowed_templates": []
         },
         {

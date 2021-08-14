@@ -1,6 +1,7 @@
 <?php include 'header.php'; ?>
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
+        <?php include 'nav.php'; ?>
         <!-- Header-->
         <header class="bg-dark py-5">
             <div class="container px-5">

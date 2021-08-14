@@ -1,0 +1,5 @@
+<?php
+
+$siteTitle = "Modern Business";
+
+?>

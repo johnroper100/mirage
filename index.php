@@ -28,6 +28,7 @@ use SleekDB\Store;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once './SleekDB/src/Store.php';
+require_once './config.php';
 
 define('BASEPATH', dirname($_SERVER[PHP_SELF]));
 
@@ -137,7 +138,7 @@ Route::add('/api/page/([0-9]*)', function ($who) {
         $page["title"] = $data["title"];
         $page["path"] = $data["path"];
         $page["collection"] = $data["collection"];
-        $page["draft"] = $data["draft"];
+        $page["private"] = $data["private"];
 
         $page = $pageStore->updateById($who, $page);
         $myJSON = json_encode($page);
@@ -175,7 +176,7 @@ Route::add('/api/page/generate', function () {
         $page["title"] = $data["title"];
         $page["path"] = $data["path"];
         $page["collection"] = $data["collection"];
-        $page["draft"] = $data["draft"];
+        $page["private"] = $data["private"];
 
         $page = $pageStore->insert($page);
         $myJSON = json_encode($page);
@@ -187,8 +188,9 @@ Route::add('/api/page/generate', function () {
 
 Route::add('(.*)', function ($who) {
     global $pageStore;
+    global $siteTitle;
     $page = $pageStore->findOneBy(["path", "=", $who]);
-    if ($page == null || ($page["draft"] == true && !isset($_SESSION['loggedin']))) {
+    if ($page == null || ($page["private"] == true && !isset($_SESSION['loggedin']))) {
         header('HTTP/1.0 404 Not Found');
     } else {
         include './themes/mirage/' . $page["templateName"] . ".php";
