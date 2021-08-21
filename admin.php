@@ -22,11 +22,11 @@
         <div class="bg-dark text-light" id="sidebar-wrapper">
             <div class="sidebar-heading bg-secondary text-light text-center text-uppercase shadow-sm">Mirage Admin</div>
             <div class="list-group list-group-flush mt-2">
-                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 0" :class="{'active text-light': viewPage == 0}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
-                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 1 || viewPage == 2) && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
-                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 3" :class="{'active text-light': viewPage == 3}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
-                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 4" :class="{'active text-light': viewPage == 4}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
-                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 5" :class="{'active text-light': viewPage == 5}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'general'" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
+                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
+                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'media'" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
+                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'themes'" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
+                <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'settings'" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
                 <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
             </div>
         </div>
@@ -36,27 +36,28 @@
             <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
                 <div class="container-fluid">
                     <button class="btn btn-dark" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 0">General</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 1">{{activeCollection.name}}</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 2 && editingMode == 0">Add Page</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 2 && editingMode == 1">Edit Page</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 3">Media</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 4">Themes</h4>
-                    <h4 class="mb-0 ms-2" v-if="viewPage == 5">Settings</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'general'">General</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'pages'">{{activeCollection.name}}</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'themes'">Themes</h4>
+                    <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
                     <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <button class="btn btn-primary" v-if="viewPage == 0"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</button>
-                            <button class="btn btn-success" v-if="viewPage == 1" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
-                            <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 2 && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
-                            <button class="btn btn-success" v-if="viewPage == 2" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
+                            <button class="btn btn-primary" v-if="viewPage == 'general'"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</button>
+                            <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
+                            <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                            <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
+                            <button class="btn btn-success" v-if="viewPage == 'media'"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                         </div>
                     </div>
                 </div>
             </nav>
             <!-- Page content-->
             <div class="container-fluid pt-3 pb-3 ps-5 pe-4">
-                <div v-if="viewPage == 1">
+                <div v-if="viewPage == 'pages'">
                     <ul class="list-group mt-2 shadow-sm">
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
@@ -75,7 +76,7 @@
                         </li>
                     </ul>
                 </div>
-                <div v-if="viewPage == 2">
+                <div v-if="viewPage == 'editPage'">
                     <div class="bg-light shadow-sm">
                         <ul class="nav nav-tabs bg-secondary" id="myTab" role="tablist">
                             <li class="nav-item" role="presentation">
@@ -123,13 +124,13 @@
                         </div>
                     </div>
                 </div>
-                <div v-if="viewPage == 3">
-                    Media
+                <div v-if="viewPage == 'media'">
+                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" v-for="item in mediaItems">
                 </div>
-                <div v-if="viewPage == 4">
+                <div v-if="viewPage == 'themes'">
                     Themes
                 </div>
-                <div v-if="viewPage == 5">
+                <div v-if="viewPage == 'settings'">
                     Settings
                 </div>
                 <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -197,10 +198,11 @@
         const App = {
             data() {
                 return {
-                    viewPage: 0,
+                    viewPage: 'general',
                     activeCollection: {},
                     theme: {},
                     pages: {},
+                    mediaItems: {},
                     editingTemplate: {},
                     editingTitle: "",
                     editingTemplateName: "",
@@ -220,12 +222,21 @@
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
                     xmlhttp.send();
                 },
+                getMedia() {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.mediaItems = JSON.parse(this.responseText);
+                    }
+                    xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/media", true);
+                    xmlhttp.send();
+                },
                 getPages(collection) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
                         comp.pages = JSON.parse(this.responseText);
-                        comp.viewPage = 1;
+                        comp.viewPage = 'pages';
                         comp.activeCollection = collection;
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/collection/" + collection.id, true);
@@ -263,7 +274,7 @@
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function() {
                         comp.editingTemplate = JSON.parse(this.responseText);
-                        comp.viewPage = 2;
+                        comp.viewPage = 'editPage';
                         comp.editingMode = 0;
                         comp.editingPrivate = true;
                         myModal.hide();
@@ -277,7 +288,7 @@
                     xmlhttp.onload = function() {
                         comp.editingTemplate = JSON.parse(this.responseText);
                         comp.editingTemplateName = page.templateName;
-                        comp.viewPage = 2;
+                        comp.viewPage = 'editPage';
                         comp.editingMode = 1;
                         comp.editingTitle = page.title;
                         comp.editingPath = page.path;
@@ -336,6 +347,7 @@
             },
             mounted() {
                 this.getTheme();
+                this.getMedia();
             }
         }
 

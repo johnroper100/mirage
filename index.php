@@ -35,6 +35,12 @@ define('BASEPATH', dirname($_SERVER[PHP_SELF]));
 $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory);
 $userStore = new Store("users", $databaseDirectory);
+$mediaStore = new Store("mediaItems", $databaseDirectory);
+
+/*$page = [];
+$page['file'] = 'test.png';
+$page['extension'] = 'png';
+$page = $mediaStore->insert($page);*/
 
 function generatePage($json) {
     $data = json_decode($json, true);
@@ -172,6 +178,17 @@ Route::add('/api/page/generate', function () {
         header('HTTP/1.0 404 Not Found');
     }
 }, 'POST');
+
+Route::add('/api/media', function () {
+    if (isset($_SESSION['loggedin'])) {
+        global $mediaStore;
+        $allMedia = $mediaStore->findAll();
+        $myJSON = json_encode($allMedia);
+        echo $myJSON;
+    } else {
+        header('HTTP/1.0 404 Not Found');
+    }
+});
 
 Route::add('(.*)', function ($who) {
     global $pageStore;
