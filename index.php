@@ -57,7 +57,7 @@ function generatePage($json) {
     $page["title"] = $data["title"];
     $page["path"] = $data["path"];
     $page["collection"] = $data["collection"];
-    $page["private"] = $data["private"];
+    $page["published"] = $data["published"];
     return $page;
 }
 
@@ -194,7 +194,7 @@ Route::add('(.*)', function ($who) {
     global $pageStore;
     global $siteTitle;
     $page = $pageStore->findOneBy(["path", "=", $who]);
-    if ($page == null || ($page["private"] == true && !isset($_SESSION['loggedin']))) {
+    if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
         header('HTTP/1.0 404 Not Found');
     } else {
         include './themes/mirage/' . $page["templateName"] . ".php";

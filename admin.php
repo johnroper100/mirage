@@ -62,7 +62,7 @@
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
-                                    <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.private"></i>{{page.title}}</h4>
+                                    <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.published == false"></i>{{page.title}}</h4>
                                     <h6 class="text-secondary">T: {{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
@@ -119,8 +119,8 @@
                                     <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                                 </div>
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingPrivate" v-bind:value="editingPrivate">
-                                    <label class="form-check-label" for="flexSwitchCheckDefault">Page Is Private</label>
+                                    <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingPublished" v-bind:value="editingPublished">
+                                    <label class="form-check-label" for="flexSwitchCheckDefault">Page Published</label>
                                 </div>
                             </div>
                         </div>
@@ -229,7 +229,7 @@
                     editingPath: "",
                     editingMode: 0,
                     editingID: null,
-                    editingPrivate: true,
+                    editingPublished: true,
                     selectFileFieldID: "",
                 }
             },
@@ -297,7 +297,7 @@
                         comp.editingTemplate = JSON.parse(this.responseText);
                         comp.viewPage = 'editPage';
                         comp.editingMode = 0;
-                        comp.editingPrivate = true;
+                        comp.editingPublished = false;
                         addPageModal.hide();
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
@@ -314,7 +314,7 @@
                         comp.editingTitle = page.title;
                         comp.editingPath = page.path;
                         comp.editingID = page._id;
-                        comp.editingPrivate = page.private;
+                        comp.editingPublished = page.published;
                         comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
                                 if (page["content"][field.id] != null) {
@@ -349,7 +349,7 @@
                         title: this.editingTitle,
                         path: this.editingPath,
                         collection: this.activeCollection.id,
-                        private: this.editingPrivate
+                        published: this.editingPublished
                     }
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();

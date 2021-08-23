@@ -22,7 +22,7 @@ $page["templateName"] = $data["templateName"];
 $page["title"] = $data["title"];
 $page["path"] = $data["path"];
 $page["collection"] = $data["collection"];
-$page["private"] = $data["private"];
+$page["published"] = $data["published"];
 
 $page = $pageStore->insert($page);
 

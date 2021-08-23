@@ -77,7 +77,7 @@ $array = json_decode($strJsonFileContents, true);
                         title: this.title,
                         path: this.path,
                         collection: "pages",
-                        private: false
+                        published: false
                     }
                     var xhr = new XMLHttpRequest();
                     xhr.open("POST", "generate.php", true);
