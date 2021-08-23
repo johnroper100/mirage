@@ -1,4 +1,5 @@
 <?php include 'header.php'; ?>
+
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <?php include 'nav.php'; ?>
@@ -16,7 +17,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-5 col-xxl-6 d-none d-xl-block text-center"><img class="img-fluid rounded-3 my-5" src="https://dummyimage.com/600x400/343a40/6c757d" alt="..." /></div>
+                    <div class="col-xl-5 col-xxl-6 d-none d-xl-block text-center"><img class="img-fluid rounded-3 my-5" src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["headerImage"]; ?>" alt="..." /></div>
                 </div>
             </div>
         </header>

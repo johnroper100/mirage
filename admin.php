@@ -105,6 +105,8 @@
                                                     <label class="form-label">{{field.name}}:</label>
                                                     <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                                                     <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
+                                                    <input v-if="field.type == 'image'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
+                                                    <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -125,7 +127,7 @@
                     </div>
                 </div>
                 <div v-if="viewPage == 'media'">
-                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" v-for="item in mediaItems">
+                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" v-for="item in mediaItems" class="img-fluid">
                 </div>
                 <div v-if="viewPage == 'themes'">
                     Themes
@@ -133,11 +135,11 @@
                 <div v-if="viewPage == 'settings'">
                     Settings
                 </div>
-                <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal fade" id="addPageModal" tabindex="-1" aria-labelledby="addPageModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="exampleModalLabel">Add a Page to <b>{{activeCollection.name}}</b></h5>
+                                <h5 class="modal-title" id="addPageModalLabel">Add a Page to <b>{{activeCollection.name}}</b></h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
@@ -166,6 +168,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal fade" id="selectFileModal" tabindex="-1" aria-labelledby="selectFileModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="selectFileModalLabel">Select A File</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <img @click="selectFileItem(item.file)" v-for="item in mediaItems" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -173,7 +188,8 @@
     <script src="https://unpkg.com/vue@next"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script>
-        var myModal;
+        var addPageModal;
+        var selectFileModal;
 
         window.addEventListener('DOMContentLoaded', event => {
 
@@ -191,7 +207,8 @@
                 });
             }
 
-            myModal = new bootstrap.Modal(document.getElementById('exampleModal'), {});
+            addPageModal = new bootstrap.Modal(document.getElementById('addPageModal'), {});
+            selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
 
         });
 
@@ -209,7 +226,8 @@
                     editingPath: "",
                     editingMode: 0,
                     editingID: null,
-                    editingPrivate: true
+                    editingPrivate: true,
+                    selectFileFieldID: "",
                 }
             },
             methods: {
@@ -264,7 +282,7 @@
                     }
                 },
                 addPage() {
-                    myModal.show();
+                    addPageModal.show();
                     this.editingTitle = "";
                     this.editingPath = "";
                     this.editingTemplateName = "";
@@ -277,7 +295,7 @@
                         comp.viewPage = 'editPage';
                         comp.editingMode = 0;
                         comp.editingPrivate = true;
-                        myModal.hide();
+                        addPageModal.hide();
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
                     xmlhttp.send();
@@ -343,6 +361,21 @@
                     }
                     xmlhttp.setRequestHeader('Content-Type', 'application/json');
                     xmlhttp.send(JSON.stringify(data));
+                },
+                selectImage(fieldID) {
+                    this.selectFileFieldID = fieldID;
+                    selectFileModal.show();
+                },
+                selectFileItem(filename) {
+                    var comp = this;
+                    this.editingTemplate.sections.forEach(function(section) {
+                        section.fields.forEach(function(field) {
+                            if (field.id == comp.selectFileFieldID) {
+                                field.value = filename;
+                                selectFileModal.hide();
+                            }
+                        });
+                    });
                 }
             },
             mounted() {

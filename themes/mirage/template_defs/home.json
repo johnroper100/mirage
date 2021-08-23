@@ -40,6 +40,11 @@
                     "type": "link",
                     "id": "buttonTwoLink",
                     "value": "#!"
+                },
+                {
+                    "name": "Image",
+                    "type": "image",
+                    "id": "headerImage"
                 }
             ]
         }
