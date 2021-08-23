@@ -3,4 +3,5 @@ RewriteEngine on
 RewriteBase /test/mirage
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^database/?$ - [F,L]
 RewriteRule ^(.*)$ index.php [QSA]
