@@ -1,7 +1,7 @@
 DirectoryIndex index.php
 RewriteEngine on
 RewriteBase /test/mirage
+RewriteRule ^database/?$ - [F,L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^database/?$ - [F,L]
 RewriteRule ^(.*)$ index.php [QSA]

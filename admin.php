@@ -62,7 +62,7 @@
                         <li v-for="page in pages" class="list-group-item">
                             <div class="row mt-1">
                                 <div class="col-12 col-md-9">
-                                    <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.private"></i> {{page.title}}</h4>
+                                    <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning" v-if="page.private"></i>{{page.title}}</h4>
                                     <h6 class="text-secondary">T: {{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
