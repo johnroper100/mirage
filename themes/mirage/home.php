@@ -12,8 +12,8 @@
                             <h1 class="display-5 fw-bolder text-white mb-2"><?php echo $page["content"]["headerTitle"]; ?></h1>
                             <p class="lead fw-normal text-white-50 mb-4"><?php echo $page["content"]["headerSubtitle"]; ?></p>
                             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center justify-content-xl-start">
-                                <a class="btn btn-primary btn-lg px-4 me-sm-3" href="<?php echo $page["content"]["buttonOneLink"]; ?>"><?php echo $page["content"]["buttonOneText"]; ?></a>
-                                <a class="btn btn-outline-light btn-lg px-4" href="<?php echo $page["content"]["buttonTwoLink"]; ?>"><?php echo $page["content"]["buttonTwoText"]; ?></a>
+                                <a class="btn btn-primary btn-lg px-4 me-sm-3" href="#features">Get Started</a>
+                                <a class="btn btn-outline-light btn-lg px-4" href="<?php echo $page["content"]["buttonTwoLink"]; ?>">Learn More</a>
                             </div>
                         </div>
                     </div>

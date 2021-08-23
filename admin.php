@@ -56,7 +56,7 @@
                 </div>
             </nav>
             <!-- Page content-->
-            <div class="container-fluid pt-3 pb-3 ps-5 pe-4">
+            <div class="container-fluid pt-3 pb-3 ps-4 pe-4">
                 <div v-if="viewPage == 'pages'">
                     <ul class="list-group mt-2 shadow-sm">
                         <li v-for="page in pages" class="list-group-item">
@@ -105,7 +105,7 @@
                                                     <label class="form-label">{{field.name}}:</label>
                                                     <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                                                     <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
-                                                    <input v-if="field.type == 'image'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
+                                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail img-fluid" style="width: 10rem; height: 10rem;">
                                                     <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
                                                 </div>
                                             </div>
