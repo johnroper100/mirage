@@ -169,14 +169,16 @@
                     </div>
                 </div>
                 <div class="modal fade" id="selectFileModal" tabindex="-1" aria-labelledby="selectFileModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
+                    <div class="modal-dialog modal-xl">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="selectFileModalLabel">Select A File</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            <div class="modal-body">
-                                <img @click="selectFileItem(item.file)" v-for="item in mediaItems" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid">
+                            <div class="modal-body grid">
+                                <div class="col-4 grid-item" v-for="item in mediaItems">
+                                    <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -187,9 +189,11 @@
 
     <script src="https://unpkg.com/vue@next"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="<?php echo BASEPATH; ?>/assets/js/masonry.pkgd.min.js"></script>
     <script>
         var addPageModal;
         var selectFileModal;
+        var msnry;
 
         window.addEventListener('DOMContentLoaded', event => {
 
@@ -209,7 +213,6 @@
 
             addPageModal = new bootstrap.Modal(document.getElementById('addPageModal'), {});
             selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
-
         });
 
         const App = {
@@ -365,6 +368,11 @@
                 selectImage(fieldID) {
                     this.selectFileFieldID = fieldID;
                     selectFileModal.show();
+                    msnry = new Masonry('.grid', {
+                        itemSelector: '.grid-item',
+                        columnWidth: 160,
+                        gutter: 20
+                    });
                 },
                 selectFileItem(filename) {
                     var comp = this;
