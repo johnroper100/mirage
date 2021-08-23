@@ -46,8 +46,9 @@
                     <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            <button class="btn btn-primary" v-if="viewPage == 'general'"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</button>
+                            <a href="<?php echo BASEPATH; ?>" class="btn btn-primary" v-if="viewPage == 'general'" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
                             <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
+                            <a v-bind:href="'<?php echo BASEPATH; ?>'+editingPath" class="btn btn-primary me-md-2 mb-1 mb-md-0" v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                             <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
                             <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                             <button class="btn btn-success" v-if="viewPage == 'media'"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
@@ -66,8 +67,9 @@
                                     <h6 class="text-secondary">T: {{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                                 </div>
                                 <div class="col-12 col-md-3 text-md-end">
-                                    <a class="btn btn-primary btn-sm me-1" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</a>
-                                    <a class="btn btn-danger btn-sm" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Delete</a>
+                                    <a v-bind:href="'<?php echo BASEPATH; ?>'+page.path" class="btn btn-primary btn-sm me-1" @click="editPage(page._id)" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
+                                    <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                                    <button class="btn btn-success btn-sm" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                                 </div>
                             </div>
                         </li>
