@@ -29,6 +29,40 @@
                     "id": "headerImage"
                 }
             ]
+        },
+        {
+            "name": "Features",
+            "id": "featuresSection",
+            "fields": [
+                {
+                    "name": "Title",
+                    "type": "text",
+                    "id": "featuresTitle",
+                    "value": "A better way to start building."
+                },
+                {
+                    "name": "Features",
+                    "type": "list",
+                    "id": "featuresItems",
+                    "fields": [
+                        {
+                            "name": "Icon",
+                            "type": "text",
+                            "id": "icon"
+                        },
+                        {
+                            "name": "Title",
+                            "type": "text",
+                            "id": "text"
+                        },
+                        {
+                            "name": "Details",
+                            "type": "paragraph",
+                            "id": "details"
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
