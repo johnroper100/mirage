@@ -107,7 +107,7 @@
                                                     <label class="form-label">{{field.name}}:</label>
                                                     <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                                                     <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
-                                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail img-fluid" style="width: 10rem; height: 10rem;">
+                                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
                                                     <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
                                                 </div>
                                             </div>
@@ -177,9 +177,11 @@
                                 <h5 class="modal-title" id="selectFileModalLabel">Select A File</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
-                            <div class="modal-body grid">
-                                <div class="col-4 grid-item" v-for="item in mediaItems">
-                                    <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid">
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-6 col-md-2" v-for="item in mediaItems">
+                                        <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +197,6 @@
     <script>
         var addPageModal;
         var selectFileModal;
-        var msnry;
 
         window.addEventListener('DOMContentLoaded', event => {
 
@@ -370,11 +371,6 @@
                 selectImage(fieldID) {
                     this.selectFileFieldID = fieldID;
                     selectFileModal.show();
-                    msnry = new Masonry('.grid', {
-                        itemSelector: '.grid-item',
-                        columnWidth: 160,
-                        gutter: 20
-                    });
                 },
                 selectFileItem(filename) {
                     var comp = this;
