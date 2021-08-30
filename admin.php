@@ -103,13 +103,7 @@
                                         </h2>
                                         <div :id="'collapse'+index" class="accordion-collapse collapse" aria-labelledby="'heading'+index">
                                             <div class="accordion-body">
-                                                <div class="mb-3" v-for="field in section.fields">
-                                                    <label class="form-label">{{field.name}}:</label>
-                                                    <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
-                                                    <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
-                                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
-                                                    <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
-                                                </div>
+                                                <templateinput :field="field" v-for="field in section.fields"></templateinput>
                                             </div>
                                         </div>
                                     </div>
@@ -368,10 +362,6 @@
                     xmlhttp.setRequestHeader('Content-Type', 'application/json');
                     xmlhttp.send(JSON.stringify(data));
                 },
-                selectImage(fieldID) {
-                    this.selectFileFieldID = fieldID;
-                    selectFileModal.show();
-                },
                 selectFileItem(filename) {
                     var comp = this;
                     this.editingTemplate.sections.forEach(function(section) {
@@ -391,6 +381,28 @@
         }
 
         const app = Vue.createApp(App);
+
+        app.component('templateinput', {
+            props: ['field'],
+            methods: {
+                selectImage(fieldID) {
+                    this.$parent.selectFileFieldID = fieldID;
+                    selectFileModal.show();
+                }
+            },
+            template: `
+            <div class="mb-3" >
+                <label class="form-label">{{field.name}}:</label>
+                <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
+                <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
+                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
+                <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
+                <div v-if="field.fields != null" class="ps-3">
+                    <templateinput :field="subField" v-for="subField in field.fields"></templateinput>
+                </div>
+            </div>
+            `
+        });
 
         app.mount('#app');
     </script>
