@@ -57,7 +57,7 @@
                         },
                         {
                             "name": "Details",
-                            "type": "paragraph",
+                            "type": "textarea",
                             "id": "details"
                         }
                     ]

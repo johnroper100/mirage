@@ -316,6 +316,17 @@
                             section.fields.forEach(function(field) {
                                 if (page["content"][field.id] != null) {
                                     field.value = page["content"][field.id];
+                                    if (field.type == 'list') {
+                                        field.items = [];
+                                        page["content"][field.id].forEach(function(subItem) {
+                                            var itemGroup = field.fields;
+                                            itemGroup.forEach(function(subField) {
+                                                if (subItem[subField.id] != null) {
+                                                    subField.vaue = subItem[subField.id];
+                                                }
+                                            });
+                                        });
+                                    }
                                 }
                             });
                         });
@@ -388,6 +399,17 @@
                 selectImage(fieldID) {
                     this.$parent.selectFileFieldID = fieldID;
                     selectFileModal.show();
+                },
+                addListItem(field) {
+                    if (field.items == null) {
+                        field.items = [];
+                    }
+                    field.items.push(JSON.parse(JSON.stringify(field.fields)));
+                },
+                removeListItem(field, id) {
+                    if (confirm("Are you sure you want to delete this?") == true) {
+                        field.items.splice(id, 1);
+                    }
                 }
             },
             template: `
@@ -395,10 +417,15 @@
                 <label class="form-label">{{field.name}}:</label>
                 <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                 <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
+                <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
                 <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
-                <div v-if="field.fields != null" class="ps-3">
-                    <templateinput :field="subField" v-for="subField in field.fields"></templateinput>
+                <div v-if="field.type == 'list'" class="ps-3">
+                    <div v-for="(listItem, i) in field.items" class="mb-3 bg-secondary text-light p-2 pb-1">
+                        <button class="btn btn-danger btn-sm" @click="removeListItem(field, i)">Remove</button>
+                        <templateinput :field="subField" v-for="subField in listItem"></templateinput>
+                    </div>
+                    <button class="btn btn-sm btn-success w-100" @click="addListItem(field)">Add Item</button>
                 </div>
             </div>
             `
