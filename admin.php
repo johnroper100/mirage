@@ -131,7 +131,7 @@
                 <div v-if="viewPage == 'settings'">
                     Settings
                 </div>
-                <div class="modal fade" id="addPageModal" tabindex="-1" aria-labelledby="addPageModalLabel" aria-hidden="true">
+                <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addPageModal" tabindex="-1" aria-labelledby="addPageModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -414,12 +414,13 @@
             },
             template: `
             <div class="mb-3" >
-                <label class="form-label">{{field.name}}:</label>
+                <label class="form-label d-block">{{field.name}}:</label>
                 <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                 <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
-                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image'" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
-                <button class="btn btn-sm btn-primary" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
+                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)">Select Image</button>
+                <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.items" class="mb-3 bg-secondary text-light p-2 pb-1">
                         <button class="btn btn-danger btn-sm" @click="removeListItem(field, i)">Remove</button>
