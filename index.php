@@ -46,6 +46,22 @@ $page['file'] = 'test.png';
 $page['extension'] = 'png';
 $page = $mediaStore->insert($page);*/
 
+function generateField($field) {
+    if ($field['type'] != 'list') {
+        return $field['value'];
+    } else {
+        $itemList = [];
+        foreach ($field['value'] as $subFields) {
+            $newItem = [];
+            foreach ($subFields as $subField) {
+                $newItem[$subField['id']] = generateField($subField);
+            }
+            array_push($itemList, $newItem);
+        }
+        return $itemList;
+    }
+};
+
 function generatePage($json)
 {
     $data = json_decode($json, true);
@@ -55,7 +71,7 @@ function generatePage($json)
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
             if (isset($field['value'])) {
-                $page["content"][$field['id']] = $field['value'];
+                $page["content"][$field['id']] = generateField($field);
             }
         }
     }
@@ -66,7 +82,7 @@ function generatePage($json)
     $page["collection"] = $data["collection"];
     $page["published"] = $data["published"];
     return $page;
-}
+};
 
 Route::add('/admin', function () {
     if (isset($_SESSION['loggedin'])) {

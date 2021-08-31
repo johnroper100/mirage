@@ -312,12 +312,12 @@
                         comp.editingPath = page.path;
                         comp.editingID = page._id;
                         comp.editingPublished = page.published;
-                        comp.editingTemplate.sections.forEach(function(section) {
+                        /*comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
                                 if (page["content"][field.id] != null) {
                                     field.value = page["content"][field.id];
                                     if (field.type == 'list') {
-                                        field.items = [];
+                                        field.value = [];
                                         page["content"][field.id].forEach(function(subItem) {
                                             var itemGroup = JSON.parse(JSON.stringify(field.fields));
                                             itemGroup.forEach(function(subField) {
@@ -330,13 +330,13 @@
                                     }
                                 }
                             });
-                        });
+                        });*/
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + page.templateName, true);
                     xmlhttp.send();
                 },
                 savePage() {
-                    this.editingTemplate.sections.forEach(function(section) {
+                    /*this.editingTemplate.sections.forEach(function(section) {
                         section.fields.forEach(function(field) {
                             if (field.type == 'list') {
                                 field.value = [];
@@ -349,10 +349,9 @@
                                         field.value.push(itemValue);
                                     });
                                 }
-                                console.log(field.value);
                             }
                         });
-                    });
+                    });*/
                     var data = {
                         template: this.editingTemplate,
                         templateName: this.editingTemplateName,
@@ -403,14 +402,14 @@
                     selectFileModal.show();
                 },
                 addListItem(field) {
-                    if (field.items == null) {
-                        field.items = [];
+                    if (field.value == null) {
+                        field.value = [];
                     }
-                    field.items.push(JSON.parse(JSON.stringify(field.fields)));
+                    field.value.push(JSON.parse(JSON.stringify(field.fields)));
                 },
                 removeListItem(field, id) {
                     if (confirm("Are you sure you want to delete this?") == true) {
-                        field.items.splice(id, 1);
+                        field.value.splice(id, 1);
                     }
                 }
             },
@@ -424,7 +423,7 @@
                 <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
-                    <div v-for="(listItem, i) in field.items" class="mb-3 bg-secondary text-light p-2 pb-1">
+                    <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1">
                         <button class="btn btn-danger btn-sm" @click="removeListItem(field, i)">Remove</button>
                         <templateinput :field="subField" v-for="subField in listItem"></templateinput>
                     </div>
