@@ -349,6 +349,7 @@
                                         field.value.push(itemValue);
                                     });
                                 }
+                                console.log(field.value);
                             }
                         });
                     });
