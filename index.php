@@ -46,14 +46,17 @@ $page['file'] = 'test.png';
 $page['extension'] = 'png';
 $page = $mediaStore->insert($page);*/
 
-function generatePage($json) {
+function generatePage($json)
+{
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
 
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
-            $page["content"][$field['id']] = $field['value'];
+            if (isset($field['value'])) {
+                $page["content"][$field['id']] = $field['value'];
+            }
         }
     }
 
@@ -207,3 +210,5 @@ Route::add('(.*)', function ($who) {
 
 
 Route::run(BASEPATH);
+
+?>
