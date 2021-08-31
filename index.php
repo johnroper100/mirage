@@ -2,6 +2,8 @@
 
 session_start();
 
+define('BASEPATH', dirname($_SERVER['PHP_SELF']));
+
 if (!file_exists(".htaccess")) {
     $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
     $txt = "DirectoryIndex index.php\n";
@@ -27,15 +29,17 @@ use Steampixel\Route;
 use SleekDB\Store;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
-require_once './SleekDB/src/Store.php';
-require_once './config.php';
+require_once 'SleekDB/src/Store.php';
+require_once 'config.php';
 
-define('BASEPATH', dirname($_SERVER[PHP_SELF]));
+$sleekDBConfiguration = [
+    "timeout" => false
+];
 
 $databaseDirectory = __DIR__ . "/database";
-$pageStore = new Store("pages", $databaseDirectory);
-$userStore = new Store("users", $databaseDirectory);
-$mediaStore = new Store("mediaItems", $databaseDirectory);
+$pageStore = new Store("pages", $databaseDirectory, $sleekDBConfiguration);
+$userStore = new Store("users", $databaseDirectory, $sleekDBConfiguration);
+$mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration);
 
 /*$page = [];
 $page['file'] = 'test.png';
@@ -203,5 +207,3 @@ Route::add('(.*)', function ($who) {
 
 
 Route::run(BASEPATH);
-
-?>
