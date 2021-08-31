@@ -319,12 +319,13 @@
                                     if (field.type == 'list') {
                                         field.items = [];
                                         page["content"][field.id].forEach(function(subItem) {
-                                            var itemGroup = field.fields;
+                                            var itemGroup = JSON.parse(JSON.stringify(field.fields));
                                             itemGroup.forEach(function(subField) {
                                                 if (subItem[subField.id] != null) {
                                                     subField.vaue = subItem[subField.id];
                                                 }
                                             });
+                                            field.items.push(itemGroup);
                                         });
                                     }
                                 }

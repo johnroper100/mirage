@@ -28,7 +28,7 @@ $array = json_decode($strJsonFileContents, true);
                     <input type="text" v-model="field.value" :placeholder="field.placeholder">
                 </div>
                 <div v-if="field.type == 'list'">
-                    <div v-for="(listItem, i) in field.items" style="background-color: gray; margin-bottom: 0.5rem;">
+                    <div v-for="(listItem, i) in field.value" style="background-color: gray; margin-bottom: 0.5rem;">
                         <button @click="removeListItem(field, i)">remove</button>
                         <div v-for="subField in listItem">
                             {{subField.name}}:
@@ -59,7 +59,7 @@ $array = json_decode($strJsonFileContents, true);
                         section.fields.forEach(function(field) {
                             if (field.type == 'list') {
                                 field.value = [];
-                                if (field.items != null && field.items.length > 0) {
+                                if (field.value != null && field.items.length > 0) {
                                     field.items.forEach(function(item) {
                                         let itemValue = {};
                                         item.forEach(function(subItem) {
