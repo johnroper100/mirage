@@ -47,8 +47,22 @@
                     "fields": [
                         {
                             "name": "Icon",
-                            "type": "text",
-                            "id": "icon"
+                            "type": "select",
+                            "id": "icon",
+                            "options": [
+                                {
+                                    "value": "bi-collection",
+                                    "name": "Collection"
+                                },
+                                {
+                                    "value": "bi-building",
+                                    "name": "Building"
+                                },
+                                {
+                                    "value": "bi-toggles2",
+                                    "name": "Toggles 2"
+                                }
+                            ]
                         },
                         {
                             "name": "Title",

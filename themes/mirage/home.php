@@ -30,26 +30,13 @@
                     </div>
                     <div class="col-lg-8">
                         <div class="row gx-5 row-cols-1 row-cols-md-2">
-                            <div class="col mb-5 h-100">
-                                <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-collection"></i></div>
-                                <h2 class="h5">Featured title</h2>
-                                <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                            </div>
-                            <div class="col mb-5 h-100">
-                                <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-building"></i></div>
-                                <h2 class="h5">Featured title</h2>
-                                <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                            </div>
-                            <div class="col mb-5 mb-md-0 h-100">
-                                <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-toggles2"></i></div>
-                                <h2 class="h5">Featured title</h2>
-                                <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                            </div>
-                            <div class="col h-100">
-                                <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi bi-toggles2"></i></div>
-                                <h2 class="h5">Featured title</h2>
-                                <p class="mb-0">Paragraph of text beneath the heading to explain the heading. Here is just a bit more text.</p>
-                            </div>
+                            <?php foreach ($page["content"]["featuresItems"] as $key => $featuresItem) { ?>
+                                <div class="col <?php if ($key != array_key_last($page["content"]["featuresItems"])) { ?>mb-5<?php } ?> h-100">
+                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi <?php echo $featuresItem['icon']; ?>"></i></div>
+                                    <h2 class="h5"><?php echo $featuresItem['text']; ?></h2>
+                                    <p class="mb-0"><?php echo $featuresItem['details']; ?></p>
+                                </div>
+                            <?php }; ?>
                         </div>
                     </div>
                 </div>

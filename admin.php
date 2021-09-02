@@ -405,6 +405,10 @@
                 <label class="form-label d-block">{{field.name}}:</label>
                 <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                 <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
+                <select v-if="field.type == 'select'" v-model="field.value" class="form-select" :aria-label="field.name">
+                    <option value=""></option>
+                    <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
+                </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail" style="width: 10rem; height: 10rem;">
                 <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
