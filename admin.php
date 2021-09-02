@@ -300,6 +300,23 @@
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
                     xmlhttp.send();
                 },
+                getTemplateValue(content, field) {
+                    var comp = this;
+                    if (content[field.id] != null) {
+                        if (field.type != 'list') {
+                            field.value = content[field.id];
+                        } else {
+                            field.value = [];
+                            content[field.id].forEach(function(subField) {
+                                var subItem = JSON.parse(JSON.stringify(field.fields));
+                                subItem.forEach(function(subFields) {
+                                    comp.getTemplateValue(subField, subFields);
+                                });
+                                field.value.push(subItem);
+                            });
+                        }
+                    }
+                },
                 editPageTemplate(page) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
@@ -312,46 +329,16 @@
                         comp.editingPath = page.path;
                         comp.editingID = page._id;
                         comp.editingPublished = page.published;
-                        /*comp.editingTemplate.sections.forEach(function(section) {
+                        comp.editingTemplate.sections.forEach(function(section) {
                             section.fields.forEach(function(field) {
-                                if (page["content"][field.id] != null) {
-                                    field.value = page["content"][field.id];
-                                    if (field.type == 'list') {
-                                        field.value = [];
-                                        page["content"][field.id].forEach(function(subItem) {
-                                            var itemGroup = JSON.parse(JSON.stringify(field.fields));
-                                            itemGroup.forEach(function(subField) {
-                                                if (subItem[subField.id] != null) {
-                                                    subField.vaue = subItem[subField.id];
-                                                }
-                                            });
-                                            field.items.push(itemGroup);
-                                        });
-                                    }
-                                }
+                                comp.getTemplateValue(page.content, field);
                             });
-                        });*/
+                        });
                     }
                     xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + page.templateName, true);
                     xmlhttp.send();
                 },
                 savePage() {
-                    /*this.editingTemplate.sections.forEach(function(section) {
-                        section.fields.forEach(function(field) {
-                            if (field.type == 'list') {
-                                field.value = [];
-                                if (field.items != null && field.items.length > 0) {
-                                    field.items.forEach(function(item) {
-                                        let itemValue = {};
-                                        item.forEach(function(subItem) {
-                                            itemValue[subItem.id] = subItem.value;
-                                        });
-                                        field.value.push(itemValue);
-                                    });
-                                }
-                            }
-                        });
-                    });*/
                     var data = {
                         template: this.editingTemplate,
                         templateName: this.editingTemplateName,
