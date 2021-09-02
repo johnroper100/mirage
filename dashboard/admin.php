@@ -130,10 +130,6 @@
                                 <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Page Path:</label>
-                                <input v-model="editingPath" type="text" class="form-control" placeholder="/">
-                            </div>
-                            <div class="mb-3">
                                 <label class="form-label">Page Template:</label>
                                 <select v-model="editingTemplateName" class="form-select" aria-label="Available Templates">
                                     <option selected disabled value="">Select a Template</option>
@@ -145,7 +141,7 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" @click="editNewPage" :class="{'disabled': editingTitle == '' || editingTemplateName == '' || editingPath == ''}">Add Page</button>
+                            <button type="button" class="btn btn-primary" @click="editNewPage" :class="{'disabled': editingTitle == '' || editingTemplateName == ''}">Add Page</button>
                         </div>
                     </div>
                 </div>
@@ -276,6 +272,7 @@
                 xmlhttp.onload = function() {
                     comp.editingTemplate = JSON.parse(this.responseText);
                     comp.viewPage = 'editPage';
+                    comp.editingPath = "/" + comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
                     comp.editingPublished = false;
                     addPageModal.hide();
