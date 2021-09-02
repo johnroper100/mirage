@@ -1,3 +1,4 @@
 database/
 uploads/
 .htaccess
+config.php

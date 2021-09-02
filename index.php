@@ -25,6 +25,17 @@ if (!file_exists(".htaccess")) {
     fclose($myfile);
 }
 
+if (!file_exists("config.php")) {
+    $myfile = fopen("config.php", "w") or die("Unable to open file!");
+    $txt = "<?php\n\n";
+    fwrite($myfile, $txt);
+    $txt = "\$siteTitle = \"Modern Business\";\n\n";
+    fwrite($myfile, $txt);
+    $txt = "?>";
+    fwrite($myfile, $txt);
+    fclose($myfile);
+}
+
 use Steampixel\Route;
 use SleekDB\Store;
 
