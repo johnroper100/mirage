@@ -101,6 +101,10 @@ function generatePage($json)
 
 function getErrorPage($errorCode) {
     http_response_code($errorCode);
+    $errorMessage = "we will look into the issue and get it fixed as soon as possible, maybe try reloading the page";
+    if ($errorCode == 404) {
+        $errorMessage = "you've lost your way, you may have attempted to get to a page that doesn't exist";
+    }
     if (file_exists("./themes/business/error.php")) {
         include "./themes/business/error.php";
     } else {

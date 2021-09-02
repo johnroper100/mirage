@@ -6,7 +6,7 @@
         </div>
     </div>
     <div class="row justify-content-center mt-4">
-        <div class="col-12 col-md-5">
+        <div class="col-12 col-md-6 col-lg-5">
             <div class="card">
                 <div class="card-body">
                     <form action="<?php echo BASEPATH ?>/login" method="POST">
