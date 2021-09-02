@@ -15,6 +15,10 @@ if (!file_exists(".htaccess")) {
     $txt = "RewriteBase " . BASEPATH . "\n";
     fwrite($myfile, $txt);
     // Deliver the folder or file directly if it exists on the server
+    $txt = "RewriteRule ^database/?$ - [F,L]\n";
+    fwrite($myfile, $txt);
+    $txt = "RewriteRule ^dashboard/?$ - [F,L]\n";
+    fwrite($myfile, $txt);
     $txt = "RewriteCond %{REQUEST_FILENAME} !-f\n";
     fwrite($myfile, $txt);
     $txt = "RewriteCond %{REQUEST_FILENAME} !-d\n";
@@ -95,9 +99,18 @@ function generatePage($json)
     return $page;
 };
 
+function getErrorPage($errorCode) {
+    http_response_code($errorCode);
+    if (file_exists("./themes/business/error.php")) {
+        include "./themes/business/error.php";
+    } else {
+        include "./dashboard/error.php";
+    }
+};
+
 Route::add('/admin', function () {
     if (isset($_SESSION['loggedin'])) {
-        include "admin.php";
+        include "./dashboard/admin.php";
     } else {
         header('Location: ' . BASEPATH . '/login');
     }
@@ -107,7 +120,7 @@ Route::add('/login', function () {
     if (isset($_SESSION['loggedin'])) {
         header('Location: ' . BASEPATH . '/admin');
     } else {
-        include "login.php";
+        include "./dashboard/login.php";
     }
 });
 
@@ -229,7 +242,7 @@ Route::add('(.*)', function ($who) {
     global $siteTitle;
     $page = $pageStore->findOneBy(["path", "=", $who]);
     if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
-        header('HTTP/1.0 404 Not Found');
+        getErrorPage(404);
     } else {
         include './themes/business/' . $page["templateName"] . ".php";
     }
