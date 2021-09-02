@@ -95,7 +95,7 @@
                                     <input v-model="editingTitle" type="text" class="form-control" placeholder="My awesome page">
                                 </div>
                                 <div class="accordion">
-                                    <div class="accordion-item" v-for="(section, index) in editingTemplate.sections">
+                                    <div class="accordion-item mb-2" v-for="(section, index) in editingTemplate.sections">
                                         <h2 class="accordion-header" :id="'heading'+index">
                                             <button class="accordion-button" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#collapse'+index" aria-expanded="false" v-bind:aria-controls="'#collapse'+index">
                                                 {{section.name}}
