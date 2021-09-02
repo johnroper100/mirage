@@ -120,7 +120,7 @@ Route::add('/logout', function () {
 
 Route::add('/api/theme', function () {
     if (isset($_SESSION['loggedin'])) {
-        echo file_get_contents("./themes/mirage/config.json");
+        echo file_get_contents("./themes/business/config.json");
     } else {
         header('HTTP/1.0 404 Not Found');
     }
@@ -128,7 +128,7 @@ Route::add('/api/theme', function () {
 
 Route::add('/api/template/(.*)', function ($who) {
     if (isset($_SESSION['loggedin'])) {
-        echo file_get_contents("./themes/mirage/template_defs/" . $who . ".json");
+        echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
     } else {
         header('HTTP/1.0 404 Not Found');
     }
@@ -220,7 +220,7 @@ Route::add('(.*)', function ($who) {
     if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
         header('HTTP/1.0 404 Not Found');
     } else {
-        include './themes/mirage/' . $page["templateName"] . ".php";
+        include './themes/business/' . $page["templateName"] . ".php";
     }
 });
 
