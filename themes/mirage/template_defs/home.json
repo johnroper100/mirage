@@ -77,6 +77,41 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "Testimonial",
+            "id": "testimonialSection",
+            "fields": [
+                {
+                    "name": "Quote",
+                    "type": "textarea",
+                    "id": "testimonialQuote",
+                    "value": "Working with Start Bootstrap templates has saved me tons of development time when building new projects! Starting with a Bootstrap template just makes things easier!"
+                },
+                {
+                    "name": "Person",
+                    "type": "text",
+                    "id": "testimonialPerson",
+                    "value": "Tom Ato"
+                },
+                {
+                    "name": "Person Position",
+                    "type": "text",
+                    "id": "testimonialPosition",
+                    "value": "CEO"
+                },
+                {
+                    "name": "Person Company",
+                    "type": "text",
+                    "id": "testimonialCompany",
+                    "value": "Pomodoro"
+                },
+                {
+                    "name": "Person Image",
+                    "type": "image",
+                    "id": "testimonialImage"
+                }
+            ]
         }
     ]
 }

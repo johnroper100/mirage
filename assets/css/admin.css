@@ -112,3 +112,7 @@ body.mirage-sidenav-toggled #app #sidebar-wrapper {
     color: #495057 !important;
     background-color: #f1f3f5 !important;
 }
+
+.mediaItem:hover {
+    cursor: pointer;
+}

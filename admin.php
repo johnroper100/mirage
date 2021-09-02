@@ -123,7 +123,11 @@
                     </div>
                 </div>
                 <div v-if="viewPage == 'media'">
-                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" v-for="item in mediaItems" class="img-fluid">
+                    <div class="row">
+                        <div class="col-6 col-md-4 col-lg-2" v-for="item in mediaItems">
+                            <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid mediaItem">
+                        </div>
+                    </div>
                 </div>
                 <div v-if="viewPage == 'themes'">
                     Themes

@@ -42,5 +42,25 @@
                 </div>
             </div>
         </section>
+        <!-- Testimonial section-->
+        <div class="py-5 bg-light">
+            <div class="container px-5 my-5">
+                <div class="row gx-5 justify-content-center">
+                    <div class="col-lg-10 col-xl-7">
+                        <div class="text-center">
+                            <div class="fs-4 mb-4 fst-italic">"<?php echo $page["content"]["testimonialQuote"]; ?>"</div>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <img width="40" height="40" class="rounded-circle me-3" src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["testimonialImage"]; ?>" alt="..." />
+                                <div class="fw-bold">
+                                    <?php echo $page["content"]["testimonialPerson"]; ?>
+                                    <span class="fw-bold text-primary mx-1">/</span>
+                                    <?php echo $page["content"]["testimonialPosition"]; ?>, <?php echo $page["content"]["testimonialCompany"]; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
-    <?php include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
