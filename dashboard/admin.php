@@ -8,6 +8,7 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'media'" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'themes'" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'users'" :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'settings'" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
             <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
         </div>
@@ -24,6 +25,7 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'themes'">Themes</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
                 <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -113,6 +115,9 @@
             </div>
             <div v-if="viewPage == 'themes'">
                 Themes
+            </div>
+            <div v-if="viewPage == 'users'">
+                Users
             </div>
             <div v-if="viewPage == 'settings'">
                 Settings
