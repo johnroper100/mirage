@@ -103,8 +103,8 @@
                                 <label class="form-check-label" for="flexSwitchCheckDefault">Page Published</label>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label d-block">Last Saved:</label>
-                                {{editingDate}}
+                                <label class="form-label">Last Saved:</label>
+                                <input disabled v-model="editingDate" type="text" class="form-control">
                             </div>
                         </div>
                     </div>
