@@ -98,9 +98,13 @@
                                 <label class="form-label">Page Path:</label>
                                 <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                             </div>
-                            <div class="form-check form-switch">
+                            <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" v-model="editingPublished" v-bind:value="editingPublished">
                                 <label class="form-check-label" for="flexSwitchCheckDefault">Page Published</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label d-block">Last Saved:</label>
+                                {{editingDate}}
                             </div>
                         </div>
                     </div>
@@ -211,6 +215,7 @@
                 editingMode: 0,
                 editingID: null,
                 editingPublished: true,
+                editingDate: null,
                 selectFileFieldID: "",
             }
         },
@@ -314,6 +319,8 @@
                     comp.editingPath = page.path;
                     comp.editingID = page._id;
                     comp.editingPublished = page.published;
+                    var dateObject = new Date(page.edited * 1000);
+                    comp.editingDate = dateObject.toLocaleString();
                     comp.editingTemplate.sections.forEach(function(section) {
                         section.fields.forEach(function(field) {
                             comp.getTemplateValue(page.content, field);

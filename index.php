@@ -70,6 +70,8 @@ function generatePage($json)
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
+    $page["userID"] = $_SESSION['id'];
+    $page["edited"] = time();
 
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
@@ -107,7 +109,8 @@ if (!file_exists("config.php")) {
         $user = [
             'name' => $_POST["name"],
             'email' => $_POST["email"],
-            'password' => password_hash($_POST["password"], PASSWORD_DEFAULT)
+            'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
+            'accountType' => 0
         ];
 
         $user = $userStore->insert($user);
@@ -154,8 +157,9 @@ if (!file_exists("config.php")) {
         if ($user != null && password_verify($_POST["password"], $user['password'])) {
             session_regenerate_id();
             $_SESSION['loggedin'] = true;
-            $_SESSION['name'] = "John Roper";
-            $_SESSION['id'] = 12345;
+            $_SESSION['name'] = $user['name'];
+            $_SESSION['id'] = $user['_id'];
+            $_SESSION['userType'] = $user['accountType'];
 
             header('Location: ' . BASEPATH . '/admin');
         } else {
