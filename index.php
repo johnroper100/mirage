@@ -29,23 +29,11 @@ if (!file_exists(".htaccess")) {
     fclose($myfile);
 }
 
-if (!file_exists("config.php")) {
-    $myfile = fopen("config.php", "w") or die("Unable to open file!");
-    $txt = "<?php\n\n";
-    fwrite($myfile, $txt);
-    $txt = "\$siteTitle = \"Modern Business\";\n\n";
-    fwrite($myfile, $txt);
-    $txt = "?>";
-    fwrite($myfile, $txt);
-    fclose($myfile);
-}
-
 use Steampixel\Route;
 use SleekDB\Store;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once 'SleekDB/src/Store.php';
-require_once 'config.php';
 
 $sleekDBConfiguration = [
     "timeout" => false
@@ -112,145 +100,183 @@ function getErrorPage($errorCode) {
     }
 };
 
-Route::add('/admin', function () {
-    if (isset($_SESSION['loggedin'])) {
-        include "./dashboard/admin.php";
-    } else {
+if (!file_exists("config.php")) {
+    Route::add('/setup', function () {
+        global $userStore;
+
+        $user = [
+            'name' => $_POST["name"],
+            'email' => $_POST["email"],
+            'password' => password_hash($_POST["password"], PASSWORD_DEFAULT)
+        ];
+
+        $user = $userStore->insert($user);
+
+        $myfile = fopen("config.php", "w") or die("Unable to open file!");
+        $txt = "<?php\n\n";
+        fwrite($myfile, $txt);
+        $txt = "\$siteTitle = \"".$_POST["siteTitle"]."\";\n\n";
+        fwrite($myfile, $txt);
+        $txt = "?>";
+        fwrite($myfile, $txt);
+        fclose($myfile);
+
         header('Location: ' . BASEPATH . '/login');
-    }
-});
+    }, 'POST');
 
-Route::add('/login', function () {
-    if (isset($_SESSION['loggedin'])) {
-        header('Location: ' . BASEPATH . '/admin');
-    } else {
-        include "./dashboard/login.php";
-    }
-});
+    Route::add('(.*)', function ($who) {
+        include "./dashboard/setup.php";
+    });
+} else {
+    require_once 'config.php';
 
-Route::add('/login', function () {
-    global $userStore;
+    Route::add('/admin', function () {
+        if (isset($_SESSION['loggedin'])) {
+            include "./dashboard/admin.php";
+        } else {
+            header('Location: ' . BASEPATH . '/login');
+        }
+    });
 
-    session_regenerate_id();
-    $_SESSION['loggedin'] = true;
-    $_SESSION['name'] = "John Roper";
-    $_SESSION['id'] = 12345;
+    Route::add('/login', function () {
+        if (isset($_SESSION['loggedin'])) {
+            header('Location: ' . BASEPATH . '/admin');
+        } else {
+            include "./dashboard/login.php";
+        }
+    });
 
-    header('Location: ' . BASEPATH . '/admin');
-}, 'POST');
+    Route::add('/login', function () {
+        global $userStore;
 
-Route::add('/logout', function () {
-    if (isset($_SESSION['loggedin'])) {
-        session_destroy();
-    }
-    header('Location: ' . BASEPATH . '/login');
-});
+        $user = $userStore->findOneBy(["email", "=", $_POST["email"]]);
 
-Route::add('/api/theme', function () {
-    if (isset($_SESSION['loggedin'])) {
-        echo file_get_contents("./themes/business/config.json");
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
+        if ($user != null && password_verify($_POST["password"], $user['password'])) {
+            session_regenerate_id();
+            $_SESSION['loggedin'] = true;
+            $_SESSION['name'] = "John Roper";
+            $_SESSION['id'] = 12345;
 
-Route::add('/api/template/(.*)', function ($who) {
-    if (isset($_SESSION['loggedin'])) {
-        echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
+            header('Location: ' . BASEPATH . '/admin');
+        } else {
+            header('Location: ' . BASEPATH . '/login');
+        }
+    }, 'POST');
 
-Route::add('/api/page', function () {
-    if (isset($_SESSION['loggedin'])) {
+    Route::add('/logout', function () {
+        if (isset($_SESSION['loggedin'])) {
+            session_destroy();
+        }
+        header('Location: ' . BASEPATH . '/login');
+    });
+
+    Route::add('/api/theme', function () {
+        if (isset($_SESSION['loggedin'])) {
+            echo file_get_contents("./themes/business/config.json");
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('/api/template/(.*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('/api/page', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+            $allPages = $pageStore->findAll();
+            $myJSON = json_encode($allPages);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('/api/page/collection/(.*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+            $allPages = $pageStore->findBy(["collection", "=", $who]);
+            $myJSON = json_encode($allPages);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('/api/page/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+            $selectedPage = $pageStore->findById($who);
+            $myJSON = json_encode($selectedPage);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('/api/page/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+
+            $json = file_get_contents('php://input');
+            $page = $pageStore->updateById($who, generatePage($json));
+            $myJSON = json_encode($page);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    }, 'POST');
+
+    Route::add('/api/page/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+            $pageStore->deleteById($who);
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    }, 'DELETE');
+
+    Route::add('/api/page/generate', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+
+            $json = file_get_contents('php://input');
+            $page = $pageStore->insert(generatePage($json));
+            $myJSON = json_encode($page);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    }, 'POST');
+
+    Route::add('/api/media', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $mediaStore;
+            $allMedia = $mediaStore->findAll();
+            $myJSON = json_encode($allMedia);
+            echo $myJSON;
+        } else {
+            header('HTTP/1.0 404 Not Found');
+        }
+    });
+
+    Route::add('(.*)', function ($who) {
         global $pageStore;
-        $allPages = $pageStore->findAll();
-        $myJSON = json_encode($allPages);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
+        global $siteTitle;
+        $page = $pageStore->findOneBy(["path", "=", $who]);
+        if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
+            getErrorPage(404);
+        } else {
+            include './themes/business/' . $page["templateName"] . ".php";
+        }
+    });
 
-Route::add('/api/page/collection/(.*)', function ($who) {
-    if (isset($_SESSION['loggedin'])) {
-        global $pageStore;
-        $allPages = $pageStore->findBy(["collection", "=", $who]);
-        $myJSON = json_encode($allPages);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
-
-Route::add('/api/page/([0-9]*)', function ($who) {
-    if (isset($_SESSION['loggedin'])) {
-        global $pageStore;
-        $selectedPage = $pageStore->findById($who);
-        $myJSON = json_encode($selectedPage);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
-
-Route::add('/api/page/([0-9]*)', function ($who) {
-    if (isset($_SESSION['loggedin'])) {
-        global $pageStore;
-
-        $json = file_get_contents('php://input');
-        $page = $pageStore->updateById($who, generatePage($json));
-        $myJSON = json_encode($page);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-}, 'POST');
-
-Route::add('/api/page/([0-9]*)', function ($who) {
-    if (isset($_SESSION['loggedin'])) {
-        global $pageStore;
-        $pageStore->deleteById($who);
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-}, 'DELETE');
-
-Route::add('/api/page/generate', function () {
-    if (isset($_SESSION['loggedin'])) {
-        global $pageStore;
-
-        $json = file_get_contents('php://input');
-        $page = $pageStore->insert(generatePage($json));
-        $myJSON = json_encode($page);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-}, 'POST');
-
-Route::add('/api/media', function () {
-    if (isset($_SESSION['loggedin'])) {
-        global $mediaStore;
-        $allMedia = $mediaStore->findAll();
-        $myJSON = json_encode($allMedia);
-        echo $myJSON;
-    } else {
-        header('HTTP/1.0 404 Not Found');
-    }
-});
-
-Route::add('(.*)', function ($who) {
-    global $pageStore;
-    global $siteTitle;
-    $page = $pageStore->findOneBy(["path", "=", $who]);
-    if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
-        getErrorPage(404);
-    } else {
-        include './themes/business/' . $page["templateName"] . ".php";
-    }
-});
+};
 
 
 Route::run(BASEPATH);
