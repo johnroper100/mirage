@@ -1,5 +1,4 @@
 <?php include 'header.php'; ?>
-
 <body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <?php include 'nav.php'; ?>
@@ -30,13 +29,15 @@
                     </div>
                     <div class="col-lg-8">
                         <div class="row gx-5 row-cols-1 row-cols-md-2">
-                            <?php foreach ($page["content"]["featuresItems"] as $key => $featuresItem) { ?>
-                                <div class="col <?php if ($key != array_key_last($page["content"]["featuresItems"])) { ?>mb-5<?php } ?> h-100">
-                                    <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi <?php echo $featuresItem['icon']; ?>"></i></div>
-                                    <h2 class="h5"><?php echo $featuresItem['text']; ?></h2>
-                                    <p class="mb-0"><?php echo $featuresItem['details']; ?></p>
-                                </div>
-                            <?php }; ?>
+                            <?php if (array_key_exists('featuresItems', $page["content"])) {
+                                foreach ($page["content"]["featuresItems"] as $key => $featuresItem) { ?>
+                                    <div class="col <?php if ($key != array_key_last($page["content"]["featuresItems"])) { ?>mb-5<?php } ?> h-100">
+                                        <div class="feature bg-primary bg-gradient text-white rounded-3 mb-3"><i class="bi <?php echo $featuresItem['icon']; ?>"></i></div>
+                                        <h2 class="h5"><?php echo $featuresItem['text']; ?></h2>
+                                        <p class="mb-0"><?php echo $featuresItem['details']; ?></p>
+                                    </div>
+                            <?php }
+                            }; ?>
                         </div>
                     </div>
                 </div>
