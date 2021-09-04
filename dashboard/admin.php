@@ -35,7 +35,7 @@
                         <a v-bind:href="'<?php echo BASEPATH; ?>'+editingPath" class="btn btn-primary me-md-2 mb-1 mb-md-0" v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                         <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
-                        <button class="btn btn-success" v-if="viewPage == 'media'"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
+                        <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                     </div>
                 </div>
             </div>
@@ -113,7 +113,7 @@
             <div v-if="viewPage == 'media'">
                 <div class="row">
                     <div class="col-6 col-md-4 col-lg-2" v-for="item in mediaItems">
-                        <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid mediaItem">
+                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid mediaItem">
                     </div>
                 </div>
             </div>
@@ -172,6 +172,26 @@
                     </div>
                 </div>
             </div>
+            <div class="modal fade" id="uploadMediaModal" tabindex="-1" aria-labelledby="uploadMediaModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="uploadMediaModalLabel">Upload Media File(s)</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="formFile" class="form-label">Select File(s):</label>
+                                <input class="form-control" type="file" id="uploadMediaFiles" name="uploadMediaFiles[]" multiple>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" @click="uploadMediaFiles">Upload File(s)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -179,6 +199,7 @@
 <script>
     var addPageModal;
     var selectFileModal;
+    var uploadMediaModal;
 
     window.addEventListener('DOMContentLoaded', event => {
 
@@ -198,6 +219,7 @@
 
         addPageModal = new bootstrap.Modal(document.getElementById('addPageModal'), {});
         selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
+        uploadMediaModal = new bootstrap.Modal(document.getElementById('uploadMediaModal'), {});
     });
 
     const App = {
@@ -363,6 +385,26 @@
                         }
                     });
                 });
+            },
+            openUploadMediaModal() {
+                uploadMediaModal.show();
+            },
+            uploadMediaFiles() {
+                var comp = this;
+                var formData = new FormData();
+                var ins = document.getElementById('uploadMediaFiles').files.length;
+                for (var x = 0; x < ins; x++) {
+                    formData.append("uploadMediaFiles[]", document.getElementById('uploadMediaFiles').files[x]);
+                }
+
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function() {
+                    document.getElementById('uploadMediaFiles').value = "";
+                    uploadMediaModal.hide();
+                    comp.getMedia();
+                }
+                xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/media/upload");
+                xmlhttp.send(formData);
             }
         },
         mounted() {

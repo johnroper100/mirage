@@ -44,12 +44,8 @@ $pageStore = new Store("pages", $databaseDirectory, $sleekDBConfiguration);
 $userStore = new Store("users", $databaseDirectory, $sleekDBConfiguration);
 $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration);
 
-/*$page = [];
-$page['file'] = 'test.png';
-$page['extension'] = 'png';
-$page = $mediaStore->insert($page);*/
-
-function generateField($field) {
+function generateField($field)
+{
     if ($field['type'] != 'list') {
         return $field['value'];
     } else {
@@ -89,7 +85,8 @@ function generatePage($json)
     return $page;
 };
 
-function getErrorPage($errorCode) {
+function getErrorPage($errorCode)
+{
     http_response_code($errorCode);
     $errorMessage = "we will look into the issue and get it fixed as soon as possible, maybe try reloading the page";
     if ($errorCode == 404) {
@@ -118,7 +115,7 @@ if (!file_exists("config.php")) {
         $myfile = fopen("config.php", "w") or die("Unable to open file!");
         $txt = "<?php\n\n";
         fwrite($myfile, $txt);
-        $txt = "\$siteTitle = \"".$_POST["siteTitle"]."\";\n\n";
+        $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -178,7 +175,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./themes/business/config.json");
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
 
@@ -186,7 +183,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
 
@@ -197,7 +194,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allPages);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
 
@@ -208,7 +205,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allPages);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
 
@@ -219,7 +216,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($selectedPage);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
 
@@ -232,7 +229,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     }, 'POST');
 
@@ -241,7 +238,7 @@ if (!file_exists("config.php")) {
             global $pageStore;
             $pageStore->deleteById($who);
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     }, 'DELETE');
 
@@ -254,7 +251,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     }, 'POST');
 
@@ -265,9 +262,33 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allMedia);
             echo $myJSON;
         } else {
-            header('HTTP/1.0 404 Not Found');
+            getErrorPage(404);
         }
     });
+
+    Route::add('/api/media/upload', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $mediaStore;
+
+            if (!file_exists('./uploads')) {
+                mkdir('./uploads');
+            }
+
+            $count = count($_FILES['uploadMediaFiles']['name']);
+            for ($i = 0; $i < $count; $i++) {
+                if (!move_uploaded_file($_FILES['uploadMediaFiles']['tmp_name'][$i], "./uploads/" . $_FILES['uploadMediaFiles']['name'][$i])) {
+                    getErrorPage(500);
+                } else {
+                    $page = [];
+                    $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
+                    $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
+                    $page = $mediaStore->insert($page);
+                }
+            }
+        } else {
+            getErrorPage(404);
+        }
+    }, 'POST');
 
     Route::add('(.*)', function ($who) {
         global $pageStore;
@@ -279,7 +300,6 @@ if (!file_exists("config.php")) {
             include './themes/business/' . $page["templateName"] . ".php";
         }
     });
-
 };
 
 
