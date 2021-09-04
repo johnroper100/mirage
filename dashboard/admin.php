@@ -111,9 +111,23 @@
                 </div>
             </div>
             <div v-if="viewPage == 'media'">
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card w-100 shadow-sm">
+                            <div class="card-header">
+                                Media Info
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-12">Select a media file...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
-                    <div class="col-6 col-md-4 col-lg-2" v-for="item in mediaItems">
-                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid mediaItem">
+                    <div class="col-12">
+                        <img v-for="item in mediaItems" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mediaItem me-3 mb-3 shadow" style="width: 10rem; height: 10rem; object-fit: cover;">
                     </div>
                 </div>
             </div>
@@ -444,7 +458,7 @@
                     <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
-                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem;">
+                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                 <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
