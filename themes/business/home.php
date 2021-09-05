@@ -51,7 +51,7 @@
                         <div class="text-center">
                             <div class="fs-4 mb-4 fst-italic">"<?php echo $page["content"]["testimonialQuote"]; ?>"</div>
                             <div class="d-flex align-items-center justify-content-center">
-                                <img width="40" height="40" class="rounded-circle me-3" src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["testimonialImage"]; ?>" alt="..." />
+                                <img width="40" height="40" class="rounded-circle me-3" style="object-fit: cover;" src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["testimonialImage"]; ?>" alt="..." />
                                 <div class="fw-bold">
                                     <?php echo $page["content"]["testimonialPerson"]; ?>
                                     <span class="fw-bold text-primary mx-1">/</span>
