@@ -293,9 +293,13 @@ if (!file_exists("config.php")) {
     Route::add('/api/media/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
+            $selectedMedia = $mediaStore->findById($who);
             $mediaStore->deleteById($who);
+            if (!unlink("./uploads/" . $selectedMedia['file'])) {
+                getErrorPage(500);
+            }
         } else {
-            getErrorPage(404);
+            
         }
     }, 'DELETE');
 
