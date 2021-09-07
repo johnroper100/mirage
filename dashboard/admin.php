@@ -111,26 +111,13 @@
                 </div>
             </div>
             <div v-if="viewPage == 'media'">
-                <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="card w-100 shadow-sm">
-                            <div class="card-header">
-                                Media Info
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-12">Select media file(s)</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row" style="overflow-y: auto; max-height: 38rem;">
+                <div class="row" style="overflow-y: auto; max-height: 45rem;">
                     <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
                         <div class="mediaItem">
                             <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension)">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
-                            <small class="p-2">{{item.file}}</small>
+                            <small class="p-2 d-block">{{item.file}}</small>
+                            <button class="btn btn-sm btn-danger mb-2 ms-2" @click="deleteMediaFile(item._id)">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -423,6 +410,17 @@
                 }
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/media/upload");
                 xmlhttp.send(formData);
+            },
+            deleteMediaFile(itemID) {
+                if (confirm("Are you sure you want to delete this?") == true) {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.getMedia();
+                    }
+                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/media/" + itemID, true);
+                    xmlhttp.send();
+                }
             }
         },
         mounted() {

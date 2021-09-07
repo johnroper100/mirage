@@ -290,6 +290,15 @@ if (!file_exists("config.php")) {
         }
     }, 'POST');
 
+    Route::add('/api/media/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $mediaStore;
+            $mediaStore->deleteById($who);
+        } else {
+            getErrorPage(404);
+        }
+    }, 'DELETE');
+
     Route::add('(.*)', function ($who) {
         global $pageStore;
         global $siteTitle;
