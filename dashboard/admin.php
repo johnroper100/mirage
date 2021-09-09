@@ -6,6 +6,8 @@
         <div class="list-group list-group-flush mt-2">
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'general'" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'comments'" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'forms'" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'media'" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'themes'" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'users'" :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
@@ -23,6 +25,8 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'pages'">{{activeCollection.name}}</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Forms</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'themes'">Themes</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
@@ -110,8 +114,15 @@
                     </div>
                 </div>
             </div>
+            <div v-if="viewPage == 'comments'">
+                Comments
+            </div>
+            <div v-if="viewPage == 'forms'">
+                Forms
+            </div>
             <div v-if="viewPage == 'media'">
                 <div class="row" style="overflow-y: auto; max-height: 45rem;">
+                    <div class="col-12" v-if="mediaItems.length == 0">No media items uploaded. Use the <i>Upload Media</i> button to add some to your site.</div>
                     <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
                         <div class="mediaItem">
                             <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension)">
