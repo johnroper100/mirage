@@ -46,6 +46,45 @@
         </nav>
         <!-- Page content-->
         <div class="container-fluid pt-3 pb-3 ps-4 pe-4">
+            <div v-if="viewPage == 'general'">
+                <div class="row">
+                    <div class="col-12 col-lg-3 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h3>Welcome to Mirage!</h3>
+                                <p class="mb-0">Here is some quick information about your site:</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3 mb-3">
+                        <div class="card bg-primary text-light shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="fa-solid fa-file-lines fa-2xl mb-3"></i>
+                                <h4><i>Pages</i></h4>
+                                <h3 class="mb-1">64</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3 mb-3">
+                        <div class="card bg-success text-light shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="fa-solid fa-comments fa-2xl mb-3"></i>
+                                <h4><i>Comments</i></h4>
+                                <h3 class="mb-1">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-3 mb-3">
+                        <div class="card bg-danger text-light shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="fa-solid fa-cart-shopping fa-2xl mb-3"></i>
+                                <h4><i>Orders</i></h4>
+                                <h3 class="mb-1">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div v-if="viewPage == 'pages'">
                 <ul class="list-group mt-2 shadow-sm">
                     <li v-for="page in pages" class="list-group-item">
@@ -124,7 +163,7 @@
                 <div class="row" style="overflow-y: auto; max-height: 45rem;">
                     <div class="col-12" v-if="mediaItems.length == 0">No media items uploaded. Use the <i>Upload Media</i> button to add some to your site.</div>
                     <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
-                        <div class="mediaItem">
+                        <div class="mediaItem shadow-sm">
                             <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension)">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
                             <small class="p-2 d-block">{{item.file}}</small>
