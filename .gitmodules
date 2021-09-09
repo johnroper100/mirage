@@ -4,3 +4,6 @@
 [submodule "SleekDB"]
 	path = SleekDB
 	url = https://github.com/rakibtg/SleekDB.git
+[submodule "php-markdown"]
+	path = php-markdown
+	url = https://github.com/michelf/php-markdown.git
