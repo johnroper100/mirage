@@ -31,9 +31,11 @@ if (!file_exists(".htaccess")) {
 
 use Steampixel\Route;
 use SleekDB\Store;
+use Michelf\MarkdownExtra;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once 'SleekDB/src/Store.php';
+require_once 'php-markdown/Michelf/MarkdownExtra.inc.php';
 
 $sleekDBConfiguration = [
     "timeout" => false
