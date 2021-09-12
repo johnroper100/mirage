@@ -223,6 +223,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
+                            <button class="btn btn-success w-100 mb-3" @click="openUploadMediaModal"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
                                 <div class="col-4 col-md-2" v-for="item in mediaItems">
                                     <img @click="selectFileItem(item.file)" v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="img-fluid me-3 mb-3 mediaItem shadow" style="width: 100%; height: 6rem; object-fit: cover;">
