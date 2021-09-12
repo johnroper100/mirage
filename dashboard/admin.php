@@ -61,7 +61,7 @@
                             <div class="card-body text-center">
                                 <i class="fa-solid fa-file-lines fa-2xl mb-3"></i>
                                 <h4><i>Pages</i></h4>
-                                <h3 class="mb-1">64</h3>
+                                <h3 class="mb-1">0</h3>
                             </div>
                         </div>
                     </div>
@@ -481,8 +481,35 @@
 
     const app = Vue.createApp(App);
 
+    app.component('Trumbowyg', VueTrumbowyg.default);
+
     app.component('templateinput', {
         props: ['field'],
+        data() {
+            return {
+                richtextOptions: {
+                    svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
+                    btns: [
+                        ['viewHTML'],
+                        ['formatting'],
+                        ['strong', 'em', 'del'],
+                        ['superscript', 'subscript'],
+                        ['link'],
+                        ['insertImage', 'upload'],
+                        ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
+                        ['unorderedList', 'orderedList'],
+                        ['horizontalRule'],
+                        ['removeformat'],
+                        ['fullscreen']
+                    ],
+                    plugins: {
+                        upload: {
+                            serverPath: "<?php echo BASEPATH ?>/api/media/upload/richtext"
+                        }
+                    }
+                }
+            }
+        },
         methods: {
             selectImage(fieldID) {
                 this.$parent.selectFileFieldID = fieldID;
@@ -510,6 +537,7 @@
                     <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
+                <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                 <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>

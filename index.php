@@ -31,11 +31,9 @@ if (!file_exists(".htaccess")) {
 
 use Steampixel\Route;
 use SleekDB\Store;
-use Michelf\MarkdownExtra;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once 'SleekDB/src/Store.php';
-require_once 'php-markdown/Michelf/MarkdownExtra.inc.php';
 
 $sleekDBConfiguration = [
     "timeout" => false
@@ -289,6 +287,35 @@ if (!file_exists("config.php")) {
             }
         } else {
             getErrorPage(404);
+        }
+    }, 'POST');
+
+    Route::add('/api/media/upload/richtext', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $mediaStore;
+
+            if (!file_exists('./uploads')) {
+                mkdir('./uploads');
+            }
+
+            if (!move_uploaded_file($_FILES['fileToUpload']['tmp_name'], "./uploads/" . $_FILES['fileToUpload']['name'])) {
+                $response = [];
+                $response['success'] = false;
+                echo json_encode($response);
+            } else {
+                $page = [];
+                $page['file'] = $_FILES['fileToUpload']['name'];
+                $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
+                $page = $mediaStore->insert($page);
+                $response = [];
+                $response['success'] = true;
+                $response['file'] = BASEPATH . '/uploads/' . $page['file'];
+                echo json_encode($response);
+            }
+        } else {
+            $response = [];
+            $response['success'] = false;
+            echo json_encode($response);
         }
     }, 'POST');
 
