@@ -4,14 +4,14 @@
     <div class="bg-dark text-light" id="sidebar-wrapper">
         <div class="sidebar-heading bg-secondary text-light text-center text-uppercase shadow-sm">Mirage Admin</div>
         <div class="list-group list-group-flush mt-2">
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'general'" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('general')" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'comments'" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'forms'" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'media'" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'themes'" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'users'" :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="viewPage = 'settings'" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('themes')" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')" :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
             <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
         </div>
     </div>
@@ -297,6 +297,15 @@
             }
         },
         methods: {
+            setPage(page) {
+                if (this.viewPage == 'editPage') {
+                    if (confirm('Are you sure you want to leave? Any unsaved work will be lost.')) {
+                        this.viewPage = page;
+                    }
+                } else {
+                    this.viewPage = page;
+                }
+            },
             getTheme() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -320,7 +329,7 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function() {
                     comp.pages = JSON.parse(this.responseText);
-                    comp.viewPage = 'pages';
+                    comp.setPage('pages');
                     comp.activeCollection = collection;
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/collection/" + collection.id, true);
@@ -358,7 +367,7 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function() {
                     comp.editingTemplate = JSON.parse(this.responseText);
-                    comp.viewPage = 'editPage';
+                    comp.setPage('editPage');
                     comp.editingPath = "/" + comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
                     comp.editingPublished = false;
@@ -390,7 +399,7 @@
                 xmlhttp.onload = function() {
                     comp.editingTemplate = JSON.parse(this.responseText);
                     comp.editingTemplateName = page.templateName;
-                    comp.viewPage = 'editPage';
+                    comp.setPage('editPage');
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingPath = page.path;
