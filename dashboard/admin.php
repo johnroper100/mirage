@@ -6,6 +6,7 @@
         <div class="list-group list-group-flush mt-2">
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('general')" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus')" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
@@ -25,6 +26,7 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'pages'">{{activeCollection.name}}</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'menus'">Menus</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Forms</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
@@ -152,6 +154,9 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <div v-if="viewPage == 'menus'">
+                Menus
             </div>
             <div v-if="viewPage == 'comments'">
                 Comments
