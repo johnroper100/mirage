@@ -171,7 +171,7 @@
                         <div class="mediaItem shadow-sm">
                             <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension)">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
-                            <small class="p-2 d-block">{{item.file}}</small>
+                            <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
                             <button class="btn btn-sm btn-danger mb-2 ms-2" @click="deleteMediaFile(item._id)">Remove</button>
                         </div>
                     </div>
