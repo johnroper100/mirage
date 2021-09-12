@@ -94,9 +94,9 @@
                                 <h6 class="text-secondary">T: {{page.templateName}} <i class="fa-solid fa-right-long"></i> {{page.path}}</h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
-                                <a v-bind:href="'<?php echo BASEPATH; ?>'+page.path" class="btn btn-primary btn-sm me-1" @click="editPage(page._id)" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
+                                <a v-bind:href="'<?php echo BASEPATH; ?>'+page.path" class="btn btn-primary btn-sm me-1" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
-                                <button class="btn btn-success btn-sm" @click="editPage(page._id)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                                <button class="btn btn-success btn-sm" @click="editPage(page._id, false)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                             </div>
                         </div>
                     </li>
@@ -297,8 +297,8 @@
             }
         },
         methods: {
-            setPage(page) {
-                if (this.viewPage == 'editPage') {
+            setPage(page, update = false) {
+                if (update == false && this.viewPage == 'editPage') {
                     if (confirm('Are you sure you want to leave? Any unsaved work will be lost.')) {
                         this.viewPage = page;
                     }
@@ -335,12 +335,12 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/collection/" + collection.id, true);
                 xmlhttp.send();
             },
-            editPage(pageID) {
+            editPage(pageID, update) {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function() {
                     var pageDetails = JSON.parse(this.responseText);
-                    comp.editPageTemplate(pageDetails);
+                    comp.editPageTemplate(pageDetails, update);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/" + pageID, true);
                 xmlhttp.send();
@@ -371,6 +371,7 @@
                     comp.editingPath = "/" + comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
                     comp.editingPublished = false;
+                    comp.editingDate = "Never";
                     addPageModal.hide();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
@@ -393,13 +394,13 @@
                     }
                 }
             },
-            editPageTemplate(page) {
+            editPageTemplate(page, update) {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function() {
                     comp.editingTemplate = JSON.parse(this.responseText);
                     comp.editingTemplateName = page.templateName;
-                    comp.setPage('editPage');
+                    comp.setPage('editPage', update);
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingPath = page.path;
@@ -428,7 +429,7 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function() {
-                    comp.editPage(JSON.parse(this.responseText)._id);
+                    comp.editPage(JSON.parse(this.responseText)._id, true);
                     alert("Page saved!");
                 }
                 if (this.editingMode == 0) {
