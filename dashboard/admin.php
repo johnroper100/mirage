@@ -169,7 +169,7 @@
                     <div class="col-12" v-if="mediaItems.length == 0">No media items uploaded. Use the <i>Upload Media</i> button to add some to your site.</div>
                     <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
                         <div class="mediaItem shadow-sm">
-                            <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension)">
+                            <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-if="['png', 'jpg', 'gif', 'jpeg', 'svg', 'jpeg'].includes(item.extension.toLowerCase())">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt="" class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
                             <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
                             <button class="btn btn-sm btn-danger mb-2 ms-2" @click="deleteMediaFile(item._id)">Remove</button>
