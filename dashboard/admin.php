@@ -6,13 +6,13 @@
         <div class="list-group list-group-flush mt-2">
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('general')" :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i> General</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)" :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}" v-for="collection in theme.collections"><i class="fa-solid me-1" :class="collection.icon"></i> {{collection.name}}</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus')" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
+            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus')" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')" :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i> Media</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('themes')" :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i> Themes</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')" :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>-->
             <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary" href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
         </div>
     </div>
@@ -39,7 +39,7 @@
                         <a href="<?php echo BASEPATH; ?>" class="btn btn-primary" v-if="viewPage == 'general'" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i class="fa-solid fa-plus me-1"></i> Add Page</button>
                         <a v-bind:href="'<?php echo BASEPATH; ?>'+editingPath" class="btn btn-primary me-md-2 mb-1 mb-md-0" v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
-                        <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                        <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Remove</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                     </div>
@@ -63,25 +63,25 @@
                             <div class="card-body text-center">
                                 <i class="fa-solid fa-file-lines fa-2xl mb-3"></i>
                                 <h4><i>Pages</i></h4>
-                                <h3 class="mb-1">0</h3>
+                                <h3 class="mb-1">{{counts.pages}}</h3>
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-4 col-lg-3 mb-3">
                         <div class="card bg-success text-light shadow-sm">
                             <div class="card-body text-center">
-                                <i class="fa-solid fa-comments fa-2xl mb-3"></i>
-                                <h4><i>Comments</i></h4>
-                                <h3 class="mb-1">0</h3>
+                                <i class="fa-solid fa-users fa-2xl mb-3"></i>
+                                <h4><i>Users</i></h4>
+                                <h3 class="mb-1">{{counts.users}}</h3>
                             </div>
                         </div>
                     </div>
                     <div class="col-12 col-md-4 col-lg-3 mb-3">
                         <div class="card bg-danger text-light shadow-sm">
                             <div class="card-body text-center">
-                                <i class="fa-solid fa-cart-shopping fa-2xl mb-3"></i>
-                                <h4><i>Orders</i></h4>
-                                <h3 class="mb-1">0</h3>
+                                <i class="fa-solid fa-photo-film-music fa-2xl mb-3"></i>
+                                <h4><i>Media Files</i></h4>
+                                <h3 class="mb-1">{{counts.media}}</h3>
                             </div>
                         </div>
                     </div>
@@ -97,7 +97,7 @@
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
                                 <a v-bind:href="'<?php echo BASEPATH; ?>'+page.path" class="btn btn-primary btn-sm me-1" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
-                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Delete</button>
+                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i class="fa-solid fa-trash-can me-1"></i> Remove</button>
                                 <button class="btn btn-success btn-sm" @click="editPage(page._id, false)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                             </div>
                         </div>
@@ -178,7 +178,23 @@
                 </div>
             </div>
             <div v-if="viewPage == 'themes'">
-                Themes
+                <div class="row">
+                    <div class="col-12 col-md-3 mb-3" v-for="theme in themes">
+                        <div class="card shadow-sm" v-bind:class="{'border border-warning border-2': theme.active}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{theme.name}} <small class="text-secondary">v{{theme.version}}</small></h5>
+                                <p class="card-text">
+                                    Author: {{theme.author}}
+                                </p>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-sm btn-success me-2" v-if="!theme.active">Activate</button>
+                                <button class="btn btn-sm btn-primary me-2" v-if="theme.active" :disabled="themes.length < 2">Deactivate</button>
+                                <button class="btn btn-sm btn-danger" :disabled="themes.length < 2">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div v-if="viewPage == 'users'">
                 Users
@@ -289,7 +305,9 @@
                 viewPage: 'general',
                 activeCollection: {},
                 theme: {},
+                themes: {},
                 pages: {},
+                counts: {},
                 mediaItems: {},
                 editingTemplate: {},
                 editingTitle: "",
@@ -312,6 +330,15 @@
                     this.viewPage = page;
                 }
             },
+            getThemes() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function() {
+                    comp.themes = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/themes", true);
+                xmlhttp.send();
+            },
             getTheme() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -330,6 +357,15 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/media", true);
                 xmlhttp.send();
             },
+            getCounts() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function() {
+                    comp.counts = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/counts", true);
+                xmlhttp.send();
+            },
             getPages(collection) {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -338,7 +374,7 @@
                     comp.setPage('pages');
                     comp.activeCollection = collection;
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages/collections/" + collection.id, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/collections/" + collection.id + "/pages", true);
                 xmlhttp.send();
             },
             editPage(pageID, update) {
@@ -491,7 +527,9 @@
         },
         mounted() {
             this.getTheme();
+            this.getThemes();
             this.getMedia();
+            this.getCounts();
         }
     }
 

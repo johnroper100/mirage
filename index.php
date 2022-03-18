@@ -115,7 +115,9 @@ if (!file_exists("config.php")) {
         $myfile = fopen("config.php", "w") or die("Unable to open file!");
         $txt = "<?php\n\n";
         fwrite($myfile, $txt);
-        $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n\n";
+        $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n";
+        fwrite($myfile, $txt);
+        $txt = "\$activeTheme = \"" . $_POST["activeTheme"] . "\";\n\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -171,6 +173,28 @@ if (!file_exists("config.php")) {
         header('Location: ' . BASEPATH . '/login');
     });
 
+    Route::add('/api/themes', function () {
+        if (isset($_SESSION['loggedin']) || !file_exists("config.php")) {
+            $themes = array();
+            foreach (new DirectoryIterator('./themes') as $fileInfo) {
+                if($fileInfo->isDir() && !$fileInfo->isDot()) {
+                    $configFile = $fileInfo->getPathname() . "/config.json";
+                    if (file_exists($configFile)) {
+                        global $activeTheme;
+                        $themeItem = json_decode(file_get_contents($configFile));
+                        if (file_exists("config.php") && $fileInfo->getFilename() == $activeTheme) {
+                            $themeItem->active = true;
+                        }
+                        $themes[] = $themeItem;
+                    }
+                }
+            }
+            echo json_encode($themes);
+        } else {
+            getErrorPage(404);
+        }
+    });
+
     Route::add('/api/themes/current', function () {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./themes/business/config.json");
@@ -187,18 +211,23 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/pages', function () {
+    Route::add('/api/counts', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
-            $allPages = $pageStore->findAll();
-            $myJSON = json_encode($allPages);
+            global $userStore;
+            global $mediaStore;
+            $myJSON = json_encode([
+                "pages" => count($pageStore->findAll()),
+                "users" => count($userStore->findAll()),
+                "media" => count($mediaStore->findAll())
+            ]);
             echo $myJSON;
         } else {
             getErrorPage(404);
         }
     });
 
-    Route::add('/api/pages/collections/(.*)', function ($who) {
+    Route::add('/api/collections/(.*)/pages', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $allPages = $pageStore->findBy(["collection", "=", $who]);
