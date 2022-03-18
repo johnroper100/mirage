@@ -216,12 +216,20 @@ if (!file_exists("config.php")) {
             global $pageStore;
             global $userStore;
             global $mediaStore;
-            $myJSON = json_encode([
-                "pages" => count($pageStore->findAll()),
-                "users" => count($userStore->findAll()),
-                "media" => count($mediaStore->findAll())
+            echo json_encode([
+                "pages" => $pageStore->count(),
+                "users" => $userStore->count(),
+                "media" => $mediaStore->count()
             ]);
-            echo $myJSON;
+        } else {
+            getErrorPage(404);
+        }
+    });
+
+    Route::add('/api/users', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $userStore;
+            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType'])->getQuery()->fetch());
         } else {
             getErrorPage(404);
         }

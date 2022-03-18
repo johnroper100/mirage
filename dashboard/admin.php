@@ -42,6 +42,7 @@
                         <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)" v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i> Remove</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
+                        <button class="btn btn-success" v-if="viewPage == 'users'"><i class="fa-solid fa-user-plus me-1"></i> Add User</button>
                     </div>
                 </div>
             </div>
@@ -197,7 +198,26 @@
                 </div>
             </div>
             <div v-if="viewPage == 'users'">
-                Users
+                <div class="table-responsive">
+                    <table class="table table-secondary table-striped shadow-sm">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Account Type</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="user in users">
+                                <td>{{user.name}}</td>
+                                <td>{{user.email}}</td>
+                                <td>{{user.accountType}}</td>
+                                <td><button class="btn btn-sm btn-danger">Remove</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div v-if="viewPage == 'settings'">
                 Settings
@@ -308,6 +328,7 @@
                 themes: {},
                 pages: {},
                 counts: {},
+                users: {},
                 mediaItems: {},
                 editingTemplate: {},
                 editingTitle: "",
@@ -364,6 +385,15 @@
                     comp.counts = JSON.parse(this.responseText);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/counts", true);
+                xmlhttp.send();
+            },
+            getUsers() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function() {
+                    comp.users = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users", true);
                 xmlhttp.send();
             },
             getPages(collection) {
@@ -530,6 +560,7 @@
             this.getThemes();
             this.getMedia();
             this.getCounts();
+            this.getUsers();
         }
     }
 
