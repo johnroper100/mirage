@@ -20,6 +20,11 @@ body {
     background-color: #f1f3f5 !important;
 }
 
+.trumbowyg-editor {
+    background-color: #f1f3f5 !important;
+    color: #212529 !important;
+}
+
 .btn-dark {
     color: #f8f9fa;
     background-color: #212529;

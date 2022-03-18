@@ -213,7 +213,7 @@
                                 <td>{{user.name}}</td>
                                 <td>{{user.email}}</td>
                                 <td>{{user.accountType}}</td>
-                                <td><button class="btn btn-sm btn-danger">Remove</button></td>
+                                <td><button class="btn btn-sm btn-primary me-1">Edit</button> <button class="btn btn-sm btn-danger">Remove</button></td>
                             </tr>
                         </tbody>
                     </table>
@@ -618,7 +618,7 @@
                 <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
                 <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
                 <select v-if="field.type == 'select'" v-model="field.value" class="form-select" :aria-label="field.name">
-                    <option value=""></option>
+                    <option value="">None</option>
                     <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
@@ -628,7 +628,7 @@
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1">
-                        <button class="btn btn-danger btn-sm" @click="removeListItem(field, i)">Remove</button>
+                        <button class="btn btn-danger btn-sm mb-2" @click="removeListItem(field, i)">Remove</button>
                         <templateinput :field="subField" v-for="subField in listItem"></templateinput>
                     </div>
                     <button class="btn btn-sm btn-success w-100" @click="addListItem(field)">Add Item</button>

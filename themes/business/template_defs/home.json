@@ -73,6 +73,11 @@
                             "name": "Details",
                             "type": "textarea",
                             "id": "details"
+                        },
+                        {
+                            "name": "Details 2",
+                            "type": "richtext",
+                            "id": "details2"
                         }
                     ]
                 }
