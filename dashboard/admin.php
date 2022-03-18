@@ -213,7 +213,7 @@
                                 <td>{{user.name}}</td>
                                 <td>{{user.email}}</td>
                                 <td>{{user.accountType}}</td>
-                                <td><button class="btn btn-sm btn-primary me-1">Edit</button> <button class="btn btn-sm btn-danger">Remove</button></td>
+                                <td><button class="btn btn-sm btn-primary me-1">Edit</button> <button class="btn btn-sm btn-danger" @click="deleteUser(user.id)" :disabled="users.length < 2">Remove</button></td>
                             </tr>
                         </tbody>
                     </table>
@@ -237,7 +237,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Page Template:</label>
                                 <select v-model="editingTemplateName" class="form-select" aria-label="Available Templates">
-                                    <option selected disabled value="">Select a Template</option>
+                                    <option selected disabled value="">Select A Template</option>
                                     <template v-for="template in theme.templates" :key="template.id">
                                         <option :value="template.id" v-if="activeCollection.allowed_templates != null && activeCollection.allowed_templates.includes(template.id)">{{template.name}}</option>
                                     </template>
@@ -247,6 +247,42 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="button" class="btn btn-primary" @click="editNewPage" :class="{'disabled': editingTitle == '' || editingTemplateName == ''}">Add Page</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addUserModalLabel">Add a User</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Name:</label>
+                                <input v-model="editingUser.name" type="text" class="form-control" placeholder="John Smith">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email:</label>
+                                <input v-model="editingUser.email" type="text" class="form-control" placeholder="johnsmith@gmail.com">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password:</label>
+                                <input v-model="editingUser.password" type="password" class="form-control" placeholder="mysecretpassword">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Account Type:</label>
+                                <select v-model="editingUser.accountType" class="form-select">
+                                    <option selected disabled value="">Select An Account Type</option>
+                                    <option value="0">Administrator</option>
+                                    <option value="1">Editor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary">Add User</button>
                         </div>
                     </div>
                 </div>
@@ -295,6 +331,7 @@
 
 <script>
     var addPageModal;
+    var addUserModal;
     var selectFileModal;
     var uploadMediaModal;
 
@@ -315,6 +352,7 @@
         }
 
         addPageModal = new bootstrap.Modal(document.getElementById('addPageModal'), {});
+        addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'), {});
         selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
         uploadMediaModal = new bootstrap.Modal(document.getElementById('uploadMediaModal'), {});
     });
@@ -395,6 +433,20 @@
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users", true);
                 xmlhttp.send();
+            },
+            addUser() {
+                addUserModal.show();
+            },
+            deleteUser(userID) {
+                if (confirm("Are you sure you want to delete this?") == true) {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function() {
+                        comp.getUsers();
+                    }
+                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/users/" + userID, true);
+                    xmlhttp.send();
+                }
             },
             getPages(collection) {
                 var comp = this;
@@ -507,7 +559,7 @@
                 if (this.editingMode == 0) {
                     xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/pages/generate", true);
                 } else {
-                    xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/pages/" + comp.editingID, true);
+                    xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/pages/" + comp.editingID, true);
                 }
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(data));

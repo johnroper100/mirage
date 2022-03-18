@@ -61,13 +61,14 @@ function generateField($field)
     }
 };
 
-function generatePage($json)
+function generatePage($json, $currentTheme)
 {
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
     $page["userID"] = $_SESSION['id'];
     $page["edited"] = time();
+    $page["theme"] = $currentTheme;
 
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
@@ -117,7 +118,7 @@ if (!file_exists("config.php")) {
         fwrite($myfile, $txt);
         $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n";
         fwrite($myfile, $txt);
-        $txt = "\$activeTheme = \"" . $_POST["activeTheme"] . "\";\n\n";
+        $txt = "\$activeTheme = \"business\";\n\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -235,6 +236,34 @@ if (!file_exists("config.php")) {
         }
     });
 
+    Route::add('/api/users', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $userStore;
+
+            $user = [
+                'name' => $_POST["name"],
+                'email' => $_POST["email"],
+                'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
+                'accountType' => $_POST["accountType"]
+            ];
+
+            $user = $userStore->insert($user);
+        } else {
+            getErrorPage(404);
+        }
+    }, 'POST');
+
+    Route::add('/api/users/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $userStore;
+            if ($userStore->count() > 1) {
+                $userStore->deleteById($who);
+            }
+        } else {
+            getErrorPage(404);
+        }
+    }, 'DELETE');
+
     Route::add('/api/collections/(.*)/pages', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
@@ -260,15 +289,16 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
+            global $activeTheme;
 
             $json = file_get_contents('php://input');
-            $page = $pageStore->updateById($who, generatePage($json));
+            $page = $pageStore->updateById($who, generatePage($json, $activeTheme));
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
             getErrorPage(404);
         }
-    }, 'POST');
+    }, 'P');
 
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
@@ -282,9 +312,10 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages/generate', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
+            global $activeTheme;
 
             $json = file_get_contents('php://input');
-            $page = $pageStore->insert(generatePage($json));
+            $page = $pageStore->insert(generatePage($json, $activeTheme));
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
