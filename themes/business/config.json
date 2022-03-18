@@ -22,13 +22,13 @@
             "name": "Blog Posts",
             "id": "blog_posts",
             "icon": "fa-align-left",
-            "allowed_templates": []
+            "allowed_templates": ["home"]
         },
         {
             "name": "Portfolio Items",
             "id": "portfolio_items",
             "icon": "fa-images",
-            "allowed_templates": []
+            "allowed_templates": ["home"]
         }
     ]
 }

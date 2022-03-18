@@ -318,7 +318,7 @@
                 xmlhttp.onload = function() {
                     comp.theme = JSON.parse(this.responseText);
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/themes/current", true);
                 xmlhttp.send();
             },
             getMedia() {
@@ -338,7 +338,7 @@
                     comp.setPage('pages');
                     comp.activeCollection = collection;
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/collection/" + collection.id, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages/collections/" + collection.id, true);
                 xmlhttp.send();
             },
             editPage(pageID, update) {
@@ -348,7 +348,7 @@
                     var pageDetails = JSON.parse(this.responseText);
                     comp.editPageTemplate(pageDetails, update);
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/page/" + pageID, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                 xmlhttp.send();
             },
             deletePage(pageID) {
@@ -358,7 +358,7 @@
                     xmlhttp.onload = function() {
                         comp.getPages(comp.activeCollection);
                     }
-                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/page/" + pageID, true);
+                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                     xmlhttp.send();
                 }
             },
@@ -380,7 +380,7 @@
                     comp.editingDate = "Never";
                     addPageModal.hide();
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + comp.editingTemplateName, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + comp.editingTemplateName, true);
                 xmlhttp.send();
             },
             getTemplateValue(content, field) {
@@ -420,7 +420,7 @@
                         });
                     });
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/template/" + page.templateName, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + page.templateName, true);
                 xmlhttp.send();
             },
             savePage() {
@@ -439,9 +439,9 @@
                     alert("Page saved!");
                 }
                 if (this.editingMode == 0) {
-                    xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/page/generate", true);
+                    xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/pages/generate", true);
                 } else {
-                    xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/page/" + comp.editingID, true);
+                    xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/pages/" + comp.editingID, true);
                 }
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(data));

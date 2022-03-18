@@ -171,7 +171,7 @@ if (!file_exists("config.php")) {
         header('Location: ' . BASEPATH . '/login');
     });
 
-    Route::add('/api/theme', function () {
+    Route::add('/api/themes/current', function () {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./themes/business/config.json");
         } else {
@@ -179,7 +179,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/template/(.*)', function ($who) {
+    Route::add('/api/templates/(.*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
         } else {
@@ -187,7 +187,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/page', function () {
+    Route::add('/api/pages', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $allPages = $pageStore->findAll();
@@ -198,7 +198,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/page/collection/(.*)', function ($who) {
+    Route::add('/api/pages/collections/(.*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $allPages = $pageStore->findBy(["collection", "=", $who]);
@@ -209,7 +209,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/page/([0-9]*)', function ($who) {
+    Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $selectedPage = $pageStore->findById($who);
@@ -220,7 +220,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/page/([0-9]*)', function ($who) {
+    Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
 
@@ -233,7 +233,7 @@ if (!file_exists("config.php")) {
         }
     }, 'POST');
 
-    Route::add('/api/page/([0-9]*)', function ($who) {
+    Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $pageStore->deleteById($who);
@@ -242,7 +242,7 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
-    Route::add('/api/page/generate', function () {
+    Route::add('/api/pages/generate', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
 
