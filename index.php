@@ -88,13 +88,14 @@ function generatePage($json, $currentTheme)
 
 function getErrorPage($errorCode)
 {
+    global $activeTheme;
     http_response_code($errorCode);
     $errorMessage = "we will look into the issue and get it fixed as soon as possible, maybe try reloading the page";
     if ($errorCode == 404) {
         $errorMessage = "you've lost your way, you may have attempted to get to a page that doesn't exist";
     }
-    if (file_exists("./themes/business/error.php")) {
-        include "./themes/business/error.php";
+    if (file_exists("./themes/" .  $activeTheme . "/error.php")) {
+        include "./themes/" .  $activeTheme . "/error.php";
     } else {
         include "./dashboard/error.php";
     }
@@ -196,17 +197,19 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/themes/current', function () {
+    Route::add('/api/themes/active', function () {
+        global $activeTheme;
         if (isset($_SESSION['loggedin'])) {
-            echo file_get_contents("./themes/business/config.json");
+            echo file_get_contents("./themes/" .  $activeTheme . "/config.json");
         } else {
             getErrorPage(404);
         }
     });
 
     Route::add('/api/templates/(.*)', function ($who) {
+        global $activeTheme;
         if (isset($_SESSION['loggedin'])) {
-            echo file_get_contents("./themes/business/template_defs/" . $who . ".json");
+            echo file_get_contents("./themes/" . $activeTheme . "/template_defs/" . $who . ".json");
         } else {
             getErrorPage(404);
         }
@@ -236,15 +239,25 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/users', function () {
+    Route::add('/api/users/active', function () {
         if (isset($_SESSION['loggedin'])) {
             global $userStore;
+            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType'])->where( [ "_id", "=", $_SESSION["id"] ] )->getQuery()->fetch()[0]);
+        } else {
+            getErrorPage(404);
+        }
+    });
 
+    Route::add('/api/users', function () {
+        if (isset($_SESSION['loggedin']) && $_SESSION['userType'] == 0) {
+            global $userStore;
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
             $user = [
-                'name' => $_POST["name"],
-                'email' => $_POST["email"],
-                'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
-                'accountType' => $_POST["accountType"]
+                'name' => $data["name"],
+                'email' => $data["email"],
+                'password' => password_hash($data["password"], PASSWORD_DEFAULT),
+                'accountType' => $data["accountType"]
             ];
 
             $user = $userStore->insert($user);
@@ -254,7 +267,28 @@ if (!file_exists("config.php")) {
     }, 'POST');
 
     Route::add('/api/users/([0-9]*)', function ($who) {
-        if (isset($_SESSION['loggedin'])) {
+        if (isset($_SESSION['loggedin']) && ($_SESSION['userType'] == 0 || $_SESSION['id'] == $who)) {
+            global $userStore;
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
+            $user = [
+                'name' => $data["name"],
+                'email' => $data["email"],
+                'accountType' => $data["accountType"]
+            ];
+
+            if ($data["password"]) {
+                $user['password'] = password_hash($data["password"], PASSWORD_DEFAULT);
+            }
+
+            $user = $userStore->updateById($who, $user);
+        } else {
+            getErrorPage(404);
+        }
+    }, 'PUT');
+
+    Route::add('/api/users/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin']) && $_SESSION['userType'] == 0) {
             global $userStore;
             if ($userStore->count() > 1) {
                 $userStore->deleteById($who);
@@ -298,7 +332,7 @@ if (!file_exists("config.php")) {
         } else {
             getErrorPage(404);
         }
-    }, 'P');
+    }, 'PUT');
 
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
@@ -309,7 +343,7 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
-    Route::add('/api/pages/generate', function () {
+    Route::add('/api/pages', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             global $activeTheme;
@@ -334,7 +368,7 @@ if (!file_exists("config.php")) {
         }
     });
 
-    Route::add('/api/media/upload', function () {
+    Route::add('/api/media', function () {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
@@ -358,7 +392,7 @@ if (!file_exists("config.php")) {
         }
     }, 'POST');
 
-    Route::add('/api/media/upload/richtext', function () {
+    Route::add('/api/media/richtext', function () {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
@@ -403,11 +437,12 @@ if (!file_exists("config.php")) {
     Route::add('(.*)', function ($who) {
         global $pageStore;
         global $siteTitle;
+        global $activeTheme;
         $page = $pageStore->findOneBy(["path", "=", $who]);
         if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            include './themes/business/' . $page["templateName"] . ".php";
+            include './themes/' .  $activeTheme . '/' . $page["templateName"] . ".php";
         }
     });
 };
