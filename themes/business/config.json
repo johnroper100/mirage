@@ -22,6 +22,7 @@
             "name": "Blog Posts",
             "id": "blog_posts",
             "icon": "fa-align-left",
+            "subpath": "blog",
             "allowed_templates": ["home"]
         },
         {

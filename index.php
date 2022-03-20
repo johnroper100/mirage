@@ -82,6 +82,7 @@ function generatePage($json, $currentTheme)
     $page["title"] = $data["title"];
     $page["path"] = $data["path"];
     $page["collection"] = $data["collection"];
+    $page["collectionSubpath"] = $data["collectionSubpath"] ?? "";
     $page["published"] = $data["published"];
     return $page;
 };
@@ -434,11 +435,23 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
-    Route::add('(.*)', function ($who) {
+    Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;
         global $activeTheme;
-        $page = $pageStore->findOneBy(["path", "=", $who]);
+        $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
+        if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
+            getErrorPage(404);
+        } else {
+            include './themes/' .  $activeTheme . '/' . $page["templateName"] . ".php";
+        }
+    });
+
+    Route::add('/(.*)', function ($who) {
+        global $pageStore;
+        global $siteTitle;
+        global $activeTheme;
+        $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
         if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {

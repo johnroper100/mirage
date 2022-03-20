@@ -53,7 +53,7 @@
                             target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
-                        <a v-bind:href="'<?php echo BASEPATH; ?>'+editingPath"
+                        <a v-bind:href="viewPath(editingPath)"
                             class="btn btn-primary me-md-2 mb-1 mb-md-0"
                             v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i
                                 class="fa-solid fa-up-right-from-square me-1"></i> View</a>
@@ -119,10 +119,10 @@
                                 <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning"
                                         v-if="page.published == false"></i>{{page.title}}</h4>
                                 <h6 class="text-secondary">T: {{page.templateName}} <i
-                                        class="fa-solid fa-right-long"></i> {{page.path}}</h6>
+                                        class="fa-solid fa-right-long"></i> /<span v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}</h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
-                                <a v-bind:href="'<?php echo BASEPATH; ?>'+page.path" class="btn btn-primary btn-sm me-1"
+                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1"
                                     target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
@@ -602,7 +602,7 @@
                 xmlhttp.onload = function () {
                     comp.editingTemplate = JSON.parse(this.responseText);
                     comp.setPage('editPage');
-                    comp.editingPath = "/" + comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                    comp.editingPath = comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
                     comp.editingPublished = false;
                     comp.editingDate = "Never";
@@ -658,6 +658,7 @@
                     title: this.editingTitle,
                     path: this.editingPath,
                     collection: this.activeCollection.id,
+                    collectionSubpath: this.activeCollection.subpath,
                     published: this.editingPublished
                 }
                 var comp = this;
@@ -714,6 +715,13 @@
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/media/" + itemID, true);
                     xmlhttp.send();
+                }
+            },
+            viewPath(path) {
+                if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
+                    return '<?php echo BASEPATH; ?>/' + this.activeCollection.subpath + "/" + path;
+                } else {
+                    return '<?php echo BASEPATH; ?>/' + path;
                 }
             }
         },
