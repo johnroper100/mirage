@@ -7,6 +7,11 @@
             "name": "Home",
             "id": "home",
             "file": "home.json"
+        },
+        {
+            "name": "Blog Post",
+            "id": "blog_post",
+            "file": "blog_post.json"
         }
     ],
     "collections": [
@@ -23,7 +28,7 @@
             "id": "blog_posts",
             "icon": "fa-align-left",
             "subpath": "blog",
-            "allowed_templates": ["home"]
+            "allowed_templates": ["blog_post"]
         },
         {
             "name": "Portfolio Items",

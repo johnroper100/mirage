@@ -1,0 +1,21 @@
+{
+    "name": "Blog Post",
+    "sections": [
+        {
+            "name": "Content",
+            "id": "contentSection",
+            "fields": [
+                {
+                    "name": "Featured Image",
+                    "type": "image",
+                    "id": "featuredImage"
+                },
+                {
+                    "name": "Post Content",
+                    "type": "richtext",
+                    "id": "postContent"
+                }
+            ]
+        }
+    ]
+}

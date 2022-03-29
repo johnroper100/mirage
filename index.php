@@ -102,6 +102,18 @@ function getErrorPage($errorCode)
     }
 };
 
+function getPages($collection, $numEntries)
+{
+    global $pageStore;
+    $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+    return $pages;
+};
+
+function get_words($sentence, $count = 10) {
+    preg_match("/(?:\w+(?:\W+|$)){0,$count}/", $sentence, $matches);
+    return $matches[0];
+};
+
 if (!file_exists("config.php")) {
     Route::add('/setup', function () {
         global $userStore;
