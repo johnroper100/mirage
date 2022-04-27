@@ -15,7 +15,7 @@
             </div>
             <?php }; ?>
             <div class="col-5 col-md-7">
-                <h2 style="margin-top: 0rem;"><?php echo $page["title"]; ?></h2>
+                <h2 style="margin-top: 0.5rem;"><?php echo $page["title"]; ?></h2>
                 <?php echo $page["content"]["pageContent"]; ?>
             </div>
         </div>
