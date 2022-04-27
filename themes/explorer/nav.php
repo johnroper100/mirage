@@ -7,12 +7,14 @@
 
         <nav role="navigation" class="probootstrap-nav hidden-xs">
           <ul class="probootstrap-main-nav">
-            <li class="active"><a href="index.html">Home</a></li>
-            <li><a href="services.html">Services</a></li>
-            <li><a href="about.html">About</a></li>
-            <li><a href="contact.html">Contact</a></li>
+            <?php
+                $menuItems = getMenuItems('header');
+                foreach ($menuItems as $menuItem) {
+            ?>
+            <li <?php if ($menuItem['type'] == 0 && $menuItem['page'] == $page['_id']) { ?>class="active"<?php }; ?>><a href="<?php echo $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
+            <?php }; ?>
           </ul>
-          <div class="extra-text visible-xs"> 
+          <!--<div class="extra-text visible-xs"> 
             <a href="#" class="probootstrap-burger-menu"><i>Menu</i></a>
             <h5>Address</h5>
             <p>198 West 21th Street, Suite 721 New York NY 10016</p>
@@ -22,7 +24,7 @@
               <li><a href="#"><i class="icon-facebook2"></i></a></li>
               <li><a href="#"><i class="icon-instagram2"></i></a></li>
             </ul>
-          </div>
+          </div>-->
         </nav>
     </div>
   </header>

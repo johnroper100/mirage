@@ -110,6 +110,13 @@ function getPages($collection, $numEntries)
     return $pages;
 };
 
+function getMenuItems($menuID)
+{
+    global $menuStore;
+    $menuItems = $menuStore->findBy(["menuID", "=", $menuID]);
+    return $menuItems;
+};
+
 function get_words($sentence, $count = 10) {
     preg_match("/(?:\w+(?:\W+|$)){0,$count}/", $sentence, $matches);
     return $matches[0];
@@ -394,6 +401,29 @@ if (!file_exists("config.php")) {
             getErrorPage(404);
         }
     });
+
+    Route::add('/api/menus', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $menuStore;
+            global $pageStore;
+            global $activeTheme;
+
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
+            $menuItems = $menuStore->createQueryBuilder()->getQuery()->delete();
+            foreach ($data as $menuItem) {
+                if ($menuItem["type"] == "page") {
+                    $menuItem["link"] = $pageStore->findById($menuItem["page"])["path"];
+                }
+                $item = $menuStore->insert($menuItem);
+            }
+            $allMenuItems = $menuStore->findAll();
+            $myJSON = json_encode($allMenuItems);
+            echo $myJSON;
+        } else {
+            getErrorPage(404);
+        }
+    }, 'POST');
 
     Route::add('/api/media', function () {
         if (isset($_SESSION['loggedin'])) {

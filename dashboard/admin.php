@@ -205,7 +205,7 @@
                     </div>
                     <div class="card-body">
                         <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to begin.</span>
-                        <div class="row" v-for="item in getMenuItems(menu.id)">
+                        <div class="row mb-3" v-for="item in getMenuItems(menu.id)">
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Item Type:</label>
                                 <select class="form-select" v-model="item.type">
