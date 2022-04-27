@@ -11,8 +11,8 @@
                 :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}"
                 v-for="collection in activeTheme.collections"><i class="fa-solid me-1" :class="collection.icon"></i>
                 {{collection.name}}</span>
-            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus')" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
+            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
@@ -61,6 +61,8 @@
                             v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i>
                             Remove</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i
+                                class="fa-solid fa-floppy-disk me-1"></i> Save</button>
+                        <button class="btn btn-success" v-if="viewPage == 'menus'" @click="saveMenus"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i
                                 class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
@@ -196,7 +198,38 @@
                 </div>
             </div>
             <div v-if="viewPage == 'menus'">
-                Menus
+                <div class="card mb-3" v-for="menu in activeTheme.menus">
+                    <div class="card-header">
+                        {{menu.name}}
+                        <button class="btn btn-sm btn-success float-end" @click="addMenuItem(menu.id)">Add Menu Item</button>
+                    </div>
+                    <div class="card-body">
+                        <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to begin.</span>
+                        <div class="row" v-for="item in getMenuItems(menu.id)">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Item Type:</label>
+                                <select class="form-select" v-model="item.type">
+                                    <option value="0">Page</option>
+                                    <option value="1">External Link</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4" v-if="item.type == 0">
+                                <label class="form-label">Page:</label>
+                                <select class="form-select" v-model="item.page">
+                                    <option v-for="page in pages" v-bind:value="page._id">{{page.title}}</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4" v-if="item.type == 1">
+                                <label class="form-label">External Link:</label>
+                                <input type="url" v-model="item.link" class="form-control" placeholder="https://www.mywebsite.com/">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Item Name:</label>
+                                <input type="text" v-model="item.name" class="form-control" placeholder="New Menu Item">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div v-if="viewPage == 'comments'">
                 Comments
@@ -435,6 +468,7 @@
                 counts: {},
                 activeUser: {},
                 users: {},
+                menuItems: {},
                 mediaItems: {},
                 editingTemplate: {},
                 editingTitle: "",
@@ -488,6 +522,18 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/media", true);
                 xmlhttp.send();
             },
+            getMenus() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    comp.menuItems = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/menus", true);
+                xmlhttp.send();
+            },
+            getMenuItems(menuID) {
+                return this.menuItems.filter(id => menuID).sort((a, b) => a.order - b.order);
+            },
             getCounts() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -514,6 +560,15 @@
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users", true);
                 xmlhttp.send();
+            },
+            addMenuItem(menuID) {
+                this.menuItems.push({
+                    "menuID": menuID,
+                    "name": "New Menu Item",
+                    "type": 0,
+                    "page": "",
+                    "link": ""
+                });
             },
             addUser() {
                 this.editingUser = {
@@ -546,6 +601,7 @@
                 }
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(comp.editingUser));
+                comp.getCounts();
             },
             deleteUser(userID) {
                 if (confirm("Are you sure you want to delete this?") == true) {
@@ -556,6 +612,7 @@
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/users/" + userID, true);
                     xmlhttp.send();
+                    comp.getCounts();
                 }
             },
             getPages(collection) {
@@ -567,6 +624,15 @@
                     comp.activeCollection = collection;
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/collections/" + collection.id + "/pages", true);
+                xmlhttp.send();
+            },
+            getAllPages() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    comp.pages = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages", true);
                 xmlhttp.send();
             },
             editPage(pageID, update) {
@@ -588,6 +654,7 @@
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                     xmlhttp.send();
+                    comp.getCounts();
                 }
             },
             addPage() {
@@ -650,6 +717,16 @@
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + page.templateName, true);
                 xmlhttp.send();
+            },
+            saveMenus() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    alert("Menus saved!");
+                }
+                xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/menus", true);
+                xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                xmlhttp.send(JSON.stringify(comp.menuItems));
             },
             savePage() {
                 var data = {
@@ -729,6 +806,7 @@
             this.getActiveTheme();
             this.getThemes();
             this.getMedia();
+            this.getMenus();
             this.getCounts();
             this.getUsers();
             this.getActiveUser();

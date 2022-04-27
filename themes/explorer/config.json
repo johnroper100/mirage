@@ -1,0 +1,28 @@
+{
+    "name": "Explorer",
+    "version": "1.0",
+    "author": "John Roper",
+    "templates": [
+        {
+            "name": "Home",
+            "id": "home",
+            "file": "home.json"
+        }
+    ],
+    "collections": [
+        {
+            "name": "Pages",
+            "id": "pages",
+            "icon": "fa-file-invoice",
+            "allowed_templates": [
+                "home"
+            ]
+        }
+    ],
+    "menus": [
+        {
+            "name": "Header",
+            "id": "header"
+        }
+    ]
+}

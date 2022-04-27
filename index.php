@@ -43,6 +43,7 @@ $databaseDirectory = __DIR__ . "/database";
 $pageStore = new Store("pages", $databaseDirectory, $sleekDBConfiguration);
 $userStore = new Store("users", $databaseDirectory, $sleekDBConfiguration);
 $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration);
+$menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
 
 function generateField($field)
 {
@@ -146,6 +147,8 @@ if (!file_exists("config.php")) {
     });
 } else {
     require_once 'config.php';
+
+    define('THEMEPATH', BASEPATH . "/themes/" . $activeTheme);
 
     Route::add('/admin', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -322,6 +325,17 @@ if (!file_exists("config.php")) {
         }
     });
 
+    Route::add('/api/pages', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+            $allPages = $pageStore->findAll();
+            $myJSON = json_encode($allPages);
+            echo $myJSON;
+        } else {
+            getErrorPage(404);
+        }
+    });
+
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
@@ -369,6 +383,17 @@ if (!file_exists("config.php")) {
             getErrorPage(404);
         }
     }, 'POST');
+
+    Route::add('/api/menus', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $menuStore;
+            $allMenuItems = $menuStore->findAll();
+            $myJSON = json_encode($allMenuItems);
+            echo $myJSON;
+        } else {
+            getErrorPage(404);
+        }
+    });
 
     Route::add('/api/media', function () {
         if (isset($_SESSION['loggedin'])) {
