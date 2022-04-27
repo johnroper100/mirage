@@ -7,6 +7,11 @@
             "name": "Home",
             "id": "home",
             "file": "home.json"
+        },
+        {
+            "name": "About",
+            "id": "about",
+            "file": "about.json"
         }
     ],
     "collections": [
@@ -15,7 +20,7 @@
             "id": "pages",
             "icon": "fa-file-invoice",
             "allowed_templates": [
-                "home"
+                "home", "about"
             ]
         }
     ],
