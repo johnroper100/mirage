@@ -12,6 +12,11 @@
             "name": "About",
             "id": "about",
             "file": "about.json"
+        },
+        {
+            "name": "Portfolio Item",
+            "id": "portfolioItem",
+            "file": "portfolioItem.json"
         }
     ],
     "collections": [
@@ -21,6 +26,15 @@
             "icon": "fa-file-invoice",
             "allowed_templates": [
                 "home", "about"
+            ]
+        },
+        {
+            "name": "Portfolio Items",
+            "id": "portfolioItems",
+            "icon": "fa-images",
+            "subpath": "portfolio",
+            "allowed_templates": [
+                "portfolioItem"
             ]
         }
     ],
