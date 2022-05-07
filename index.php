@@ -113,7 +113,7 @@ function getPages($collection, $numEntries)
 function getMenuItems($menuID)
 {
     global $menuStore;
-    $menuItems = $menuStore->findBy(["menuID", "=", $menuID]);
+    $menuItems = $menuStore->findBy(["menuID", "=", $menuID], ["order" => "asc"]);
     return $menuItems;
 };
 
@@ -394,7 +394,7 @@ if (!file_exists("config.php")) {
     Route::add('/api/menus', function () {
         if (isset($_SESSION['loggedin'])) {
             global $menuStore;
-            $allMenuItems = $menuStore->findAll();
+            $allMenuItems = $menuStore->findAll(["order" => "asc"]);
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {
@@ -417,7 +417,7 @@ if (!file_exists("config.php")) {
                 }
             }
             $menuItems = $menuStore->insertMany($data);
-            $allMenuItems = $menuStore->findAll();
+            $allMenuItems = $menuStore->findAll(["order" => "asc"]);
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {

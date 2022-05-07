@@ -211,28 +211,33 @@
                     <div class="card-body">
                         <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to
                             begin.</span>
-                        <div class="row mb-3" v-for="item in getMenuItems(menu.id)">
-                            <div class="col-12 col-md-4">
+                        <div class="row" v-for="(item, i) in getMenuItems(menu.id)">
+                            <div class="col-12 col-md-3 mb-3">
                                 <label class="form-label">Item Type:</label>
                                 <select class="form-select" v-model="item.type">
                                     <option value="0">Page</option>
                                     <option value="1">External Link</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4" v-if="item.type == 0">
+                            <div class="col-12 col-md-3 mb-3" v-if="item.type == 0">
                                 <label class="form-label">Page:</label>
                                 <select class="form-select" v-model="item.page">
                                     <option v-for="page in pages" v-bind:value="page._id">{{page.title}}</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4" v-if="item.type == 1">
+                            <div class="col-12 col-md-4 mb-3" v-if="item.type == 1">
                                 <label class="form-label">External Link:</label>
                                 <input type="url" v-model="item.link" class="form-control"
                                     placeholder="https://www.mywebsite.com/">
                             </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-4 mb-3">
                                 <label class="form-label">Item Name:</label>
                                 <input type="text" v-model="item.name" class="form-control" placeholder="New Menu Item">
+                            </div>
+                            <div class="col-12 col-md-2 mb-3">
+                                <button class="btn btn-success me-1" @click="moveMenuItemUp(i)"><i class="fa-solid fa-angle-up"></i></button>
+                                <button class="btn btn-success me-1" @click="moveMenuItemDown(i)"><i class="fa-solid fa-angle-down"></i></button>
+                                <button class="btn btn-danger" @click="deleteMenuItem(i)"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -587,6 +592,36 @@
                     "page": "",
                     "link": ""
                 });
+            },
+            moveMenuItemUp(from) {
+                var to = from - 1;
+                if (to < 0) {
+                    to = this.menuItems.length - 1;
+                }
+                var f = this.menuItems.splice(from, 1)[0];
+                this.menuItems.splice(to, 0, f);
+                this.menuItems.forEach(function (item, index) {
+                    item.order = index;
+                });
+            },
+            moveMenuItemDown(from) {
+                var to = from + 1;
+                if (to > this.menuItems.length - 1) {
+                    to = 0;
+                }
+                var f = this.menuItems.splice(from, 1)[0];
+                this.menuItems.splice(to, 0, f);
+                this.menuItems.forEach(function (item, index) {
+                    item.order = index;
+                });
+            },
+            deleteMenuItem(index) {
+                if (confirm('Are you sure you want to do this?')) {
+                    this.menuItems.splice(index, 1);
+                    this.menuItems.forEach(function (item, index) {
+                        item.order = index;
+                    });
+                }
             },
             addUser() {
                 this.editingUser = {
