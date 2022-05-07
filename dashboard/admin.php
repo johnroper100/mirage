@@ -11,7 +11,9 @@
                 :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}"
                 v-for="collection in activeTheme.collections"><i class="fa-solid me-1" :class="collection.icon"></i>
                 {{collection.name}}</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();" :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i> Menus</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
+                :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i>
+                Menus</span>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
@@ -53,8 +55,7 @@
                             target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
-                        <a v-bind:href="viewPath(editingPath)"
-                            class="btn btn-primary me-md-2 mb-1 mb-md-0"
+                        <a v-bind:href="viewPath(editingPath)" class="btn btn-primary me-md-2 mb-1 mb-md-0"
                             v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i
                                 class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                         <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)"
@@ -66,8 +67,9 @@
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i
                                 class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
-                        <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser" :disabled="activeUser.accountType != 0"><i
-                                class="fa-solid fa-user-plus me-1"></i> Add User</button>
+                        <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
+                            :disabled="activeUser.accountType != 0"><i class="fa-solid fa-user-plus me-1"></i> Add
+                            User</button>
                     </div>
                 </div>
             </div>
@@ -121,11 +123,13 @@
                                 <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning"
                                         v-if="page.published == false"></i>{{page.title}}</h4>
                                 <h6 class="text-secondary">T: {{page.templateName}} <i
-                                        class="fa-solid fa-right-long"></i> /<span v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}</h6>
+                                        class="fa-solid fa-right-long"></i> /<span
+                                        v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
+                                </h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
-                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1"
-                                    target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
+                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank"><i
+                                        class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
                                 <button class="btn btn-success btn-sm" @click="editPage(page._id, false)"><i
@@ -201,10 +205,12 @@
                 <div class="card mb-3" v-for="menu in activeTheme.menus">
                     <div class="card-header">
                         {{menu.name}}
-                        <button class="btn btn-sm btn-success float-end" @click="addMenuItem(menu.id)">Add Menu Item</button>
+                        <button class="btn btn-sm btn-success float-end" @click="addMenuItem(menu.id)">Add Menu
+                            Item</button>
                     </div>
                     <div class="card-body">
-                        <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to begin.</span>
+                        <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to
+                            begin.</span>
                         <div class="row mb-3" v-for="item in getMenuItems(menu.id)">
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Item Type:</label>
@@ -221,7 +227,8 @@
                             </div>
                             <div class="col-12 col-md-4" v-if="item.type == 1">
                                 <label class="form-label">External Link:</label>
-                                <input type="url" v-model="item.link" class="form-control" placeholder="https://www.mywebsite.com/">
+                                <input type="url" v-model="item.link" class="form-control"
+                                    placeholder="https://www.mywebsite.com/">
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Item Name:</label>
@@ -267,10 +274,12 @@
                                 </p>
                             </div>
                             <div class="card-footer">
-                                <button class="btn btn-sm btn-success me-2" v-if="!theme.active" :disabled="activeUser.accountType != 0">Activate</button>
+                                <button class="btn btn-sm btn-success me-2" v-if="!theme.active"
+                                    :disabled="activeUser.accountType != 0">Activate</button>
                                 <button class="btn btn-sm btn-primary me-2" v-if="theme.active"
                                     :disabled="themes.length < 2 || activeUser.accountType != 0">Deactivate</button>
-                                <button class="btn btn-sm btn-danger" :disabled="themes.length < 2 || activeUser.accountType != 0">Remove</button>
+                                <button class="btn btn-sm btn-danger"
+                                    :disabled="themes.length < 2 || activeUser.accountType != 0">Remove</button>
                             </div>
                         </div>
                     </div>
@@ -291,9 +300,11 @@
                             <tr v-for="user in users">
                                 <td>{{user.name}}</td>
                                 <td>{{user.email}}</td>
-                                <td><span v-if="user.accountType == 0">Administrator</span><span v-if="user.accountType == 1">Editor</span></td>
-                                <td><button class="btn btn-sm btn-primary me-1" @click="editUser(user)" :disabled="activeUser.accountType != 0 && activeUser._id != user._id">Edit</button> <button
-                                        class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
+                                <td><span v-if="user.accountType == 0">Administrator</span><span
+                                        v-if="user.accountType == 1">Editor</span></td>
+                                <td><button class="btn btn-sm btn-primary me-1" @click="editUser(user)"
+                                        :disabled="activeUser.accountType != 0 && activeUser._id != user._id">Edit</button>
+                                    <button class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
                                         :disabled="users.length < 2 || activeUser.accountType != 0">Remove</button></td>
                             </tr>
                         </tbody>
@@ -309,7 +320,8 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="addPageModalLabel">Add a Page to
-                                <b>{{activeCollection.name}}</b></h5>
+                                <b>{{activeCollection.name}}</b>
+                            </h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -344,7 +356,9 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="addUserModalLabel"><span v-if="editingUser.editingMode == 0">Add</span><span v-if="editingUser.editingMode == 1">Edit</span> a User</h5>
+                            <h5 class="modal-title" id="addUserModalLabel"><span
+                                    v-if="editingUser.editingMode == 0">Add</span><span
+                                    v-if="editingUser.editingMode == 1">Edit</span> a User</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -365,7 +379,8 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Account Type:</label>
-                                <select v-model="editingUser.accountType" class="form-select" :disabled="activeUser.accountType != 0">
+                                <select v-model="editingUser.accountType" class="form-select"
+                                    :disabled="activeUser.accountType != 0">
                                     <option selected disabled value="">Select An Account Type</option>
                                     <option value="0">Administrator</option>
                                     <option value="1">Editor</option>
@@ -527,6 +542,9 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.menuItems = JSON.parse(this.responseText);
+                    comp.menuItems.forEach(function (item) {
+                        delete item._id;
+                    });
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.send();
@@ -722,6 +740,7 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
+                    comp.getMenus();
                     alert("Menus saved!");
                 }
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/menus", true);

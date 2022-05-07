@@ -140,7 +140,7 @@ if (!file_exists("config.php")) {
         fwrite($myfile, $txt);
         $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n";
         fwrite($myfile, $txt);
-        $txt = "\$activeTheme = \"business\";\n\n";
+        $txt = "\$activeTheme = \"explorer\";\n\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -411,12 +411,12 @@ if (!file_exists("config.php")) {
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
             $menuItems = $menuStore->createQueryBuilder()->getQuery()->delete();
-            foreach ($data as $menuItem) {
-                if ($menuItem["type"] == "page") {
+            foreach ($data as &$menuItem) {
+                if ($menuItem["type"] == 0) {
                     $menuItem["link"] = $pageStore->findById($menuItem["page"])["path"];
                 }
-                $item = $menuStore->insert($menuItem);
             }
+            $menuItems = $menuStore->insertMany($data);
             $allMenuItems = $menuStore->findAll();
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
