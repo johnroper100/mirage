@@ -62,14 +62,13 @@ function generateField($field)
     }
 };
 
-function generatePage($json, $currentTheme)
+function generatePage($json)
 {
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
     $page["userID"] = $_SESSION['id'];
     $page["edited"] = time();
-    $page["theme"] = $currentTheme;
 
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
@@ -90,14 +89,13 @@ function generatePage($json, $currentTheme)
 
 function getErrorPage($errorCode)
 {
-    global $activeTheme;
     http_response_code($errorCode);
     $errorMessage = "we will look into the issue and get it fixed as soon as possible, maybe try reloading the page";
     if ($errorCode == 404) {
         $errorMessage = "you've lost your way, you may have attempted to get to a page that doesn't exist";
     }
-    if (file_exists("./themes/" .  $activeTheme . "/error.php")) {
-        include "./themes/" .  $activeTheme . "/error.php";
+    if (file_exists("./theme/error.php")) {
+        include "./theme/error.php";
     } else {
         include "./dashboard/error.php";
     }
@@ -106,7 +104,11 @@ function getErrorPage($errorCode)
 function getPages($collection, $numEntries)
 {
     global $pageStore;
-    $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+    if ($numEntries >= 1) {
+        $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+    } else {
+        $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"]);
+    }
     return $pages;
 };
 
@@ -140,8 +142,6 @@ if (!file_exists("config.php")) {
         fwrite($myfile, $txt);
         $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n";
         fwrite($myfile, $txt);
-        $txt = "\$activeTheme = \"explorer\";\n\n";
-        fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
         fclose($myfile);
@@ -155,7 +155,7 @@ if (!file_exists("config.php")) {
 } else {
     require_once 'config.php';
 
-    define('THEMEPATH', BASEPATH . "/themes/" . $activeTheme);
+    define('THEMEPATH', BASEPATH . "/theme");
 
     Route::add('/admin', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -198,41 +198,17 @@ if (!file_exists("config.php")) {
         header('Location: ' . BASEPATH . '/login');
     });
 
-    Route::add('/api/themes', function () {
-        if (isset($_SESSION['loggedin']) || !file_exists("config.php")) {
-            $themes = array();
-            foreach (new DirectoryIterator('./themes') as $fileInfo) {
-                if($fileInfo->isDir() && !$fileInfo->isDot()) {
-                    $configFile = $fileInfo->getPathname() . "/config.json";
-                    if (file_exists($configFile)) {
-                        global $activeTheme;
-                        $themeItem = json_decode(file_get_contents($configFile));
-                        if (file_exists("config.php") && $fileInfo->getFilename() == $activeTheme) {
-                            $themeItem->active = true;
-                        }
-                        $themes[] = $themeItem;
-                    }
-                }
-            }
-            echo json_encode($themes);
-        } else {
-            getErrorPage(404);
-        }
-    });
-
-    Route::add('/api/themes/active', function () {
-        global $activeTheme;
+    Route::add('/api/theme', function () {
         if (isset($_SESSION['loggedin'])) {
-            echo file_get_contents("./themes/" .  $activeTheme . "/config.json");
+            echo file_get_contents("./theme/config.json");
         } else {
             getErrorPage(404);
         }
     });
 
     Route::add('/api/templates/(.*)', function ($who) {
-        global $activeTheme;
         if (isset($_SESSION['loggedin'])) {
-            echo file_get_contents("./themes/" . $activeTheme . "/template_defs/" . $who . ".json");
+            echo file_get_contents("./theme/template_defs/" . $who . ".json");
         } else {
             getErrorPage(404);
         }
@@ -357,10 +333,9 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
-            global $activeTheme;
 
             $json = file_get_contents('php://input');
-            $page = $pageStore->updateById($who, generatePage($json, $activeTheme));
+            $page = $pageStore->updateById($who, generatePage($json));
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
@@ -380,10 +355,9 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages', function () {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
-            global $activeTheme;
 
             $json = file_get_contents('php://input');
-            $page = $pageStore->insert(generatePage($json, $activeTheme));
+            $page = $pageStore->insert(generatePage($json));
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
@@ -406,7 +380,6 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $menuStore;
             global $pageStore;
-            global $activeTheme;
 
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
@@ -505,24 +478,24 @@ if (!file_exists("config.php")) {
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;
-        global $activeTheme;
+
         $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
         if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            include './themes/' .  $activeTheme . '/' . $page["templateName"] . ".php";
+            include './theme/' . $page["templateName"] . ".php";
         }
     });
 
     Route::add('/(.*)', function ($who) {
         global $pageStore;
         global $siteTitle;
-        global $activeTheme;
+
         $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
         if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            include './themes/' .  $activeTheme . '/' . $page["templateName"] . ".php";
+            include './theme/' . $page["templateName"] . ".php";
         }
     });
 };

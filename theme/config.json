@@ -17,6 +17,16 @@
             "name": "Portfolio Item",
             "id": "portfolioItem",
             "file": "portfolioItem.json"
+        },
+        {
+            "name": "News Item",
+            "id": "newsItem",
+            "file": "newsItem.json"
+        },
+        {
+            "name": "News",
+            "id": "news",
+            "file": "news.json"
         }
     ],
     "collections": [
@@ -25,7 +35,7 @@
             "id": "pages",
             "icon": "fa-file-invoice",
             "allowed_templates": [
-                "home", "about"
+                "home", "about", "news"
             ]
         },
         {
@@ -35,6 +45,15 @@
             "subpath": "portfolio",
             "allowed_templates": [
                 "portfolioItem"
+            ]
+        },
+        {
+            "name": "News Items",
+            "id": "newsItems",
+            "icon": "fa-newspaper",
+            "subpath": "news",
+            "allowed_templates": [
+                "newsItem"
             ]
         }
     ],

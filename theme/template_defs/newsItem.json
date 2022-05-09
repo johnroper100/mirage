@@ -1,0 +1,27 @@
+{
+    "name": "News Item",
+    "sections": [
+        {
+            "name": "Header",
+            "id": "headerSection",
+            "fields": [
+                {
+                    "name": "Featured Image",
+                    "type": "image",
+                    "id": "featuredImage"
+                }
+            ]
+        },
+        {
+            "name": "Content",
+            "id": "contentSection",
+            "fields": [
+                {
+                    "name": "Page Content",
+                    "type": "richtext",
+                    "id": "pageContent"
+                }
+            ]
+        }
+    ]
+}

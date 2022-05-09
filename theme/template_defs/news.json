@@ -1,0 +1,17 @@
+{
+    "name": "News",
+    "sections": [
+        {
+            "name": "Header",
+            "id": "headerSection",
+            "fields": [
+                {
+                    "name": "Subtitle",
+                    "type": "textarea",
+                    "id": "headerSubtitle",
+                    "value": "See what's going on with our company!"
+                }
+            ]
+        }
+    ]
+}

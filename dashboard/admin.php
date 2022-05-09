@@ -19,9 +19,6 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
                 Media</span>
-            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('themes')"
-                :class="{'active text-light': viewPage == 'themes'}"><i class="fa-solid fa-swatchbook me-1"></i>
-                Themes</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>-->
@@ -43,7 +40,6 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Forms</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'themes'">Themes</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
                 <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -270,29 +266,6 @@
                     </div>
                 </div>
             </div>
-            <div v-if="viewPage == 'themes'">
-                <div class="row">
-                    <div class="col-12 col-md-3 mb-3" v-for="theme in themes">
-                        <div class="card shadow-sm" v-bind:class="{'border border-warning border-2': theme.active}">
-                            <div class="card-body">
-                                <h5 class="card-title">{{theme.name}} <small
-                                        class="text-secondary">v{{theme.version}}</small></h5>
-                                <p class="card-text">
-                                    Author: {{theme.author}}
-                                </p>
-                            </div>
-                            <div class="card-footer">
-                                <button class="btn btn-sm btn-success me-2" v-if="!theme.active"
-                                    :disabled="activeUser.accountType != 0">Activate</button>
-                                <button class="btn btn-sm btn-primary me-2" v-if="theme.active"
-                                    :disabled="themes.length < 2 || activeUser.accountType != 0">Deactivate</button>
-                                <button class="btn btn-sm btn-danger"
-                                    :disabled="themes.length < 2 || activeUser.accountType != 0">Remove</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div v-if="viewPage == 'users'">
                 <div class="table-responsive">
                     <table class="table table-secondary table-striped shadow-sm">
@@ -487,7 +460,6 @@
                 viewPage: 'general',
                 activeCollection: {},
                 activeTheme: {},
-                themes: {},
                 pages: {},
                 counts: {},
                 activeUser: {},
@@ -521,22 +493,13 @@
                     this.viewPage = page;
                 }
             },
-            getThemes() {
-                var comp = this;
-                var xmlhttp = new XMLHttpRequest();
-                xmlhttp.onload = function () {
-                    comp.themes = JSON.parse(this.responseText);
-                }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/themes", true);
-                xmlhttp.send();
-            },
-            getActiveTheme() {
+            getTheme() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeTheme = JSON.parse(this.responseText);
                 }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/themes/active", true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
                 xmlhttp.send();
             },
             getMedia() {
@@ -874,8 +837,7 @@
             }
         },
         mounted() {
-            this.getActiveTheme();
-            this.getThemes();
+            this.getTheme();
             this.getMedia();
             this.getMenus();
             this.getCounts();
