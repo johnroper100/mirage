@@ -235,9 +235,12 @@
                                 <input type="text" v-model="item.name" class="form-control" placeholder="New Menu Item">
                             </div>
                             <div class="col-12 col-md-2 mb-3">
-                                <button class="btn btn-success me-1" @click="moveMenuItemUp(i)"><i class="fa-solid fa-angle-up"></i></button>
-                                <button class="btn btn-success me-1" @click="moveMenuItemDown(i)"><i class="fa-solid fa-angle-down"></i></button>
-                                <button class="btn btn-danger" @click="deleteMenuItem(i)"><i class="fa-solid fa-trash"></i></button>
+                                <button class="btn btn-success me-1" @click="moveMenuItemUp(i)"><i
+                                        class="fa-solid fa-angle-up"></i></button>
+                                <button class="btn btn-success me-1" @click="moveMenuItemDown(i)"><i
+                                        class="fa-solid fa-angle-down"></i></button>
+                                <button class="btn btn-danger" @click="deleteMenuItem(i)"><i
+                                        class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -310,7 +313,8 @@
                                 <td><button class="btn btn-sm btn-primary me-1" @click="editUser(user)"
                                         :disabled="activeUser.accountType != 0 && activeUser._id != user._id">Edit</button>
                                     <button class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
-                                        :disabled="users.length < 2 || activeUser.accountType != 0">Remove</button></td>
+                                        :disabled="users.length < 2 || activeUser.accountType != 0">Remove</button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -499,6 +503,8 @@
                 editingPublished: true,
                 editingDate: null,
                 selectFileFieldID: "",
+                selectFileFieldParent: "",
+                selectFileFiendIndex: null,
                 editingUser: {
                     "accountType": "",
                     "editingMode": 0,
@@ -810,9 +816,20 @@
                 var comp = this;
                 this.editingTemplate.sections.forEach(function (section) {
                     section.fields.forEach(function (field) {
-                        if (field.id == comp.selectFileFieldID) {
-                            field.value = filename;
-                            selectFileModal.hide();
+                        if (comp.selectFileFieldParent != "") {
+                            if (field.id == comp.selectFileFieldParent) {
+                                field.value[comp.selectFileFieldIndex].forEach(function (field2) {
+                                    if (field2.id == comp.selectFileFieldID) {
+                                        field2.value = filename;
+                                        selectFileModal.hide();
+                                    }
+                                });
+                            }
+                        } else {
+                            if (field.id == comp.selectFileFieldID) {
+                                field.value = filename;
+                                selectFileModal.hide();
+                            }
                         }
                     });
                 });
@@ -872,7 +889,7 @@
     app.component('Trumbowyg', VueTrumbowyg.default);
 
     app.component('templateinput', {
-        props: ['field'],
+        props: ['field', 'parent', "index"],
         data() {
             return {
                 richtextOptions: {
@@ -899,8 +916,16 @@
             }
         },
         methods: {
-            selectImage(fieldID) {
-                this.$parent.selectFileFieldID = fieldID;
+            selectImage(fieldID, parent, index) {
+                if (parent) {
+                    this.$parent.$parent.selectFileFieldID = fieldID;
+                    this.$parent.$parent.selectFileFieldParent = parent.id;
+                    this.$parent.$parent.selectFileFieldIndex = index;
+                } else {
+                    this.$parent.selectFileFieldID = fieldID;
+                    this.$parent.selectFileFieldParent = "";
+                    this.$parent.selectFileFieldIndex = "";
+                }
                 selectFileModal.show();
             },
             addListItem(field) {
@@ -927,12 +952,12 @@
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
-                    <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1">
+                    <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="listItem.id">
                         <button class="btn btn-danger btn-sm mb-2" @click="removeListItem(field, i)">Remove</button>
-                        <templateinput :field="subField" v-for="subField in listItem"></templateinput>
+                        <templateinput :field="subField" :parent="field" :index="i" v-for="subField in listItem"></templateinput>
                     </div>
                     <button class="btn btn-sm btn-success w-100" @click="addListItem(field)">Add Item</button>
                 </div>
