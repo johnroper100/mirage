@@ -36,6 +36,14 @@
                 </div>
             <?php }; ?>
         </div>
+
+        <div class="row mb-3">
+            <?php foreach($page["content"]["associateImages"] as $assocItem) { ?>
+                <div class="col-12 col-md-3">
+                    <a class="img-bg" href="<?php echo $assocItem["link"]; ?>" target="_blank" style="background-size: contain; max-width: 60%; margin: 0 auto; background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $assocItem["image"]; ?>');"></a>
+                </div>
+            <?php }; ?>
+        </div>
     </div>
 </div>
 <?php include 'footer.php'; ?>
