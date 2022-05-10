@@ -1,5 +1,5 @@
 <?php include 'header.php'; ?>
-<div class="probootstrap-section">
+<div class="probootstrap-section" style="padding-bottom: 1em;">
     <div class="container text-center">
         <div class="row">
             <div class="col-md-6 col-md-offset-3 mb40">

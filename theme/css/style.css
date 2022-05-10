@@ -682,6 +682,7 @@ a:hover, a:focus {
 .probootstrap-footer {
   border-top: 2px solid rgba(255, 255, 255, 0.1);
   padding: 5em 0;
+  padding-top: 1em;
 }
 
 @media screen and (max-width: 768px) {
