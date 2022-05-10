@@ -485,7 +485,7 @@ if (!file_exists("config.php")) {
         foreach ($contactForms as $contactForm) {
             if ($contactForm["id"] == $formID) {
                 $to = $contactForm["recipient"];
-                $subject = "Form Submission From Your Website";
+                $subject = $contactForm["name"] . " Form Submission From Your Website";
                 $txt = "Submission Details -<br>";
                 foreach ($contactForm["fields"] as $field) {
                     $txt = $txt . $field["name"] . ": " . $_POST[$field["id"]] . "<br>";
