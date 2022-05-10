@@ -14,7 +14,7 @@
                         $menuItems = getMenuItems('header');
                         foreach ($menuItems as $menuItem) {
                     ?>
-                    <li <?php if ($menuItem['type'] == 0 && $menuItem['page'] == $page['_id']) { ?>class="active"<?php }; ?>><a href="<?php echo BASEPATH . '/' . $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
+                    <li><a href="<?php echo BASEPATH . '/' . $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
                     <?php }; ?>
                 </ul>
             </div>
