@@ -3,11 +3,19 @@
         <div class="row">
             <div class="col-md-12">
                 <p class="probootstrap-copyright">&copy; <?php echo date("Y"); ?> <?php echo $siteTitle; ?> - All Rights Reserved.</p>
-                <ul class="probootstrap-social">
+                <!--<ul class="probootstrap-social">
                     <li><a href="#"><i class="icon-twitter"></i></a></li>
                     <li><a href="#"><i class="icon-facebook2"></i></a></li>
                     <li><a href="#"><i class="icon-instagram2"></i></a></li>
                     <li><a href="#"><i class="icon-google-plus"></i></a></li>
+                </ul>-->
+                <ul class="probootstrap-main-nav" style="float: right;">
+                    <?php
+                        $menuItems = getMenuItems('header');
+                        foreach ($menuItems as $menuItem) {
+                    ?>
+                    <li <?php if ($menuItem['type'] == 0 && $menuItem['page'] == $page['_id']) { ?>class="active"<?php }; ?>><a href="<?php echo BASEPATH . '/' . $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
+                    <?php }; ?>
                 </ul>
             </div>
         </div>
