@@ -490,7 +490,9 @@ if (!file_exists("config.php")) {
                 foreach ($contactForm["fields"] as $field) {
                     $txt = $txt . $field["name"] . ": " . $_POST[$field["id"]] . "<br>";
                 }
-                mail($to,$subject,$txt);
+                $headers = "MIME-Version: 1.0" . "\r\n";
+                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+                mail($to,$subject,$txt, $headers);
                 header("Location: {$_SERVER["HTTP_REFERER"]}");
             }
         };
