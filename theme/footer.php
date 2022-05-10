@@ -14,7 +14,7 @@
                         $menuItems = getMenuItems('header');
                         foreach ($menuItems as $menuItem) {
                     ?>
-                    <li><a href="<?php echo BASEPATH . '/' . $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
+                    <li><a style="color: #5068A9;" href="<?php echo BASEPATH . '/' . $menuItem['link']; ?>" <?php if ($menuItem['type'] == 1) { ?>target="_blank"<?php } ?>><?php echo $menuItem['name']; ?></a></li>
                     <?php }; ?>
                 </ul>
             </div>
