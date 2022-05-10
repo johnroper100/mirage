@@ -2,7 +2,12 @@
 
 session_start();
 
-define('BASEPATH', dirname($_SERVER['PHP_SELF']));
+define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
+if (ORIGBASEPATH == "/") {
+    define('BASEPATH', "");
+} else {
+    define('BASEPATH', ORIGBASEPATH);
+}
 
 if (!file_exists(".htaccess")) {
     $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
@@ -12,7 +17,7 @@ if (!file_exists(".htaccess")) {
     $txt = "RewriteEngine on\n";
     fwrite($myfile, $txt);
     // Set the rewrite base
-    $txt = "RewriteBase " . BASEPATH . "\n";
+    $txt = "RewriteBase " . ORIGBASEPATH . "\n";
     fwrite($myfile, $txt);
     // Deliver the folder or file directly if it exists on the server
     $txt = "RewriteRule ^database/?$ - [F,L]\n";
