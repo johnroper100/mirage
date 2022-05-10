@@ -36,7 +36,6 @@
                 </div>
             <?php }; ?>
         </div>
-
         <div class="row mb-3">
             <?php foreach($page["content"]["associateImages"] as $assocItem) { ?>
                 <div class="col-12 col-md-3">

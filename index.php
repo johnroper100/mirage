@@ -475,6 +475,22 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
+    Route::add('/form/(.*)', function ($formID) {
+        $contactForms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
+        foreach ($contactForms as $contactForm) {
+            if ($contactForm["id"] == $formID) {
+                $to = $contactForm["recipient"];
+                $subject = "Form Submission From Your Website";
+                $txt = "Submission Details -<br>";
+                foreach ($contactForm["fields"] as $field) {
+                    $txt = $txt . $field["name"] . ": " . $_POST[$field["id"]] . "<br>";
+                }
+                mail($to,$subject,$txt);
+                header("Location: {$_SERVER["HTTP_REFERER"]}");
+            }
+        };
+    }, 'POST');
+
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;

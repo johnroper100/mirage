@@ -27,6 +27,11 @@
             "name": "News",
             "id": "news",
             "file": "news.json"
+        },
+        {
+            "name": "Contact",
+            "id": "contact",
+            "file": "contact.json"
         }
     ],
     "collections": [
@@ -35,7 +40,7 @@
             "id": "pages",
             "icon": "fa-file-invoice",
             "allowed_templates": [
-                "home", "about", "news"
+                "home", "about", "news", "contact"
             ]
         },
         {
@@ -61,6 +66,31 @@
         {
             "name": "Header",
             "id": "header"
+        }
+    ],
+    "forms": [
+        {
+            "name": "Contact",
+            "id": "contact",
+            "recipient": "johnroper100@gmail.com",
+            "fields": [
+                {
+                    "name": "First Name",
+                    "id": "firstName"
+                },
+                {
+                    "name": "Last Name",
+                    "id": "lastName"
+                },
+                {
+                    "name": "Email",
+                    "id": "email"
+                },
+                {
+                    "name": "Message",
+                    "id": "message"
+                }
+            ]
         }
     ]
 }

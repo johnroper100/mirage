@@ -1,0 +1,41 @@
+{
+    "name": "Contact",
+    "sections": [
+        {
+            "name": "Header",
+            "id": "headerSection",
+            "fields": [
+                {
+                    "name": "Subtitle",
+                    "type": "text",
+                    "id": "headerSubtitle",
+                    "value": "Let us know how our company can help you"
+                }
+            ]
+        },
+        {
+            "name": "Contact Details",
+            "id": "contactSection",
+            "fields": [
+                {
+                    "name": "Address",
+                    "type": "text",
+                    "id": "address",
+                    "value": "198 West 21th Street, Suite 721 New York NY 10016"
+                },
+                {
+                    "name": "Email",
+                    "type": "text",
+                    "id": "email",
+                    "value": "info@domain.com"
+                },
+                {
+                    "name": "Phone #",
+                    "type": "text",
+                    "id": "phone",
+                    "value": "123 456 7890"
+                }
+            ]
+        }
+    ]
+}
