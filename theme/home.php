@@ -16,10 +16,10 @@
             <?php foreach(getPages("newsItems", 1) as $newsItem) { ?>
                 <div class="col-md-8 probootstrap-animate" data-animate-effect="fadeIn">
                     <a href="<?php echo BASEPATH . '/' . $newsItem["collectionSubpath"] . '/' . $newsItem["path"]; ?>" class="img-bg"
-                        style="background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $newsItem["content"]["featuredImage"]; ?>');">
+                        style="background-blend-mode: multiply; background: rgba(0, 0, 0, 0.45); background-position: center; background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $newsItem["content"]["featuredImage"]; ?>');">
                         <div class="probootstrap-photo-details">
                             <h2>Latest News</h2>
-                            <p><?php echo $newsItem["title"]; ?> - <?php echo date("F jS, Y", $newsItem["edited"]); ?></p>
+                            <p><?php echo $newsItem["title"]; ?> ?></p>
                         </div>
                     </a>
                 </div>
@@ -27,7 +27,7 @@
             <?php foreach(getPages("portfolioItems", 0) as $portfolioItem) { ?>
                 <div class="col-md-4 probootstrap-animate" data-animate-effect="fadeIn">
                     <a href="<?php echo BASEPATH . '/' . $portfolioItem["collectionSubpath"] . '/' . $portfolioItem["path"]; ?>" class="img-bg"
-                        style="background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $portfolioItem["content"]["featuredImage"]; ?>');">
+                        style="background-blend-mode: multiply; background: rgba(0, 0, 0, 0.45); background-position: center; background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $portfolioItem["content"]["featuredImage"]; ?>');">
                         <div class="probootstrap-photo-details">
                             <h2><?php echo $portfolioItem["title"]; ?></h2>
                             <p><?php echo $portfolioItem["content"]["headerSubtitle"]; ?></p>
