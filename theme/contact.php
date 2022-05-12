@@ -40,9 +40,15 @@
             <div class="col-md-3 col-md-push-1 probootstrap-animate">
                 <h4>Contact Details</h4>
                 <ul class="with-icon colored">
+                    <?php if ($page["content"]["address"] != "" ) { ?>
                     <li><i class="icon-location2"></i> <span><?php echo $page["content"]["address"]; ?></span></li>
+                    <?php }; ?>
+                    <?php if ($page["content"]["email"] != "" ) { ?>
                     <li><i class="icon-mail"></i><span><?php echo $page["content"]["email"]; ?></span></li>
+                    <?php }; ?>
+                    <?php if ($page["content"]["phone"] != "" ) { ?>
                     <li><i class="icon-phone2"></i><span>+<?php echo $page["content"]["phone"]; ?></span></li>
+                    <?php }; ?>
                 </ul>
             </div>
         </div>

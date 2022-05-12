@@ -110,9 +110,17 @@ function getPages($collection, $numEntries)
 {
     global $pageStore;
     if ($numEntries >= 1) {
-        $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+        if (isset($_SESSION['loggedin'])) {
+            $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+        } else {
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["edited" => "desc"], $numEntries);
+        }
     } else {
-        $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"]);
+        if (isset($_SESSION['loggedin'])) {
+            $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"]);
+        } else {
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["edited" => "desc"]);
+        }
     }
     return $pages;
 };

@@ -3,12 +3,6 @@
         <div class="row">
             <div class="col-md-12">
                 <p class="probootstrap-copyright">&copy; <?php echo date("Y"); ?> <?php echo $siteTitle; ?> - All Rights Reserved.</p>
-                <!--<ul class="probootstrap-social">
-                    <li><a href="#"><i class="icon-twitter"></i></a></li>
-                    <li><a href="#"><i class="icon-facebook2"></i></a></li>
-                    <li><a href="#"><i class="icon-instagram2"></i></a></li>
-                    <li><a href="#"><i class="icon-google-plus"></i></a></li>
-                </ul>-->
                 <ul class="probootstrap-main-nav" style="float: right;">
                     <?php
                         $menuItems = getMenuItems('header');
