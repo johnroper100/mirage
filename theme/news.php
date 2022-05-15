@@ -19,7 +19,7 @@
                         style="background-blend-mode: multiply; background: rgba(0, 0, 0, 0.45); background-position: center; background-size: cover; background-image: url('<?php echo BASEPATH; ?>/uploads/<?php echo $newsItem["content"]["featuredImage"]; ?>');">
                         <div class="probootstrap-photo-details">
                             <h2><?php echo $newsItem["title"]; ?></h2>
-                            <p>Published <?php echo date("F jS, Y", $newsItem["edited"]); ?></p>
+                            <p>Published <?php echo date("F jS, Y", $newsItem["published"]); ?></p>
                         </div>
                     </a>
                 </div>
