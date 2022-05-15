@@ -67,13 +67,16 @@ function generateField($field)
     }
 };
 
-function generatePage($json)
+function generatePage($json, $isNewPage = false)
 {
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
     $page["userID"] = $_SESSION['id'];
     $page["edited"] = time();
+    if ($isNewPage) {
+        $page["created"] = time();
+    }
 
     foreach ($data["template"]["sections"] as $section) {
         foreach ($section["fields"] as $field) {
@@ -111,15 +114,15 @@ function getPages($collection, $numEntries)
     global $pageStore;
     if ($numEntries >= 1) {
         if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"], $numEntries);
+            $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"], $numEntries);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["edited" => "desc"], $numEntries);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["created" => "desc"], $numEntries);
         }
     } else {
         if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], ["edited" => "desc"]);
+            $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"]);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["edited" => "desc"]);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["created" => "desc"]);
         }
     }
     return $pages;
@@ -370,7 +373,7 @@ if (!file_exists("config.php")) {
             global $pageStore;
 
             $json = file_get_contents('php://input');
-            $page = $pageStore->insert(generatePage($json));
+            $page = $pageStore->insert(generatePage($json, true));
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
