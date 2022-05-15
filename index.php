@@ -91,7 +91,7 @@ function generatePage($json, $isNewPage = false)
     $page["path"] = $data["path"];
     $page["collection"] = $data["collection"];
     $page["collectionSubpath"] = $data["collectionSubpath"] ?? "";
-    $page["published"] = $data["published"];
+    $page["isPublished"] = $data["isPublished"];
     return $page;
 };
 
@@ -116,13 +116,13 @@ function getPages($collection, $numEntries)
         if (isset($_SESSION['loggedin'])) {
             $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"], $numEntries);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["created" => "desc"], $numEntries);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], ["created" => "desc"], $numEntries);
         }
     } else {
         if (isset($_SESSION['loggedin'])) {
             $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"]);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["published", "=", true]], ["created" => "desc"]);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], ["created" => "desc"]);
         }
     }
     return $pages;
@@ -514,7 +514,7 @@ if (!file_exists("config.php")) {
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
-        if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
+        if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
             include './theme/' . $page["templateName"] . ".php";
@@ -526,7 +526,7 @@ if (!file_exists("config.php")) {
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
-        if ($page == null || ($page["published"] == false && !isset($_SESSION['loggedin']))) {
+        if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
             include './theme/' . $page["templateName"] . ".php";

@@ -117,7 +117,7 @@
                         <div class="row mt-1">
                             <div class="col-12 col-md-9">
                                 <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning"
-                                        v-if="page.published == false"></i>{{page.title}}</h4>
+                                        v-if="page.isPublished == false"></i>{{page.title}}</h4>
                                 <h6 class="text-secondary">T: {{page.templateName}} <i
                                         class="fa-solid fa-right-long"></i> /<span
                                         v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
@@ -728,7 +728,7 @@
                     comp.editingTitle = page.title;
                     comp.editingPath = page.path;
                     comp.editingID = page._id;
-                    comp.editingPublished = page.published;
+                    comp.editingPublished = page.isPublished;
                     var dateObject = new Date(page.edited * 1000);
                     comp.editingDate = dateObject.toLocaleString();
                     comp.editingTemplate.sections.forEach(function (section) {
@@ -759,7 +759,7 @@
                     path: this.editingPath,
                     collection: this.activeCollection.id,
                     collectionSubpath: this.activeCollection.subpath,
-                    published: this.editingPublished
+                    isPublished: this.editingPublished
                 }
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
