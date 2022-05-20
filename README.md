@@ -1,9 +1,3 @@
 # Mirage
 
-A new website engine. Still very WIP, but feel free to explore.
-
-### Resources
-
-https://codeshack.io/secure-login-system-php-mysql/
-
-https://github.com/calazcano/vue-trumbowyg
+A new sit platform designed specifically for single client websites with a set theme. Develop in plain HTML and CSS and then simply add a few lines of code to convert it to a fully functional website. Fully customize the internal editing display for each type of content so that you only see the inputs that you need.
