@@ -615,6 +615,7 @@
                 xmlhttp.onload = function () {
                     addUserModal.hide();
                     comp.getUsers();
+                    comp.getCounts();
                 }
                 if (comp.editingUser.editingMode == 0) {
                     xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/users", true);
@@ -623,7 +624,6 @@
                 }
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(comp.editingUser));
-                comp.getCounts();
             },
             deleteUser(userID) {
                 if (confirm("Are you sure you want to delete this?") == true) {
@@ -631,10 +631,10 @@
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
                         comp.getUsers();
+                        comp.getCounts();
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/users/" + userID, true);
                     xmlhttp.send();
-                    comp.getCounts();
                 }
             },
             getPages(collection) {
@@ -673,10 +673,10 @@
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
                         comp.getPages(comp.activeCollection);
+                        comp.getCounts();
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                     xmlhttp.send();
-                    comp.getCounts();
                 }
             },
             addPage() {
@@ -766,6 +766,7 @@
                 xmlhttp.onload = function () {
                     comp.editPage(JSON.parse(this.responseText)._id, true);
                     alert("Page saved!");
+                    comp.getCounts();
                 }
                 if (this.editingMode == 0) {
                     xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/pages", true);
@@ -813,6 +814,7 @@
                     document.getElementById('uploadMediaFiles').value = "";
                     uploadMediaModal.hide();
                     comp.getMedia();
+                    comp.getCounts();
                 }
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/media");
                 xmlhttp.send(formData);
@@ -823,6 +825,7 @@
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
                         comp.getMedia();
+                        comp.getCounts();
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/media/" + itemID, true);
                     xmlhttp.send();
