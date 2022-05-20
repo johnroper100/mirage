@@ -182,7 +182,7 @@
                         <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">
                             <div class="mb-3">
                                 <label class="form-label">Page Path:</label>
-                                <input v-model="editingPath" type="text" class="form-control" placeholder="/">
+                                <input v-model="editingPath" type="text" class="form-control">
                             </div>
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"
@@ -191,6 +191,10 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Last Saved:</label>
+                                <input disabled v-model="editingEditedDate" type="text" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">First Saved:</label>
                                 <input disabled v-model="editingDate" type="text" class="form-control">
                             </div>
                         </div>
@@ -474,6 +478,7 @@
                 editingID: null,
                 editingPublished: true,
                 editingDate: null,
+                editingEditedDate: null,
                 selectFileFieldID: "",
                 selectFileFieldParent: "",
                 selectFileFiendIndex: null,
@@ -695,6 +700,7 @@
                     comp.editingMode = 0;
                     comp.editingPublished = false;
                     comp.editingDate = "Never";
+                    comp.editingEditedDate = "Never";
                     addPageModal.hide();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + comp.editingTemplateName, true);
@@ -730,7 +736,9 @@
                     comp.editingID = page._id;
                     comp.editingPublished = page.isPublished;
                     var dateObject = new Date(page.edited * 1000);
-                    comp.editingDate = dateObject.toLocaleString();
+                    comp.editingEditedDate = dateObject.toLocaleString();
+                    var dateObject2 = new Date(page.created * 1000);
+                    comp.editingDate = dateObject2.toLocaleString();
                     comp.editingTemplate.sections.forEach(function (section) {
                         section.fields.forEach(function (field) {
                             comp.getTemplateValue(page.content, field);

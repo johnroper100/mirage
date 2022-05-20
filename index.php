@@ -72,10 +72,11 @@ function generatePage($json, $isNewPage = false)
     $data = json_decode($json, true);
     $page = [];
     $page["content"] = [];
-    $page["userID"] = $_SESSION['id'];
+    $page["editedUser"] = $_SESSION['id']; // could be null if user has been deleted
     $page["edited"] = time();
     if ($isNewPage) {
-        $page["created"] = time();
+        $page["createdUser"] = $page["editedUser"]; // could be null if user has been deleted
+        $page["created"] = $page["edited"];
     }
 
     foreach ($data["template"]["sections"] as $section) {
@@ -109,20 +110,20 @@ function getErrorPage($errorCode)
     }
 };
 
-function getPages($collection, $numEntries)
+function getPages($collection, $numEntries, $sort = ["created" => "desc"])
 {
     global $pageStore;
-    if ($numEntries >= 1) {
+    if ($numEntries > 0) {
         if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"], $numEntries);
+            $pages = $pageStore->findBy(["collection", "=", $collection], $sort, $numEntries);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], ["created" => "desc"], $numEntries);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], $sort, $numEntries);
         }
     } else {
         if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], ["created" => "desc"]);
+            $pages = $pageStore->findBy(["collection", "=", $collection], $sort);
         } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], ["created" => "desc"]);
+            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], $sort);
         }
     }
     return $pages;
@@ -305,8 +306,21 @@ if (!file_exists("config.php")) {
     Route::add('/api/users/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin']) && $_SESSION['userType'] == 0) {
             global $userStore;
+            global $pageStore;
             if ($userStore->count() > 1) {
                 $userStore->deleteById($who);
+
+                $allPages = $pageStore->findAll();
+                foreach($allPages as $key => $page){
+                    if ($page["createdUser"] == $who) {
+                        $page["createdUser"] = null;
+                    }
+                    if ($page["editedUser"] == $who) {
+                        $page["editedUser"] = null;
+                    }
+                    $allPages[$key] = $page;
+                }
+                $pageStore->update($allPages);
             }
         } else {
             getErrorPage(404);
