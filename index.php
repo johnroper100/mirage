@@ -147,6 +147,26 @@ function getMedia($mediaID)
     return $media;
 };
 
+function getUsers($numEntries)
+{
+    global $userStore;
+    $users = $userStore->createQueryBuilder()->select(['name', 'email', 'accountType']);
+    if ($numEntries > 0) {
+        $users = $users->limit($numEntries);
+    }
+    $users = $users->getQuery()->fetch();
+
+    return $users;
+};
+
+function getUser($userID)
+{
+    global $userStore;
+    $user = $userStore->createQueryBuilder()->where([ "_id", "=", $userID ] )->select(['name', 'email', 'accountType'])->limit(1)->getQuery()->fetch();
+
+    return $user;
+};
+
 function get_words($sentence, $count = 10) {
     preg_match("/(?:\w+(?:\W+|$)){0,$count}/", $sentence, $matches);
     return $matches[0];
