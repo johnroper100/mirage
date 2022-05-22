@@ -39,6 +39,9 @@ use SleekDB\Store;
 
 include 'simplePHPRouter/src/Steampixel/Route.php';
 require_once 'SleekDB/src/Store.php';
+include 'php-image-resize/lib/ImageResize.php';
+
+use \Gumlet\ImageResize;
 
 $sleekDBConfiguration = [
     "timeout" => false
@@ -460,8 +463,12 @@ if (!file_exists("config.php")) {
                 if (!move_uploaded_file($_FILES['uploadMediaFiles']['tmp_name'][$i], "./uploads/" . $_FILES['uploadMediaFiles']['name'][$i])) {
                     getErrorPage(500);
                 } else {
+                    $image = new ImageResize("./uploads/" . $_FILES['uploadMediaFiles']['name'][$i]);
+                    $image->resizeToWidth(500);
+                    $image->save("./uploads/min_" . $_FILES['uploadMediaFiles']['name'][$i]);
                     $page = [];
                     $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
+                    $page['fileSmall'] = "min_" . $page['file'];
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
                     $page = $mediaStore->insert($page);
                 }
