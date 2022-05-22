@@ -47,7 +47,7 @@
                     aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <div class="navbar-nav ms-auto mt-2 mt-lg-0">
-                        <a href="<?php echo BASEPATH; ?>" class="btn btn-primary" v-if="viewPage == 'general'"
+                        <a href="<?php echo ORIGBASEPATH; ?>" class="btn btn-primary" v-if="viewPage == 'general'"
                             target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
@@ -182,7 +182,7 @@
                         <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">
                             <div class="mb-3">
                                 <label class="form-label">Page Path:</label>
-                                <input v-model="editingPath" type="text" class="form-control">
+                                <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                             </div>
                             <div class="form-check form-switch mb-3">
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"
