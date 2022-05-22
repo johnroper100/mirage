@@ -393,7 +393,7 @@
                                     class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
                                 <div class="col-4 col-md-2" v-for="item in mediaItems">
-                                    <img @click="selectFileItem(item.file)"
+                                    <img @click="selectFileItem(item._id)"
                                         v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
                                         class="img-fluid me-3 mb-3 mediaItem shadow"
                                         style="width: 100%; height: 6rem; object-fit: cover;">
@@ -784,7 +784,7 @@
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(data));
             },
-            selectFileItem(filename) {
+            selectFileItem(id) {
                 var comp = this;
                 this.editingTemplate.sections.forEach(function (section) {
                     section.fields.forEach(function (field) {
@@ -792,14 +792,14 @@
                             if (field.id == comp.selectFileFieldParent) {
                                 field.value[comp.selectFileFieldIndex].forEach(function (field2) {
                                     if (field2.id == comp.selectFileFieldID) {
-                                        field2.value = filename;
+                                        field2.value = id;
                                         selectFileModal.hide();
                                     }
                                 });
                             }
                         } else {
                             if (field.id == comp.selectFileFieldID) {
-                                field.value = filename;
+                                field.value = id;
                                 selectFileModal.hide();
                             }
                         }
@@ -838,6 +838,15 @@
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/media/" + itemID, true);
                     xmlhttp.send();
                 }
+            },
+            getMediaFilePath(itemID) {
+                var returnVar = null;
+                this.mediaItems.forEach(function (item) {
+                    if (item._id == itemID) {
+                        returnVar = item.file;
+                    }
+                });
+                return returnVar;
             },
             viewPath(path) {
                 if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
@@ -911,6 +920,9 @@
                 if (confirm("Are you sure you want to delete this?") == true) {
                     field.value.splice(id, 1);
                 }
+            },
+            getMediaFilePath(id) {
+                return this.$root.getMediaFilePath(id);
             }
         },
         template: `
@@ -924,7 +936,7 @@
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
-                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+field.value" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                 <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">

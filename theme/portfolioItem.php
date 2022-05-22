@@ -4,7 +4,8 @@
         <?php if ($page["content"]["featuredImage"] != "" ) { ?>
         <div class="row probootstrap-gutter16">
             <div class="col-12">
-                <div class="img-bg" style="background-image: url(<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["featuredImage"]; ?>);"></div>
+                <?php $imageDetails = getMedia($page["content"]["featuredImage"]); ?>
+                <div class="img-bg" style="background-image: url(<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>);"></div>
             </div>
         </div>
         <?php }; ?>
@@ -20,7 +21,8 @@
         <div class="row grid" data-masonry='{"percentPosition": true }' style="margin-top: 1.5rem;">
             <?php foreach ($page["content"]["additionalImages"] as $imageItem) { ?>
                 <div class="col-md-6 grid-item">
-                    <p><a href="<?php echo BASEPATH; ?>/uploads/<?php echo $imageItem["image"]; ?>" class="image-popup"><img src="<?php echo BASEPATH; ?>/uploads/<?php echo $imageItem["image"]; ?>" class="img-responsive"></a></p>
+                    <?php $imageDetails = getMedia($imageItem["image"]); ?>
+                    <p><a href="<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>" class="image-popup"><img src="<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>" class="img-responsive"></a></p>
                 </div>
             <?php } ?>
         </div>

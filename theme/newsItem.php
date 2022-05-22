@@ -4,7 +4,8 @@
         <?php if ($page["content"]["featuredImage"] != "" ) { ?>
         <div class="row probootstrap-gutter16">
             <div class="col-12">
-                <div class="img-bg" style="background-image: url(<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["featuredImage"]; ?>);"></div>
+                <?php $imageDetails = getMedia($page["content"]["featuredImage"]); ?>
+                <div class="img-bg" style="background-image: url(<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>);"></div>
             </div>
         </div>
         <?php }; ?>

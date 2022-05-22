@@ -4,14 +4,16 @@
         <?php if (array_key_exists('featuredImage', $page["content"])) { ?>
         <div class="row">
             <div class="col-md-12">
-                <p><img src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["featuredImage"]; ?>" class="img-responsive"></p>
+                <?php $imageDetails = getMedia($page["content"]["featuredImage"]); ?>
+                <p><img src="<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>" class="img-responsive"></p>
             </div>
         </div>
         <?php }; ?>
         <div class="row">
             <?php if (array_key_exists('secondaryImage', $page["content"])) { ?>
             <div class="col-12 col-md-5">
-                <img src="<?php echo BASEPATH; ?>/uploads/<?php echo $page["content"]["secondaryImage"]; ?>" class="img-responsive">
+                <?php $imageDetails = getMedia($page["content"]["secondaryImage"]); ?>
+                <img src="<?php echo BASEPATH; ?>/uploads/<?php echo $imageDetails["file"]; ?>" class="img-responsive">
             </div>
             <?php }; ?>
             <div class="col-5 col-md-7">

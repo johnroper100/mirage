@@ -136,6 +136,14 @@ function getMenuItems($menuID)
     return $menuItems;
 };
 
+function getMedia($mediaID)
+{
+    global $mediaStore;
+    $media = $mediaStore->findById($mediaID);
+
+    return $media;
+};
+
 function get_words($sentence, $count = 10) {
     preg_match("/(?:\w+(?:\W+|$)){0,$count}/", $sentence, $matches);
     return $matches[0];
