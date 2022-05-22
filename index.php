@@ -489,6 +489,7 @@ if (!file_exists("config.php")) {
                     $page = [];
                     $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
                     $page['fileSmall'] = "min_" . $page['file'];
+                    $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
                     $page = $mediaStore->insert($page);
                 }
@@ -526,6 +527,21 @@ if (!file_exists("config.php")) {
             echo json_encode($response);
         }
     }, 'POST');
+
+    Route::add('/api/media/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $mediaStore;
+            $json = file_get_contents('php://input');
+            $data = json_decode($json, true);
+            $mediaItem = [
+                'caption' => $data["caption"]
+            ];
+
+            $mediaItem = $mediaStore->updateById($who, $mediaItem);
+        } else {
+            getErrorPage(404);
+        }
+    }, 'PUT');
 
     Route::add('/api/media/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {

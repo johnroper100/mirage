@@ -264,6 +264,8 @@
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
                                 class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
                             <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
+                            <button class="btn btn-sm btn-primary mb-2 ms-2"
+                                @click="editMediaItem(item)">Edit</button>
                             <button class="btn btn-sm btn-danger mb-2 ms-2"
                                 @click="deleteMediaFile(item._id)">Remove</button>
                         </div>
@@ -407,6 +409,28 @@
                     </div>
                 </div>
             </div>
+            <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="editMediaModal" tabindex="-1"
+                aria-labelledby="editMediaModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editMediaModalLabel">Edit Media Item</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Caption:</label>
+                                <input v-model="editingMediaItem.caption" type="text" class="form-control"
+                                    placeholder="Caption Your Image">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" @click="saveMediaItem">Save Media Item</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="modal fade" id="uploadMediaModal" tabindex="-1" aria-labelledby="uploadMediaModalLabel"
                 aria-hidden="true">
                 <div class="modal-dialog">
@@ -439,6 +463,7 @@
     var addUserModal;
     var selectFileModal;
     var uploadMediaModal;
+    var editMediaModal;
 
     window.addEventListener('DOMContentLoaded', event => {
 
@@ -460,6 +485,7 @@
         addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'), {});
         selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
         uploadMediaModal = new bootstrap.Modal(document.getElementById('uploadMediaModal'), {});
+        editMediaModal = new bootstrap.Modal(document.getElementById('editMediaModal'), {});
     });
 
     const App = {
@@ -489,7 +515,8 @@
                 editingUser: {
                     "accountType": "",
                     "editingMode": 0,
-                }
+                },
+                editingMediaItem: {}
             }
         },
         methods: {
@@ -843,6 +870,27 @@
                     xmlhttp.send();
                 }
             },
+            editMediaItem(item) {
+                this.editingMediaItem = {
+                    "file": item.file,
+                    "fileSmall": item.fileSmall,
+                    "caption": item.caption,
+                    "editingID": item._id
+                };
+                editMediaModal.show();
+            },
+            saveMediaItem() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    editMediaModal.hide();
+                    comp.getMedia();
+                    comp.getCounts();
+                }
+                xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/media/" + comp.editingMediaItem.editingID, true);
+                xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                xmlhttp.send(JSON.stringify(comp.editingMediaItem));
+            },
             getMediaFilePath(itemID) {
                 var returnVar = null;
                 this.mediaItems.forEach(function (item) {
@@ -902,7 +950,7 @@
             }
         },
         methods: {
-            selectImage(fieldID, parent, index) {
+            selectMediaItem(fieldID, parent, index) {
                 if (parent) {
                     this.$parent.$parent.selectFileFieldID = fieldID;
                     this.$parent.$parent.selectFileFieldParent = parent.id;
@@ -941,7 +989,7 @@
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectImage(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectMediaItem(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="listItem.id">
