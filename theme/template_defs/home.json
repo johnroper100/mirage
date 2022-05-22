@@ -30,7 +30,8 @@
                     "fields": [
                         {
                             "name": "Image",
-                            "type": "image",
+                            "type": "media",
+                            "subtype": "image",
                             "id": "image"
                         },
                         {

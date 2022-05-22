@@ -7,12 +7,14 @@
             "fields": [
                 {
                     "name": "Featured Image",
-                    "type": "image",
+                    "type": "media",
+                    "subtype": "image",
                     "id": "featuredImage"
                 },
                 {
                     "name": "Secondary Image",
-                    "type": "image",
+                    "type": "media",
+                    "subtype": "image",
                     "id": "secondaryImage"
                 }
             ]

@@ -994,9 +994,9 @@
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
-                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'image'" @click="selectMediaItem(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Image</button>
-                <button class="btn btn-sm btn-danger" v-if="field.type == 'image' && field.value != null" @click="field.value = null">Remove Image</button>
+                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
+                <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && field.value != null" @click="field.value = null">Remove Item</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="listItem.id">
                         <button class="btn btn-danger btn-sm mb-2" @click="removeListItem(field, i)">Remove</button>
