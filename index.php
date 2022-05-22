@@ -231,7 +231,7 @@ if (!file_exists("config.php")) {
             $_SESSION['loggedin'] = true;
             $_SESSION['name'] = $user['name'];
             $_SESSION['id'] = $user['_id'];
-            $_SESSION['userType'] = $user['accountType'];
+            $_SESSION['accountType'] = $user['accountType'];
 
             header('Location: ' . BASEPATH . '/admin');
         } else {
@@ -296,7 +296,7 @@ if (!file_exists("config.php")) {
     });
 
     Route::add('/api/users', function () {
-        if (isset($_SESSION['loggedin']) && $_SESSION['userType'] == 0) {
+        if (isset($_SESSION['loggedin']) && $_SESSION['accountType'] == 0) {
             global $userStore;
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
@@ -314,7 +314,7 @@ if (!file_exists("config.php")) {
     }, 'POST');
 
     Route::add('/api/users/([0-9]*)', function ($who) {
-        if (isset($_SESSION['loggedin']) && ($_SESSION['userType'] == 0 || $_SESSION['id'] == $who)) {
+        if (isset($_SESSION['loggedin']) && ($_SESSION['accountType'] == 0 || $_SESSION['id'] == $who)) {
             global $userStore;
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
@@ -335,7 +335,7 @@ if (!file_exists("config.php")) {
     }, 'PUT');
 
     Route::add('/api/users/([0-9]*)', function ($who) {
-        if (isset($_SESSION['loggedin']) && $_SESSION['userType'] == 0) {
+        if (isset($_SESSION['loggedin']) && $_SESSION['accountType'] == 0) {
             global $userStore;
             global $pageStore;
             if ($userStore->count() > 1) {
