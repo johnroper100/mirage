@@ -7,3 +7,6 @@
 [submodule "php-markdown"]
 	path = php-markdown
 	url = https://github.com/michelf/php-markdown.git
+[submodule "php-image-resize"]
+	path = php-image-resize
+	url = https://github.com/gumlet/php-image-resize.git
