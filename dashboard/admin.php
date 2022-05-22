@@ -378,6 +378,11 @@
                                     <option value="3">Contributor</option>
                                 </select>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Biographical Info:</label>
+                                <textarea v-model="editingUser.bio" class="form-control" rows="3"
+                                    placeholder="Say a little about yourself"></textarea>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -639,6 +644,7 @@
                 this.editingUser = {
                     "name": user.name,
                     "email": user.email,
+                    "bio": user.bio,
                     "accountType": user.accountType,
                     "editingMode": 1,
                     "editingID": user._id
