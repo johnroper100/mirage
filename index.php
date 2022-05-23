@@ -499,9 +499,9 @@ if (!file_exists("config.php")) {
                     }
 
                     if ($page["type"] == "image") {
-                        $image = new ImageResize("./uploads/" . $_FILES['uploadMediaFiles']['name'][$i]);
+                        $image = new ImageResize("./uploads/" . $page['file']);
                         $image->resizeToWidth(500);
-                        $image->save("./uploads/min_" . $_FILES['uploadMediaFiles']['name'][$i]);
+                        $image->save("./uploads/min_" . $page['file']);
                     }
 
                     $page = $mediaStore->insert($page);
@@ -524,10 +524,18 @@ if (!file_exists("config.php")) {
                 $response = [];
                 $response['success'] = false;
                 echo json_encode($response);
-            } else {
+            } else {    
                 $page = [];
                 $page['file'] = $_FILES['fileToUpload']['name'];
+                $page['fileSmall'] = "min_" . $page['file'];
+                $page["caption"] = "";
                 $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
+                $page['type'] = "image";
+
+                $image = new ImageResize("./uploads/" . $page['file']);
+                $image->resizeToWidth(500);
+                $image->save("./uploads/min_" . $page['file']);
+
                 $page = $mediaStore->insert($page);
                 $response = [];
                 $response['success'] = true;

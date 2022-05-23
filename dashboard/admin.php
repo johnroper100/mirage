@@ -260,7 +260,7 @@
                         <div class="mediaItem shadow-sm">
                             <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
                                 class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;"
-                                v-if="['png', 'jpg', 'gif', 'jpeg', 'svg'].includes(item.extension.toLowerCase())">
+                                v-if="item.type == 'image'">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
                                 class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
                             <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
@@ -403,11 +403,16 @@
                             <button class="btn btn-success w-100 mb-3" @click="openUploadMediaModal"><i
                                     class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
-                                <div class="col-4 col-md-2" v-for="item in mediaItems">
-                                    <img @click="selectFileItem(item._id)"
-                                        v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
+                                <div class="col-4 col-md-2 overflow-auto" v-for="item in listMediaItems" @click="selectFileItem(item._id)">
+                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
                                         class="img-fluid me-3 mb-3 mediaItem shadow"
-                                        style="width: 100%; height: 6rem; object-fit: cover;">
+                                        style="width: 100%; height: 6rem; object-fit: cover;" v-if="item.type == 'image'">
+                                    <div v-else>
+                                        <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
+                                            class="img-fluid me-3 mb-3 mediaItem shadow"
+                                            style="width: 100%; height: 6rem; object-fit: cover;">
+                                        <p>{{item.file}}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -521,7 +526,13 @@
                     "accountType": "",
                     "editingMode": 0,
                 },
-                editingMediaItem: {}
+                editingMediaItem: {},
+                selectMediaItemType: "image"
+            }
+        },
+        computed: {
+            listMediaItems() {
+                return Object.values(this.mediaItems).filter((obj) => obj.type == this.selectMediaItemType);
             }
         },
         methods: {
@@ -956,15 +967,17 @@
             }
         },
         methods: {
-            selectMediaItem(fieldID, parent, index) {
+            selectMediaItem(fieldID, parent, index, type) {
                 if (parent) {
                     this.$parent.$parent.selectFileFieldID = fieldID;
                     this.$parent.$parent.selectFileFieldParent = parent.id;
                     this.$parent.$parent.selectFileFieldIndex = index;
+                    this.$parent.$parent.selectMediaItemType = type;
                 } else {
                     this.$parent.selectFileFieldID = fieldID;
                     this.$parent.selectFileFieldParent = "";
                     this.$parent.selectFileFieldIndex = "";
+                    this.$parent.selectMediaItemType = type;
                 }
                 selectFileModal.show();
             },
@@ -995,7 +1008,11 @@
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(field.id, parent, index)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
+                <div v-if="field.type == 'media' && field.subtype == 'file' && field.value != null">
+                    <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                    <p>{{getMediaFilePath(field.value)}}</p>
+                </div>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(field.id, parent, index, field.subtype)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && field.value != null" @click="field.value = null">Remove Item</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="listItem.id">
