@@ -486,14 +486,24 @@ if (!file_exists("config.php")) {
                 if (!move_uploaded_file($_FILES['uploadMediaFiles']['tmp_name'][$i], "./uploads/" . $_FILES['uploadMediaFiles']['name'][$i])) {
                     getErrorPage(500);
                 } else {
-                    $image = new ImageResize("./uploads/" . $_FILES['uploadMediaFiles']['name'][$i]);
-                    $image->resizeToWidth(500);
-                    $image->save("./uploads/min_" . $_FILES['uploadMediaFiles']['name'][$i]);
                     $page = [];
                     $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
                     $page['fileSmall'] = "min_" . $page['file'];
                     $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
+
+                    if ($page['extension'] == "png" || $page['extension'] == 'jpg' || $page['extension'] == 'gif' || $page['extension'] == 'jpeg' || $page['extension'] == 'svg') {
+                        $page['type'] = "image";
+                    } else {
+                        $page['type'] = "file";
+                    }
+
+                    if ($page["type"] == "image") {
+                        $image = new ImageResize("./uploads/" . $_FILES['uploadMediaFiles']['name'][$i]);
+                        $image->resizeToWidth(500);
+                        $image->save("./uploads/min_" . $_FILES['uploadMediaFiles']['name'][$i]);
+                    }
+
                     $page = $mediaStore->insert($page);
                 }
             }

@@ -426,7 +426,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Caption:</label>
                                 <input v-model="editingMediaItem.caption" type="text" class="form-control"
-                                    placeholder="Caption Your Image">
+                                    placeholder="Caption for this item">
                             </div>
                         </div>
                         <div class="modal-footer">
