@@ -291,7 +291,7 @@
                                         v-if="user.accountType == 1">Editor</span><span
                                         v-if="user.accountType == 2">Author</span><span
                                         v-if="user.accountType == 3">Contributor</span></td>
-                                <td><button class="btn btn-sm btn-primary me-1" @click="editUser(user)"
+                                <td><button class="btn btn-sm btn-primary me-1 mb-1 mb-md-0" @click="editUser(user)"
                                         :disabled="activeUser.accountType != 0 && activeUser._id != user._id">Edit</button>
                                     <button class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
                                         :disabled="users.length < 2 || activeUser.accountType != 0">Remove</button>

@@ -18,7 +18,7 @@
                             <label class="form-label">Password:</label>
                             <input type="password" class="form-control" placeholder="myspecialpassword" name="password" id="password">
                         </div>
-                        <button class="btn btn-success" type="submit">Log In</button> or <a href="#" class="text-decoration-none">forgot your password?</a>
+                        <button class="btn btn-success" type="submit">Log In</button> <!--or <a href="#" class="text-decoration-none">forgot your password?--></a>
                     </form>
                 </div>
             </div>
