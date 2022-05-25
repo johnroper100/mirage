@@ -52,6 +52,7 @@ $pageStore = new Store("pages", $databaseDirectory, $sleekDBConfiguration);
 $userStore = new Store("users", $databaseDirectory, $sleekDBConfiguration);
 $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration);
 $menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
+$formStore = new Store("formSubmissions", $databaseDirectory, $sleekDBConfiguration);
 
 function generateField($field)
 {
