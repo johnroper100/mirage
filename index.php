@@ -106,6 +106,8 @@ function getErrorPage($errorCode)
     $errorMessage = "we will look into the issue and get it fixed as soon as possible, maybe try reloading the page";
     if ($errorCode == 404) {
         $errorMessage = "you've lost your way, you may have attempted to get to a page that doesn't exist";
+    } else if ($errorCode == 401) {
+        $errorMessage = "you don't have permission to access this page";
     }
     if (file_exists("./theme/error.php")) {
         include "./theme/error.php";
@@ -252,7 +254,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./theme/config.json");
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -260,7 +262,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./theme/template_defs/" . $who . ".json");
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -275,7 +277,7 @@ if (!file_exists("config.php")) {
                 "media" => $mediaStore->count()
             ]);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -284,7 +286,7 @@ if (!file_exists("config.php")) {
             global $userStore;
             echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'bio'])->getQuery()->fetch());
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -293,7 +295,7 @@ if (!file_exists("config.php")) {
             global $userStore;
             echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'bio'])->where( [ "_id", "=", $_SESSION["id"] ] )->getQuery()->fetch()[0]);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -312,7 +314,7 @@ if (!file_exists("config.php")) {
 
             $user = $userStore->insert($user);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'POST');
 
@@ -334,7 +336,7 @@ if (!file_exists("config.php")) {
 
             $user = $userStore->updateById($who, $user);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'PUT');
 
@@ -358,7 +360,7 @@ if (!file_exists("config.php")) {
                 $pageStore->update($allPages);
             }
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'DELETE');
 
@@ -369,7 +371,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allPages);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -380,7 +382,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allPages);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -391,7 +393,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($selectedPage);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -404,7 +406,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'PUT');
 
@@ -413,7 +415,7 @@ if (!file_exists("config.php")) {
             global $pageStore;
             $pageStore->deleteById($who);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'DELETE');
 
@@ -426,7 +428,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($page);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'POST');
 
@@ -437,7 +439,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -459,7 +461,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'POST');
 
@@ -470,7 +472,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allMedia);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
@@ -509,7 +511,7 @@ if (!file_exists("config.php")) {
                 }
             }
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'POST');
 
@@ -561,7 +563,7 @@ if (!file_exists("config.php")) {
 
             $mediaItem = $mediaStore->updateById($who, $mediaItem);
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     }, 'PUT');
 
@@ -585,7 +587,7 @@ if (!file_exists("config.php")) {
             $myJSON = json_encode($allSubmissions);
             echo $myJSON;
         } else {
-            getErrorPage(404);
+            getErrorPage(401);
         }
     });
 
