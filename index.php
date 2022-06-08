@@ -578,11 +578,37 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
+    Route::add('/api/form', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $formStore;
+            $allSubmissions = $formStore->findAll();
+            $myJSON = json_encode($allSubmissions);
+            echo $myJSON;
+        } else {
+            getErrorPage(404);
+        }
+    });
+
     Route::add('/form/(.*)', function ($formID) {
+        global $formStore;
         $contactForms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
         foreach ($contactForms as $contactForm) {
             if ($contactForm["id"] == $formID) {
-                $to = $contactForm["recipient"];
+                $submission = [];
+                $submission["form"] = $formID;
+                $submission["fields"] = [];
+                $submission["created"] = time();
+                foreach ($contactForm["fields"] as $field) {
+                    $submission["fields"][] = [
+                        "id" => $field["id"],
+                        "name" => $field["name"],
+                        "value" => $_POST[$field["id"]]
+                    ];
+                }
+                $submission = $formStore->insert($submission);
+
+                // Send notification to all users that want to recieve it
+                /*$to = $contactForm["recipient"];
                 $subject = $contactForm["name"] . " Form Submission From Your Website";
                 $txt = "Submission Details -<br>";
                 foreach ($contactForm["fields"] as $field) {
@@ -590,7 +616,8 @@ if (!file_exists("config.php")) {
                 }
                 $headers = "MIME-Version: 1.0" . "\r\n";
                 $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                mail($to,$subject,$txt, $headers);
+                mail($to,$subject,$txt, $headers);*/
+
                 header("Location: {$_SERVER["HTTP_REFERER"]}");
             }
         };
