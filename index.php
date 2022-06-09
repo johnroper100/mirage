@@ -601,12 +601,14 @@ if (!file_exists("config.php")) {
             if ($form["id"] == $formID) {
                 $submission = [];
                 $submission["form"] = $formID;
+                $submission["formName"] = $form["name"];
                 $submission["fields"] = [];
                 $submission["created"] = time();
                 foreach ($form["fields"] as $field) {
                     $submission["fields"][] = [
                         "id" => $field["id"],
                         "name" => $field["name"],
+                        "type" => $field["type"],
                         "value" => $_POST[$field["id"]]
                     ];
                 }
