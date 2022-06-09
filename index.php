@@ -595,15 +595,15 @@ if (!file_exists("config.php")) {
     });
 
     Route::add('/form/(.*)', function ($formID) {
-        global $formStore;
-        $contactForms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
-        foreach ($contactForms as $contactForm) {
-            if ($contactForm["id"] == $formID) {
+        global $formStore, $userStore;
+        $forms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
+        foreach ($forms as $form) {
+            if ($form["id"] == $formID) {
                 $submission = [];
                 $submission["form"] = $formID;
                 $submission["fields"] = [];
                 $submission["created"] = time();
-                foreach ($contactForm["fields"] as $field) {
+                foreach ($form["fields"] as $field) {
                     $submission["fields"][] = [
                         "id" => $field["id"],
                         "name" => $field["name"],
@@ -612,16 +612,18 @@ if (!file_exists("config.php")) {
                 }
                 $submission = $formStore->insert($submission);
 
-                // Send notification to all users that want to recieve it
-                /*$to = $contactForm["recipient"];
-                $subject = $contactForm["name"] . " Form Submission From Your Website";
-                $txt = "Submission Details -<br>";
-                foreach ($contactForm["fields"] as $field) {
-                    $txt = $txt . $field["name"] . ": " . $_POST[$field["id"]] . "<br>";
-                }
+
+                $subject = $form["name"] . " Form Submission From Your Website";
+                $txt = "There is a new form submission on your website. Log into to the dashboard to view it.";
                 $headers = "MIME-Version: 1.0" . "\r\n";
                 $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-                mail($to,$subject,$txt, $headers);*/
+
+                $allUsers = $userStore->findAll();
+                foreach ($allUsers as $user) {
+                    if ($user["notifySubmissions"] == 1) {
+                        mail($user["email"], $subject, $txt, $headers);
+                    }
+                };
 
                 header("Location: {$_SERVER["HTTP_REFERER"]}");
             }
