@@ -14,8 +14,8 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
                 :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i>
                 Menus</span>
-            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</span>-->
+            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>-->
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Form Submissions</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
                 Media</span>
@@ -37,11 +37,11 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'menus'">Menus</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>
+                <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>-->
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Forms</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
+                <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>-->
                 <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
@@ -246,11 +246,11 @@
                     </div>
                 </div>
             </div>
-            <div v-if="viewPage == 'comments'">
+            <!--<div v-if="viewPage == 'comments'">
                 Comments
-            </div>
+            </div>-->
             <div v-if="viewPage == 'forms'">
-                Forms
+                {{formSubmissions}}
             </div>
             <div v-if="viewPage == 'media'">
                 <div class="row" style="overflow-y: auto; max-height: 45rem;">
@@ -301,9 +301,9 @@
                     </table>
                 </div>
             </div>
-            <div v-if="viewPage == 'settings'">
+            <!--<div v-if="viewPage == 'settings'">
                 Settings
-            </div>
+            </div>-->
             <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addPageModal" tabindex="-1"
                 aria-labelledby="addPageModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -510,6 +510,7 @@
                 users: {},
                 menuItems: {},
                 mediaItems: {},
+                formSubmissions: {},
                 editingTemplate: {},
                 editingTitle: "",
                 editingTemplateName: "",
@@ -561,6 +562,15 @@
                     comp.mediaItems = JSON.parse(this.responseText);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/media", true);
+                xmlhttp.send();
+            },
+            getFormSubmissions() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    comp.formSubmissions = JSON.parse(this.responseText);
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/form", true);
                 xmlhttp.send();
             },
             getMenus() {
@@ -928,6 +938,7 @@
         mounted() {
             this.getTheme();
             this.getMedia();
+            this.getFormSubmissions();
             this.getMenus();
             this.getCounts();
             this.getUsers();
