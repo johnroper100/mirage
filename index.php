@@ -153,7 +153,7 @@ function getMedia($mediaID)
 function getUsers($numEntries)
 {
     global $userStore;
-    $users = $userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'bio']);
+    $users = $userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio']);
     if ($numEntries > 0) {
         $users = $users->limit($numEntries);
     }
@@ -165,7 +165,7 @@ function getUsers($numEntries)
 function getUser($userID)
 {
     global $userStore;
-    $user = $userStore->createQueryBuilder()->where([ "_id", "=", $userID ] )->select(['name', 'email', 'accountType', 'bio'])->limit(1)->getQuery()->fetch();
+    $user = $userStore->createQueryBuilder()->where([ "_id", "=", $userID ] )->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio'])->limit(1)->getQuery()->fetch();
 
     return $user;
 };
@@ -183,6 +183,7 @@ if (!file_exists("config.php")) {
             'name' => $_POST["name"],
             'email' => $_POST["email"],
             'bio' => "",
+            'notifySubmissions' => 1,
             'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
             'accountType' => 0
         ];
@@ -284,7 +285,7 @@ if (!file_exists("config.php")) {
     Route::add('/api/users', function () {
         if (isset($_SESSION['loggedin'])) {
             global $userStore;
-            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'bio'])->getQuery()->fetch());
+            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio'])->getQuery()->fetch());
         } else {
             getErrorPage(401);
         }
@@ -293,7 +294,7 @@ if (!file_exists("config.php")) {
     Route::add('/api/users/active', function () {
         if (isset($_SESSION['loggedin'])) {
             global $userStore;
-            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'bio'])->where( [ "_id", "=", $_SESSION["id"] ] )->getQuery()->fetch()[0]);
+            echo json_encode($userStore->createQueryBuilder()->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio'])->where( [ "_id", "=", $_SESSION["id"] ] )->getQuery()->fetch()[0]);
         } else {
             getErrorPage(401);
         }
@@ -308,6 +309,7 @@ if (!file_exists("config.php")) {
                 'name' => $data["name"],
                 'email' => $data["email"],
                 'bio' => "",
+                'notifySubmissions' => 1,
                 'password' => password_hash($data["password"], PASSWORD_DEFAULT),
                 'accountType' => $data["accountType"]
             ];
@@ -327,6 +329,7 @@ if (!file_exists("config.php")) {
                 'name' => $data["name"],
                 'email' => $data["email"],
                 'bio' => $data["bio"],
+                'notifySubmissions' => $data["notifySubmissions"],
                 'accountType' => $data["accountType"]
             ];
 

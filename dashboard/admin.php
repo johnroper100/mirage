@@ -383,6 +383,14 @@
                                 <textarea v-model="editingUser.bio" class="form-control" rows="3"
                                     placeholder="Say a little about yourself"></textarea>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notify About Form Submissions:</label>
+                                <select v-model="editingUser.notifySubmissions" class="form-select">
+                                    <option selected disabled value="">Select an Option</option>
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -657,6 +665,7 @@
             addUser() {
                 this.editingUser = {
                     "accountType": "",
+                    "notifySubmissions": 1,
                     "editingMode": 0,
                 };
                 addUserModal.show();
@@ -667,6 +676,7 @@
                     "email": user.email,
                     "bio": user.bio,
                     "accountType": user.accountType,
+                    "notifySubmissions": user.notifySubmissions,
                     "editingMode": 1,
                     "editingID": user._id
                 };
