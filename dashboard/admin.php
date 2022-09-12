@@ -424,7 +424,7 @@
                                     class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
                                 <div class="col-4 col-md-2 overflow-auto" v-for="item in listMediaItems" @click="selectFileItem(item._id)">
-                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
+                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.fileSmall" alt=""
                                         class="img-fluid me-3 mb-3 mediaItem shadow"
                                         style="width: 100%; height: 6rem; object-fit: cover;" v-if="item.type == 'image'">
                                     <div v-else>
@@ -947,7 +947,7 @@
                 var returnVar = null;
                 this.mediaItems.forEach(function (item) {
                     if (item._id == itemID) {
-                        returnVar = item.file;
+                        returnVar = item.fileSmall;
                     }
                 });
                 return returnVar;

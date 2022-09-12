@@ -494,7 +494,7 @@ if (!file_exists("config.php")) {
                 } else {
                     $page = [];
                     $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
-                    $page['fileSmall'] = "min_" . $page['file'];
+                    $page['fileSmall'] = $page['file'];
                     $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
 
@@ -508,6 +508,7 @@ if (!file_exists("config.php")) {
                         $image = new ImageResize("./uploads/" . $page['file']);
                         $image->resizeToWidth(500);
                         $image->save("./uploads/min_" . $page['file']);
+                        $page['fileSmall'] = "min_" . $page['file'];
                     }
 
                     $page = $mediaStore->insert($page);
