@@ -258,6 +258,7 @@
                             </div>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item" v-for="field in submission.fields"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
+                                <li class="list-group-item"><b>Submitted:</b> {{getDate(submission.created)}}</li>
                             </ul>
                         </div>
                     </div>
@@ -556,6 +557,9 @@
             }
         },
         methods: {
+            getDate(dateItem) {
+                return new Date(dateItem * 1000).toLocaleString();
+            },
             setPage(page, update = false) {
                 if (update == false && this.viewPage == 'editPage') {
                     if (confirm('Are you sure you want to leave? Any unsaved work will be lost.')) {

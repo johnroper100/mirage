@@ -498,7 +498,7 @@ if (!file_exists("config.php")) {
                     $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
 
-                    if ($page['extension'] == "png" || $page['extension'] == 'jpg' || $page['extension'] == 'gif' || $page['extension'] == 'jpeg' || $page['extension'] == 'svg') {
+                    if (strtolower($page['extension']) == "png" || $page['extension'] == 'jpg' || $page['extension'] == 'gif' || $page['extension'] == 'jpeg' || $page['extension'] == 'svg') {
                         $page['type'] = "image";
                     } else {
                         $page['type'] = "file";
@@ -599,33 +599,37 @@ if (!file_exists("config.php")) {
         $forms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
         foreach ($forms as $form) {
             if ($form["id"] == $formID) {
-                $submission = [];
-                $submission["form"] = $formID;
-                $submission["formName"] = $form["name"];
-                $submission["fields"] = [];
-                $submission["created"] = time();
-                foreach ($form["fields"] as $field) {
-                    $submission["fields"][] = [
-                        "id" => $field["id"],
-                        "name" => $field["name"],
-                        "type" => $field["type"],
-                        "value" => $_POST[$field["id"]]
-                    ];
-                }
-                $submission = $formStore->insert($submission);
-
-
-                $subject = $form["name"] . " Form Submission From Your Website";
-                $txt = "There is a new form submission on your website. Log into to the dashboard to view it.";
-                $headers = "MIME-Version: 1.0" . "\r\n";
-                $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-
-                $allUsers = $userStore->findAll();
-                foreach ($allUsers as $user) {
-                    if ($user["notifySubmissions"] == 1) {
-                        mail($user["email"], $subject, $txt, $headers);
+                if ($_POST["math"] != "5") {
+                    $error = true;
+                } else {
+                    $submission = [];
+                    $submission["form"] = $formID;
+                    $submission["formName"] = $form["name"];
+                    $submission["fields"] = [];
+                    $submission["created"] = time();
+                    foreach ($form["fields"] as $field) {
+                        $submission["fields"][] = [
+                            "id" => $field["id"],
+                            "name" => $field["name"],
+                            "type" => $field["type"],
+                            "value" => $_POST[$field["id"]]
+                        ];
                     }
-                };
+                    $submission = $formStore->insert($submission);
+
+
+                    $subject = $form["name"] . " Form Submission From Your Website";
+                    $txt = "There is a new " . $form["name"] . " form submission on your website. <a href='" . BASEPATH . '/login' . "'>Log into to the dashboard to view it.</a>";
+                    $headers = "MIME-Version: 1.0" . "\r\n";
+                    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+
+                    $allUsers = $userStore->findAll();
+                    foreach ($allUsers as $user) {
+                        if ($user["notifySubmissions"] == 1) {
+                            mail($user["email"], $subject, $txt, $headers);
+                        }
+                    };
+                }
 
                 header("Location: {$_SERVER["HTTP_REFERER"]}");
             }
