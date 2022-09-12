@@ -601,6 +601,8 @@ if (!file_exists("config.php")) {
             if ($form["id"] == $formID) {
                 if ($_POST["math"] != "5") {
                     $error = true;
+
+                    header("Location: {$_SERVER["HTTP_REFERER"]}?error=1");
                 } else {
                     $submission = [];
                     $submission["form"] = $formID;
@@ -629,9 +631,9 @@ if (!file_exists("config.php")) {
                             mail($user["email"], $subject, $txt, $headers);
                         }
                     };
-                }
 
-                header("Location: {$_SERVER["HTTP_REFERER"]}");
+                    header("Location: {$_SERVER["HTTP_REFERER"]}?success=1");
+                }
             }
         };
     }, 'POST');
