@@ -579,6 +579,11 @@ if (!file_exists("config.php")) {
             if (!unlink("./uploads/" . $selectedMedia['file'])) {
                 getErrorPage(500);
             }
+            if ($selectedMedia['type'] == "image") {
+                if (!unlink("./uploads/" . $selectedMedia['fileSmall'])) {
+                    getErrorPage(500);
+                }
+            }
         } else {
             
         }
