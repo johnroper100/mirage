@@ -586,7 +586,7 @@ if (!file_exists("config.php")) {
     Route::add('/api/form', function () {
         if (isset($_SESSION['loggedin'])) {
             global $formStore;
-            $allSubmissions = $formStore->findAll();
+            $allSubmissions = $formStore->findAll($orderBy = ["created" => "desc"]);
             $myJSON = json_encode($allSubmissions);
             echo $myJSON;
         } else {

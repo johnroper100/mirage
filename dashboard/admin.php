@@ -254,7 +254,7 @@
                     <div class="col-12 col-md-6 mb-3" v-for="submission in formSubmissions">
                         <div class="card">
                             <div class="card-header">
-                                {{submission.formName}} Form
+                                {{submission.formName}} Form Submission
                             </div>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item" v-for="field in submission.fields"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
