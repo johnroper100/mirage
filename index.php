@@ -627,7 +627,7 @@ if (!file_exists("config.php")) {
 
 
                     $subject = $form["name"] . " Form Submission From Your Website";
-                    $txt = "There is a new " . $form["name"] . " form submission on your website. <a href='" . BASEPATH . '/login' . "'>Log into to the dashboard to view it.</a>";
+                    $txt = "There is a new " . $form["name"] . " form submission on your website. <a href='" . $_SERVER['SERVER_NAME'] . '/admin' . "'>Log into to the dashboard to view it.</a>";
                     $headers = "MIME-Version: 1.0" . "\r\n";
                     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
 
