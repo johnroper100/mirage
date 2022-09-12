@@ -270,7 +270,7 @@
                             Media</i> button to add some to your site.</div>
                     <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
                         <div class="mediaItem shadow-sm">
-                            <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.file" alt=""
+                            <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.fileSmall" alt=""
                                 class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;"
                                 v-if="item.type == 'image'">
                             <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
