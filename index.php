@@ -647,6 +647,15 @@ if (!file_exists("config.php")) {
         };
     }, 'POST');
 
+    Route::add('/api/form/([0-9]*)', function ($who) {
+        if (isset($_SESSION['loggedin'])) {
+            global $formStore;
+            $formStore->deleteById($who);
+        } else {
+            getErrorPage(401);
+        }
+    }, 'DELETE');
+
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;

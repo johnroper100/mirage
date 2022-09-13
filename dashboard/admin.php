@@ -255,6 +255,7 @@
                         <div class="card">
                             <div class="card-header">
                                 {{submission.formName}} Form Submission
+                                <button class="btn btn-sm btn-danger float-end" @click="deleteFormSubmission(submission._id)">Delete</button>
                             </div>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item" v-for="field in submission.fields"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
@@ -958,7 +959,18 @@
                 } else {
                     return '<?php echo BASEPATH; ?>/' + path;
                 }
-            }
+            },
+            deleteFormSubmission(submissionID) {
+                if (confirm("Are you sure you want to delete this?") == true) {
+                    var comp = this;
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onload = function () {
+                        comp.getFormSubmissions();
+                    }
+                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/form/" + submissionID, true);
+                    xmlhttp.send();
+                }
+            },
         },
         mounted() {
             this.getTheme();
