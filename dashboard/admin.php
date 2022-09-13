@@ -64,7 +64,7 @@
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i
                                 class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                         <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
-                            v-if="activeUser.accountType == 0"><i class="fa-solid fa-user-plus me-1"></i> Add
+                            v-if="activeUser.accountType != 2"><i class="fa-solid fa-user-plus me-1"></i> Add
                             User</button>
                     </div>
                 </div>
@@ -303,9 +303,9 @@
                                         v-if="user.accountType == 1">Editor</span><span
                                         v-if="user.accountType == 2">Author</span></td>
                                 <td><button class="btn btn-sm btn-primary me-1 mb-1 mb-md-0" @click="editUser(user)"
-                                        v-if="activeUser.accountType == 0 || activeUser._id == user._id">Edit</button>
+                                        v-if="activeUser.accountType == 0 || (activeUser.accountType == 1 && user.accountType != 0) || activeUser._id == user._id">Edit</button>
                                     <button class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
-                                        v-if="users.length < 2 || activeUser.accountType == 0">Remove</button>
+                                        v-if="(activeUser.accountType == 0 || (activeUser.accountType == 1 && user.accountType != 0)) && activeUser._id != user._id">Remove</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -378,11 +378,11 @@
                                 <input v-model="editingUser.password" type="password" class="form-control"
                                     placeholder="mysecretpassword">
                             </div>
-                            <div class="mb-3" v-if="activeUser.accountType == 0">
+                            <div class="mb-3" v-if="activeUser.accountType != 2">
                                 <label class="form-label">Account Type:</label>
                                 <select v-model="editingUser.accountType" class="form-select">
                                     <option selected disabled value="">Select An Account Type</option>
-                                    <option value="0">Administrator</option>
+                                    <option value="0" v-if="activeUser.accountType == 0">Administrator</option>
                                     <option value="1">Editor</option>
                                     <option value="2">Author</option>
                                 </select>
@@ -392,7 +392,7 @@
                                 <textarea v-model="editingUser.bio" class="form-control" rows="3"
                                     placeholder="Say a little about yourself"></textarea>
                             </div>
-                            <div class="mb-3" v-if="activeUser.accountType == 0">
+                            <div class="mb-3" v-if="activeUser.accountType != 2">
                                 <label class="form-label">Notify About Form Submissions:</label>
                                 <select v-model="editingUser.notifySubmissions" class="form-select">
                                     <option selected disabled value="">Select an Option</option>
