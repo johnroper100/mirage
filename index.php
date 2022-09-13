@@ -457,6 +457,9 @@ if (!file_exists("config.php")) {
             foreach ($data as &$menuItem) {
                 if ($menuItem["type"] == 0) {
                     $menuItem["link"] = $pageStore->findById($menuItem["page"])["path"];
+                    if ($pageStore->findById($menuItem["page"])["collectionSubpath"] != "") {
+                        $menuItem["link"] = $pageStore->findById($menuItem["page"])["collectionSubpath"] . "/" . $menuItem["link"];
+                    }
                 }
             }
             $menuItems = $menuStore->insertMany($data);
