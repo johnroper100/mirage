@@ -125,9 +125,9 @@
                             <div class="col-12 col-md-3 text-md-end">
                                 <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank"><i
                                         class="fa-solid fa-up-right-from-square me-1"></i> View</a>
-                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType == 0 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
+                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType != 2 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
-                                <button class="btn btn-success btn-sm" @click="editPage(page._id, false)" v-if="activeUser.accountType == 0 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
+                                <button class="btn btn-success btn-sm" @click="editPage(page._id, false)" v-if="activeUser.accountType != 2 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                             </div>
                         </div>
@@ -277,9 +277,9 @@
                                 class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
                             <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
                             <button class="btn btn-sm btn-primary mb-2 ms-2"
-                                @click="editMediaItem(item)">Edit</button>
+                                @click="editMediaItem(item)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Edit</button>
                             <button class="btn btn-sm btn-danger mb-2 ms-2"
-                                @click="deleteMediaFile(item._id)">Remove</button>
+                                @click="deleteMediaFile(item._id)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Remove</button>
                         </div>
                     </div>
                 </div>

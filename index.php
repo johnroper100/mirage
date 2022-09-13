@@ -501,6 +501,11 @@ if (!file_exists("config.php")) {
                     $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
 
+                    $page["editedUser"] = $_SESSION['id'];
+                    $page["edited"] = time();
+                    $page["createdUser"] = $page["editedUser"];
+                    $page["created"] = $page["edited"];
+
                     if (strtolower($page['extension']) == "png" || $page['extension'] == 'jpg' || $page['extension'] == 'gif' || $page['extension'] == 'jpeg' || $page['extension'] == 'svg') {
                         $page['type'] = "image";
                     } else {
@@ -542,6 +547,11 @@ if (!file_exists("config.php")) {
                 $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
                 $page['type'] = "image";
 
+                $page["editedUser"] = $_SESSION['id'];
+                $page["edited"] = time();
+                $page["createdUser"] = $page["editedUser"];
+                $page["created"] = $page["edited"];
+
                 $image = new ImageResize("./uploads/" . $page['file']);
                 $image->resizeToWidth(500);
                 $image->save("./uploads/min_" . $page['file']);
@@ -565,7 +575,9 @@ if (!file_exists("config.php")) {
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
             $mediaItem = [
-                'caption' => $data["caption"]
+                'caption' => $data["caption"],
+                'editedUser' => $_SESSION['id'],
+                'edited' => time()
             ];
 
             $mediaItem = $mediaStore->updateById($who, $mediaItem);
