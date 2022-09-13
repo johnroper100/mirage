@@ -12,10 +12,10 @@
                 v-for="collection in activeTheme.collections"><i class="fa-solid me-1" :class="collection.icon"></i>
                 {{collection.name}}</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
-                :class="{'active text-light': viewPage == 'menus'}"><i class="fa-solid fa-chart-bar me-1"></i>
+                :class="{'active text-light': viewPage == 'menus'}" v-if="activeUser.accountType != 2"><i class="fa-solid fa-chart-bar me-1"></i>
                 Menus</span>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>-->
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}"><i class="fa-solid fa-envelope-open-text me-1"></i> Form Submissions</span>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}" v-if="activeUser.accountType != 2"><i class="fa-solid fa-envelope-open-text me-1"></i> Form Submissions</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
                 Media</span>
@@ -38,7 +38,7 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'menus'">Menus</h4>
                 <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>-->
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Forms</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Form Submissions</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
                 <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>-->
@@ -64,7 +64,7 @@
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i
                                 class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                         <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
-                            :disabled="activeUser.accountType != 0"><i class="fa-solid fa-user-plus me-1"></i> Add
+                            v-if="activeUser.accountType == 0"><i class="fa-solid fa-user-plus me-1"></i> Add
                             User</button>
                     </div>
                 </div>
@@ -116,8 +116,7 @@
                     <li v-for="page in pages" class="list-group-item">
                         <div class="row mt-1">
                             <div class="col-12 col-md-9">
-                                <h4><i class="fa-solid fa-xs fa-lock me-1 text-warning"
-                                        v-if="page.isPublished == false"></i>{{page.title}}</h4>
+                                <h4><small class="text-warning me-1" v-if="page.isPublished == false">🔒</small>{{page.title}}</h4>
                                 <h6 class="text-secondary">T: {{page.templateName}} <i
                                         class="fa-solid fa-right-long"></i> /<span
                                         v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
@@ -126,9 +125,9 @@
                             <div class="col-12 col-md-3 text-md-end">
                                 <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank"><i
                                         class="fa-solid fa-up-right-from-square me-1"></i> View</a>
-                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)"><i
+                                <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType == 0 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
-                                <button class="btn btn-success btn-sm" @click="editPage(page._id, false)"><i
+                                <button class="btn btn-success btn-sm" @click="editPage(page._id, false)" v-if="activeUser.accountType == 0 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                             </div>
                         </div>
@@ -184,7 +183,7 @@
                                 <label class="form-label">Page Path:</label>
                                 <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                             </div>
-                            <div class="form-check form-switch mb-3">
+                            <div class="form-check form-switch mb-3" v-if="activeUser.accountType != 2">
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"
                                     v-model="editingPublished" v-bind:value="editingPublished">
                                 <label class="form-check-label" for="flexSwitchCheckDefault">Page Published</label>
@@ -302,12 +301,11 @@
                                 <td>{{user.email}}</td>
                                 <td><span v-if="user.accountType == 0">Administrator</span><span
                                         v-if="user.accountType == 1">Editor</span><span
-                                        v-if="user.accountType == 2">Author</span><span
-                                        v-if="user.accountType == 3">Contributor</span></td>
+                                        v-if="user.accountType == 2">Author</span></td>
                                 <td><button class="btn btn-sm btn-primary me-1 mb-1 mb-md-0" @click="editUser(user)"
-                                        :disabled="activeUser.accountType != 0 && activeUser._id != user._id">Edit</button>
+                                        v-if="activeUser.accountType == 0 || activeUser._id == user._id">Edit</button>
                                     <button class="btn btn-sm btn-danger" @click="deleteUser(user._id)"
-                                        :disabled="users.length < 2 || activeUser.accountType != 0">Remove</button>
+                                        v-if="users.length < 2 || activeUser.accountType == 0">Remove</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -380,15 +378,13 @@
                                 <input v-model="editingUser.password" type="password" class="form-control"
                                     placeholder="mysecretpassword">
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-3" v-if="activeUser.accountType == 0">
                                 <label class="form-label">Account Type:</label>
-                                <select v-model="editingUser.accountType" class="form-select"
-                                    :disabled="activeUser.accountType != 0">
+                                <select v-model="editingUser.accountType" class="form-select">
                                     <option selected disabled value="">Select An Account Type</option>
                                     <option value="0">Administrator</option>
                                     <option value="1">Editor</option>
                                     <option value="2">Author</option>
-                                    <option value="3">Contributor</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -396,7 +392,7 @@
                                 <textarea v-model="editingUser.bio" class="form-control" rows="3"
                                     placeholder="Say a little about yourself"></textarea>
                             </div>
-                            <div class="mb-3">
+                            <div class="mb-3" v-if="activeUser.accountType == 0">
                                 <label class="form-label">Notify About Form Submissions:</label>
                                 <select v-model="editingUser.notifySubmissions" class="form-select">
                                     <option selected disabled value="">Select an Option</option>
