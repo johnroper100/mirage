@@ -222,7 +222,7 @@
                             <div class="col-12 col-md-3 mb-3" v-if="item.type == 0">
                                 <label class="form-label">Page:</label>
                                 <select class="form-select" v-model="item.page">
-                                    <option v-for="page in pages" v-bind:value="page._id">{{page.title}}</option>
+                                    <option v-for="page in pages" v-bind:value="page._id">{{page.collection}} -> {{page.title}}</option>
                                 </select>
                             </div>
                             <div class="col-12 col-md-4 mb-3" v-if="item.type == 1">
