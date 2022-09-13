@@ -978,6 +978,7 @@
     app.component('templateinput', {
         props: ['field', 'parent', "index"],
         data() {
+            this.$parent.getAllPages();
             return {
                 richtextOptions: {
                     svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
@@ -1030,6 +1031,11 @@
             },
             getMediaFilePath(id) {
                 return this.$root.getMediaFilePath(id);
+            },
+            filter_collection(list, name) {
+                return list.filter(function (item) {
+                    return item.collection == name;
+                });
             }
         },
         template: `
@@ -1040,6 +1046,10 @@
                 <select v-if="field.type == 'select'" v-model="field.value" class="form-select" :aria-label="field.name">
                     <option value="">None</option>
                     <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
+                </select>
+                <select v-if="field.type == 'page'" v-model="field.value" class="form-select" :aria-label="field.name">
+                    <option value="">None</option>
+                    <option :value="option._id" v-for="option in filter_collection(this.$parent.pages, field.collection)">{{option.title}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
