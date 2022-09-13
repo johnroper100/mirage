@@ -165,7 +165,7 @@ function getUsers($numEntries)
 function getUser($userID)
 {
     global $userStore;
-    $user = $userStore->createQueryBuilder()->where([ "_id", "=", $userID ] )->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio'])->limit(1)->getQuery()->fetch();
+    $user = $userStore->createQueryBuilder()->where([ "_id", "=", $userID ] )->select(['name', 'email', 'accountType', 'notifySubmissions', 'bio'])->limit(1)->getQuery()->fetch()[0];
 
     return $user;
 };
@@ -333,7 +333,7 @@ if (!file_exists("config.php")) {
                 'accountType' => $data["accountType"]
             ];
 
-            if ($data["password"]) {
+            if (isset($data["password"]) && $data["password"] != "") {
                 $user['password'] = password_hash($data["password"], PASSWORD_DEFAULT);
             }
 
