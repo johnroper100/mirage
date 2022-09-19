@@ -676,7 +676,12 @@ if (!file_exists("config.php")) {
         if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            include './theme/' . $page["templateName"] . ".php";
+            $filename = './theme/' . $page["templateName"] . ".php";
+            if (file_exists($filename)) {
+                include $filename;
+            } else {
+                getErrorPage(404);
+            }
         }
     });
 
@@ -688,7 +693,12 @@ if (!file_exists("config.php")) {
         if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            include './theme/' . $page["templateName"] . ".php";
+            $filename = './theme/' . $page["templateName"] . ".php";
+            if (file_exists($filename)) {
+                include $filename;
+            } else {
+                getErrorPage(404);
+            }
         }
     });
 };

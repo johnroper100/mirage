@@ -986,7 +986,9 @@
     app.component('templateinput', {
         props: ['field', 'parent', "index"],
         data() {
-            this.$parent.getAllPages();
+            if (this.field.type == 'page') {
+                this.$parent.getAllPages();
+            }
             return {
                 richtextOptions: {
                     svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
