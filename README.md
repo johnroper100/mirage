@@ -4,4 +4,4 @@ A new site platform designed specifically for single client websites with a set 
 
 ## Documentation
 
-All documentation needed to develop themes is located ![on our Wiki](https://github.com/johnroper100/mirage/wiki).
+All documentation needed to develop themes is located [on our Wiki](https://github.com/johnroper100/mirage/wiki).
