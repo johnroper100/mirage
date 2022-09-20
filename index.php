@@ -170,11 +170,6 @@ function getUser($userID)
     return $user;
 };
 
-function get_words($sentence, $count = 10) {
-    preg_match("/(?:\w+(?:\W+|$)){0,$count}/", $sentence, $matches);
-    return $matches[0];
-};
-
 if (!file_exists("config.php")) {
     Route::add('/setup', function () {
         global $userStore;
