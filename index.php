@@ -604,8 +604,6 @@ if (!file_exists("config.php")) {
                     getErrorPage(500);
                 }
             }
-        } else {
-            
         }
     }, 'DELETE');
 
