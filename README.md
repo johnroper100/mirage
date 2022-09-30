@@ -18,6 +18,6 @@ All documentation needed to develop themes is located on [our Wiki](https://gith
 
 ## A Note About Security
 
-Mirage uses a file-based datatbase to store its data. Make sure that the `database` folder is blocked by being read by people/scripts other than Mirage. The `.htaccess` file that is generated automatically by Mirage should do an adequite job of this, but make sure to double check for your install.
+Mirage uses a file-based datatbase to store its data. Make sure that the `database` folder is blocked from being read by people/scripts other than Mirage. The `.htaccess` file that is generated automatically by Mirage should do an adequite job of this, but make sure to double check for your install.
 
 Passwords are stored using the PHP `password_hash` function which should be strong enough. Again, making sure that the `database` folder is private is an additional method of security.
