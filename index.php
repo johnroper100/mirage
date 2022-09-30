@@ -630,7 +630,7 @@ if (!file_exists("config.php")) {
                             "id" => $field["id"],
                             "name" => $field["name"],
                             "type" => $field["type"],
-                            "value" => htmlspecialchars($_POST[$field["id"]], ENT_QUOTES, 'UTF-8');
+                            "value" => htmlspecialchars($_POST[$field["id"]], ENT_QUOTES, 'UTF-8')
                         ];
                     }
                     $submission = $formStore->insert($submission);
