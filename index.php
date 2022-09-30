@@ -2,6 +2,7 @@
 
 session_start();
 
+# Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
 if (ORIGBASEPATH == "/") {
     define('BASEPATH', "");
@@ -9,6 +10,7 @@ if (ORIGBASEPATH == "/") {
     define('BASEPATH', ORIGBASEPATH);
 }
 
+# Generate .htaccess to block database from view and enable url rewrite
 if (!file_exists(".htaccess")) {
     $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
     $txt = "DirectoryIndex index.php\n";
@@ -54,6 +56,7 @@ $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration)
 $menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
 $formStore = new Store("formSubmissions", $databaseDirectory, $sleekDBConfiguration);
 
+# Generate page field
 function generateField($field)
 {
     if ($field['type'] != 'list') {
@@ -71,6 +74,7 @@ function generateField($field)
     }
 };
 
+# Function used for generating a page document from input information and page config
 function generatePage($json, $isNewPage = false)
 {
     $data = json_decode($json, true);
@@ -100,6 +104,7 @@ function generatePage($json, $isNewPage = false)
     return $page;
 };
 
+# Return error messages
 function getErrorPage($errorCode)
 {
     http_response_code($errorCode);
@@ -170,6 +175,7 @@ function getUser($userID)
     return $user;
 };
 
+# Run setup if config.php does not yet exist
 if (!file_exists("config.php")) {
     Route::add('/setup', function () {
         global $userStore;
@@ -201,6 +207,8 @@ if (!file_exists("config.php")) {
         include "./dashboard/setup.php";
     });
 } else {
+# if config.php exists, run the rest of the application
+
     require_once 'config.php';
 
     define('THEMEPATH', BASEPATH . "/theme");
@@ -245,6 +253,8 @@ if (!file_exists("config.php")) {
         }
         header('Location: ' . BASEPATH . '/login');
     });
+
+    # Routes marked API are used by the backend to get data
 
     Route::add('/api/theme', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -663,6 +673,7 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
+    # Return pages under a collection subpath - currently only supports one collection subpath
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;
@@ -680,6 +691,7 @@ if (!file_exists("config.php")) {
         }
     });
 
+    # Return pages not under a collection subpath
     Route::add('/(.*)', function ($who) {
         global $pageStore;
         global $siteTitle;
