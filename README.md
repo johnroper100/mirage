@@ -14,4 +14,10 @@ Once you have downloaded and installed Mirage, go to `https://{your website url}
 
 ## Theme Development Documentation
 
-All documentation needed to develop themes is located [on our Wiki](https://github.com/johnroper100/mirage/wiki).
+All documentation needed to develop themes is located on [our Wiki](https://github.com/johnroper100/mirage/wiki).
+
+## A Note About Security
+
+Mirage uses a file-based datatbase to store its data. Make sure that the `database` folder is blocked by being read by people/scripts other than Mirage. The `.htaccess` file that is generated automatically by Mirage should do an adequite job of this, but make sure to double check for your install.
+
+Passwords are stored using the PHP `password_hash` function that should be strong enough. Again, making sure that the `database` folder is private is an additional method of security.
