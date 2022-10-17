@@ -326,12 +326,12 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="mb-3">
+                            <div>
                                 <label class="form-label">Page Title:</label>
                                 <input v-model="editingTitle" type="text" class="form-control"
                                     placeholder="My awesome page">
                             </div>
-                            <div class="mb-3">
+                            <div class="mt-3" v-if="activeCollection.allowed_templates|length > 1">
                                 <label class="form-label">Page Template:</label>
                                 <select v-model="editingTemplateName" class="form-select"
                                     aria-label="Available Templates">
@@ -347,7 +347,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="button" class="btn btn-primary" @click="editNewPage"
-                                :class="{'disabled': editingTitle == '' || editingTemplateName == ''}">Add Page</button>
+                                :class="{'disabled': editingTitle == '' || (editingTemplateName == '' && activeCollection.allowed_templates|length > 1) }">Add Page</button>
                         </div>
                     </div>
                 </div>
@@ -782,6 +782,9 @@
                     comp.editingDate = "Never";
                     comp.editingEditedDate = "Never";
                     addPageModal.hide();
+                }
+                if (comp.editingTemplateName == "" && comp.activeCollection.allowed_templates.length > 0) {
+                    comp.editingTemplateName = comp.activeCollection.allowed_templates[0];
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + comp.editingTemplateName, true);
                 xmlhttp.send();
