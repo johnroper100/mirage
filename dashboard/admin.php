@@ -52,7 +52,7 @@
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
                         <a v-bind:href="viewPath(editingPath)" class="btn btn-primary me-md-2 mb-1 mb-md-0"
-                            v-if="viewPage == 'editPage' && editingMode == 1" target="_blank"><i
+                            v-if="viewPage == 'editPage' && editingMode == 1 && editingPathless == false" target="_blank"><i
                                 class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                         <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)"
                             v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i>
@@ -117,13 +117,14 @@
                         <div class="row mt-1">
                             <div class="col-12 col-md-9">
                                 <h4><small class="text-warning me-1" v-if="page.isPublished == false">🔒</small>{{page.title}}</h4>
-                                <h6 class="text-secondary">T: {{page.templateName}} <i
+                                <h6 class="text-secondary" v-if="page.isPathless == false">T: {{page.templateName}} <i
                                         class="fa-solid fa-right-long"></i> /<span
                                         v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
                                 </h6>
+                                <h6 class="text-secondary" v-else>{{getDate(page.created)}}</h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
-                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank"><i
+                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank" v-if="page.isPathless == false"><i
                                         class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType != 2 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
@@ -179,7 +180,7 @@
                             </div>
                         </div>
                         <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">
-                            <div class="mb-3">
+                            <div class="mb-3" v-if="editingPathless == false">
                                 <label class="form-label">Page Path:</label>
                                 <input v-model="editingPath" type="text" class="form-control" placeholder="/">
                             </div>
@@ -331,7 +332,7 @@
                                 <input v-model="editingTitle" type="text" class="form-control"
                                     placeholder="My awesome page">
                             </div>
-                            <div class="mt-3" v-if="activeCollection.allowed_templates|length > 1">
+                            <div class="mt-3" v-if="activeCollection.allowed_templates && activeCollection.allowed_templates.length > 1">
                                 <label class="form-label">Page Template:</label>
                                 <select v-model="editingTemplateName" class="form-select"
                                     aria-label="Available Templates">
@@ -532,6 +533,7 @@
                 editingTitle: "",
                 editingTemplateName: "",
                 editingPath: "",
+                editingPathless: false,
                 editingMode: 0,
                 editingID: null,
                 editingPublished: true,
@@ -778,6 +780,7 @@
                     comp.setPage('editPage');
                     comp.editingPath = comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
+                    comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingPublished = false;
                     comp.editingDate = "Never";
                     comp.editingEditedDate = "Never";
@@ -816,6 +819,7 @@
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingPath = page.path;
+                    comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingID = page._id;
                     comp.editingPublished = page.isPublished;
                     var dateObject = new Date(page.edited * 1000);
@@ -848,6 +852,7 @@
                     templateName: this.editingTemplateName,
                     title: this.editingTitle,
                     path: this.editingPath,
+                    isPathless: this.editingTemplate.isPathless,
                     collection: this.activeCollection.id,
                     collectionSubpath: this.activeCollection.subpath,
                     isPublished: this.editingPublished

@@ -98,6 +98,7 @@ function generatePage($json, $isNewPage = false)
     $page["templateName"] = $data["templateName"];
     $page["title"] = $data["title"];
     $page["path"] = $data["path"];
+    $page["isPathless"] = $data["isPathless"];
     $page["collection"] = $data["collection"];
     $page["collectionSubpath"] = $data["collectionSubpath"] ?? "";
     $page["isPublished"] = $data["isPublished"];
@@ -677,7 +678,7 @@ if (!file_exists("config.php")) {
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
-        if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
+        if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
             $filename = './theme/' . $page["templateName"] . ".php";
@@ -695,7 +696,7 @@ if (!file_exists("config.php")) {
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
-        if ($page == null || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
+        if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
             $filename = './theme/' . $page["templateName"] . ".php";
