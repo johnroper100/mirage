@@ -121,7 +121,7 @@
                                         class="fa-solid fa-right-long"></i> /<span
                                         v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
                                 </h6>
-                                <h6 class="text-secondary" v-else>{{getDate(page.created)}}</h6>
+                                <h6 class="text-secondary" v-else>T: {{page.templateName}}</h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
                                 <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank" v-if="page.isPathless == false"><i
