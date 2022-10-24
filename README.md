@@ -4,7 +4,9 @@ A new site platform designed specifically for single client websites with a set 
 
 ## Download and Install
 
-Mirage uses a number of git submodules. This means that if you would like to download it, you must either use a download from the `Releases` page on GitHub, or download the repository using Git and run the command `git submodule update --init --recursive`.
+Mirage uses a number of git submodules. This means that if you would like to download it, you must either use a download from the `Releases` page on GitHub, or download the repository using Git.
+
+If you use Git, make sure you run the command: `git submodule update --init --recursive`
 
 ## Access the Dashboard
 
