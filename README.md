@@ -4,9 +4,7 @@ A new site platform designed specifically for single client websites with a set 
 
 ## Download and Install
 
-Mirage uses a number of git submodules. This means that if you would like to download it, either use a download from the `Releases` page on GitHub, or download the repository using Git.
-
-If you use Git, make sure you run the command: `git submodule update --init --recursive`
+Mirage uses a number of git submodules. This means that if you would like to download it, you must either use a download from the `Releases` page on GitHub, or download the repository using Git and run the command `git submodule update --init --recursive`.
 
 ## Access the Dashboard
 
@@ -15,6 +13,10 @@ Once you have downloaded and installed Mirage, go to `https://{your website url}
 ## Theme Development Documentation
 
 All documentation needed to develop themes is located on [our Wiki](https://github.com/johnroper100/mirage/wiki).
+
+## Backing Up Your Site
+
+Backups are easy with Mirage, simply save copies of the `database` directory and the `uploads` directory. As long as the theme stays the same, the content should be able to be transfered to a new server if needed simply by coping these folders over. This is also helpful for moving a development website into production.
 
 ## A Note About Security
 
