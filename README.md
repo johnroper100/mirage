@@ -18,7 +18,7 @@ All documentation needed to develop themes is located on [our Wiki](https://gith
 
 ## Backing Up Your Site
 
-Backups are easy with Mirage, simply save copies of the `database` directory and the `uploads` directory. As long as the theme stays the same, the content should be able to be transfered to a new server if needed simply by coping these folders over. This is also helpful for moving a development website into production.
+Backups are easy with Mirage, simply save the `database` and `uploads` directories as often as you would like. As long as the theme stays the same, the content should be able to be transfered to a new server if needed by simply copying these folders over. This is also helpful for moving a development website into production.
 
 ## A Note About Security
 
