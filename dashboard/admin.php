@@ -762,6 +762,7 @@
                     xmlhttp.onload = function () {
                         comp.getPages(comp.activeCollection);
                         comp.getCounts();
+                        comp.getMenus();
                     }
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                     xmlhttp.send();

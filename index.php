@@ -221,6 +221,8 @@ if (!file_exists("config.php")) {
 
     define('THEMEPATH', BASEPATH . "/theme");
 
+    /* Administation */
+
     Route::add('/admin', function () {
         if (isset($_SESSION['loggedin'])) {
             include "./dashboard/admin.php";
@@ -264,6 +266,8 @@ if (!file_exists("config.php")) {
 
     # Routes marked API are used by the backend to get data
 
+    /* Theme and Admin UI */
+
     Route::add('/api/theme', function () {
         if (isset($_SESSION['loggedin'])) {
             echo file_get_contents("./theme/config.json");
@@ -294,6 +298,8 @@ if (!file_exists("config.php")) {
             getErrorPage(401);
         }
     });
+
+    /* Users */
 
     Route::add('/api/users', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -380,6 +386,8 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
+    /* Pages */
+
     Route::add('/api/collections/(.*)/pages', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
@@ -413,6 +421,19 @@ if (!file_exists("config.php")) {
         }
     });
 
+    Route::add('/api/pages', function () {
+        if (isset($_SESSION['loggedin'])) {
+            global $pageStore;
+
+            $json = file_get_contents('php://input');
+            $page = $pageStore->insert(generatePage($json, true));
+            $myJSON = json_encode($page);
+            echo $myJSON;
+        } else {
+            getErrorPage(401);
+        }
+    }, 'POST');
+
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
@@ -429,24 +450,20 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
+            global $menuStore;
+            $allMenuItems = $menuStore->findAll();
+            foreach ($allMenuItems as &$menuItem) {
+                if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
+                    $menuStore->deleteById($menuItem["_id"]);
+                }
+            }
             $pageStore->deleteById($who);
         } else {
             getErrorPage(401);
         }
     }, 'DELETE');
 
-    Route::add('/api/pages', function () {
-        if (isset($_SESSION['loggedin'])) {
-            global $pageStore;
-
-            $json = file_get_contents('php://input');
-            $page = $pageStore->insert(generatePage($json, true));
-            $myJSON = json_encode($page);
-            echo $myJSON;
-        } else {
-            getErrorPage(401);
-        }
-    }, 'POST');
+    /* Menus */
 
     Route::add('/api/menus', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -483,6 +500,8 @@ if (!file_exists("config.php")) {
             getErrorPage(401);
         }
     }, 'POST');
+
+    /* Media */
 
     Route::add('/api/media', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -615,6 +634,8 @@ if (!file_exists("config.php")) {
         }
     }, 'DELETE');
 
+    /* Forms */
+
     Route::add('/api/form', function () {
         if (isset($_SESSION['loggedin'])) {
             global $formStore;
@@ -678,6 +699,8 @@ if (!file_exists("config.php")) {
             getErrorPage(401);
         }
     }, 'DELETE');
+
+    /* Page Display */
 
     # Return pages under a collection subpath - currently only supports one collection subpath
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
