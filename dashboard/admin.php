@@ -24,6 +24,7 @@
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>-->
             <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"
                 href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
+            <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary">Current Version v<?php echo MIRAGE_VERSION; ?></small>    
         </div>
     </div>
     <!-- Page content wrapper-->
