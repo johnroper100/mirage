@@ -643,7 +643,8 @@
                     "name": "New Menu Item",
                     "type": 0,
                     "page": "",
-                    "link": ""
+                    "link": "",
+                    "order": this.menuItems.length
                 });
             },
             moveMenuItemUp(from) {
