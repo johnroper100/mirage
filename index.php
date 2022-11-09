@@ -454,7 +454,7 @@ if (!file_exists("config.php")) {
             $allMenuItems = $menuStore->findAll();
             foreach ($allMenuItems as &$menuItem) {
                 if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
-                    $menuStore->deleteById($menuItem["_id"]);
+                    $menuStore->deleteById($menuItem["_id"]); // TODO: this may cause issues once menus can be nested
                 }
             }
             $pageStore->deleteById($who);
