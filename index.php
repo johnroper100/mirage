@@ -56,6 +56,13 @@ $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration)
 $menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
 $formStore = new Store("formSubmissions", $databaseDirectory, $sleekDBConfiguration);
 
+function test_input($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
 # Generate page field
 function generateField($field)
 {
@@ -639,7 +646,7 @@ if (!file_exists("config.php")) {
                             "id" => $field["id"],
                             "name" => $field["name"],
                             "type" => $field["type"],
-                            "value" => htmlspecialchars($_POST[$field["id"]], ENT_QUOTES, 'UTF-8')
+                            "value" => test_input($_POST[$field["id"]])
                         ];
                     }
                     $submission = $formStore->insert($submission);
