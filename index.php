@@ -189,8 +189,8 @@ if (!file_exists("config.php")) {
         global $userStore;
 
         $user = [
-            'name' => $_POST["name"],
-            'email' => $_POST["email"],
+            'name' => test_input($_POST["name"]),
+            'email' => test_input($_POST["email"]),
             'bio' => "",
             'notifySubmissions' => 1,
             'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
@@ -202,7 +202,7 @@ if (!file_exists("config.php")) {
         $myfile = fopen("config.php", "w") or die("Unable to open file!");
         $txt = "<?php\n\n";
         fwrite($myfile, $txt);
-        $txt = "\$siteTitle = \"" . $_POST["siteTitle"] . "\";\n";
+        $txt = "\$siteTitle = \"" . test_input($_POST["siteTitle"]) . "\";\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -240,7 +240,7 @@ if (!file_exists("config.php")) {
     Route::add('/login', function () {
         global $userStore;
 
-        $user = $userStore->findOneBy(["email", "=", $_POST["email"]]);
+        $user = $userStore->findOneBy(["email", "=", test_input($_POST["email"])]);
 
         if ($user != null && password_verify($_POST["password"], $user['password'])) {
             session_regenerate_id();
@@ -631,7 +631,7 @@ if (!file_exists("config.php")) {
         $forms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
         foreach ($forms as $form) {
             if ($form["id"] == $formID) {
-                if ($_POST["math"] != "5") {
+                if (test_input($_POST["math"]) != "5") {
                     $error = true;
 
                     header("Location: {$_SERVER["HTTP_REFERER"]}?error=1");
