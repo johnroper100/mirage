@@ -227,7 +227,7 @@
                                     <option v-for="page in pages" v-bind:value="page._id">{{page.collection}} -> {{page.title}}</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-4 mb-3" v-if="item.type == 1">
+                            <div class="col-12 col-md-3 mb-3" v-if="item.type == 1">
                                 <label class="form-label">External Link:</label>
                                 <input type="url" v-model="item.link" class="form-control"
                                     placeholder="https://www.mywebsite.com/">
