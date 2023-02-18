@@ -1024,10 +1024,6 @@
                     plugins: {
                         upload: {
                             serverPath: "<?php echo BASEPATH ?>/api/media/richtext"
-                        },
-                        resizimg: {
-                            minSize: 64,
-                            step: 16,
                         }
                     }
                 }

@@ -16,7 +16,6 @@
     <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2"></script>
     <link href="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/ui/trumbowyg.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/plugins/upload/trumbowyg.upload.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/plugins/resizimg/trumbowyg.resizimg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/plugins/indent/trumbowyg.indent.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/plugins/pasteembed/trumbowyg.pasteembed.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2/dist/plugins/history/trumbowyg.history.min.js"></script>
