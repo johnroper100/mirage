@@ -1005,21 +1005,29 @@
                 richtextOptions: {
                     svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
                     btns: [
-                        ['viewHTML'],
+                        ['historyUndo', 'historyRedo'],
                         ['formatting'],
                         ['strong', 'em', 'del'],
                         ['superscript', 'subscript'],
                         ['link'],
                         ['insertImage', 'upload'],
+                        ['outdent', 'indent'],
                         ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
                         ['unorderedList', 'orderedList'],
                         ['horizontalRule'],
                         ['removeformat'],
-                        ['fullscreen']
+                        ['viewHTML', 'fullscreen']
                     ],
+                    imageWidthModalEdit: true,
+                    removeformatPasted: true,
+                    autogrow: true,
                     plugins: {
                         upload: {
                             serverPath: "<?php echo BASEPATH ?>/api/media/richtext"
+                        },
+                        resizimg: {
+                            minSize: 64,
+                            step: 16,
                         }
                     }
                 }
