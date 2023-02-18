@@ -443,10 +443,23 @@ if (!file_exists("config.php")) {
     Route::add('/api/pages/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
+            global $menuStore;
 
             $json = file_get_contents('php://input');
             $page = $pageStore->updateById($who, generatePage($json));
             $myJSON = json_encode($page);
+
+            $allMenuItems = $menuStore->findAll();
+            foreach ($allMenuItems as &$menuItem) {
+                if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
+                    $menuItem["link"] = $page["path"];
+                    if ($page["collectionSubpath"] != "") {
+                        $menuItem["link"] = $page["collectionSubpath"] . "/" . $menuItem["link"];
+                    }
+                    $menuItem = $menuStore->updateById($menuItem["_id"], ["link" => $menuItem["link"]]);
+                }
+            }
+
             echo $myJSON;
         } else {
             getErrorPage(401);
