@@ -185,6 +185,10 @@ function getUser($userID)
     return $user;
 };
 
+function getFirstParagraph($string) {
+    return substr($string, strpos($string, "<p"), strpos($string, "</p>")+4);
+}
+
 # Run setup if config.php does not yet exist
 if (!file_exists("config.php")) {
     Route::add('/setup', function () {
