@@ -237,11 +237,11 @@
                                 <input type="text" v-model="item.name" class="form-control" placeholder="New Menu Item">
                             </div>
                             <div class="col-12 col-md-2 mb-3">
-                                <button class="btn btn-success me-1" @click="moveMenuItemUp(i)"><i
+                                <button class="btn btn-success me-1" @click="moveMenuItemUp(menu.id, i)"><i
                                         class="fa-solid fa-angle-up"></i></button>
-                                <button class="btn btn-success me-1" @click="moveMenuItemDown(i)"><i
+                                <button class="btn btn-success me-1" @click="moveMenuItemDown(menu.id, i)"><i
                                         class="fa-solid fa-angle-down"></i></button>
-                                <button class="btn btn-danger" @click="deleteMenuItem(i)"><i
+                                <button class="btn btn-danger" @click="deleteMenuItem(menu.id, i)"><i
                                         class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
@@ -601,16 +601,23 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
-                    comp.menuItems = JSON.parse(this.responseText);
-                    comp.menuItems.forEach(function (item) {
-                        delete item._id;
+                    var initialMenuItems = JSON.parse(this.responseText);
+                    comp.menuItems = {};
+                    initialMenuItems.forEach(function (item) {
+                        if (comp.menuItems[item.menuID] == undefined) {
+                            comp.menuItems[item.menuID] = [];
+                        }
+                        comp.menuItems[item.menuID].push(item);
                     });
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.send();
             },
-            getMenuItems(mID) {
-                return this.menuItems.filter((item) => item.menuID == mID).sort((a, b) => a.order - b.order);
+            getMenuItems(menuID) {
+                if (this.menuItems[menuID] != undefined) {
+                    return this.menuItems[menuID].sort((a, b) => a.order - b.order);
+                }
+                return [];
             },
             getCounts() {
                 var comp = this;
@@ -640,41 +647,44 @@
                 xmlhttp.send();
             },
             addMenuItem(menuID) {
-                this.menuItems.push({
+                if (this.menuItems[menuID] == undefined) {
+                    this.menuItems[menuID] = [];
+                }
+                this.menuItems[menuID].push({
                     "menuID": menuID,
                     "name": "New Menu Item",
                     "type": 0,
                     "page": "",
                     "link": "",
-                    "order": this.menuItems.length
+                    "order": this.menuItems[menuID].length
                 });
             },
-            moveMenuItemUp(from) {
+            moveMenuItemUp(menuID, from) {
                 var to = from - 1;
                 if (to < 0) {
-                    to = this.menuItems.length - 1;
+                    to = this.menuItems[menuID].length - 1;
                 }
-                var f = this.menuItems.splice(from, 1)[0];
-                this.menuItems.splice(to, 0, f);
-                this.menuItems.forEach(function (item, index) {
+                var f = this.menuItems[menuID].splice(from, 1)[0];
+                this.menuItems[menuID].splice(to, 0, f);
+                this.menuItems[menuID].forEach(function (item, index) {
                     item.order = index;
                 });
             },
-            moveMenuItemDown(from) {
+            moveMenuItemDown(menuID, from) {
                 var to = from + 1;
-                if (to > this.menuItems.length - 1) {
+                if (to > this.menuItems[menuID].length - 1) {
                     to = 0;
                 }
-                var f = this.menuItems.splice(from, 1)[0];
-                this.menuItems.splice(to, 0, f);
-                this.menuItems.forEach(function (item, index) {
+                var f = this.menuItems[menuID].splice(from, 1)[0];
+                this.menuItems[menuID].splice(to, 0, f);
+                this.menuItems[menuID].forEach(function (item, index) {
                     item.order = index;
                 });
             },
-            deleteMenuItem(index) {
+            deleteMenuItem(menuID, index) {
                 if (confirm('Are you sure you want to do this?')) {
-                    this.menuItems.splice(index, 1);
-                    this.menuItems.forEach(function (item, index) {
+                    this.menuItems[menuID].splice(index, 1);
+                    this.menuItems[menuID].forEach(function (item, index) {
                         item.order = index;
                     });
                 }
