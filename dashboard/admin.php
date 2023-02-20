@@ -858,7 +858,13 @@
                 }
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
-                xmlhttp.send(JSON.stringify(comp.menuItems));
+                var allMenuItems = [];
+                for (let menuID in comp.menuItems) {
+                    comp.menuItems[menuID].forEach(function (item) {
+                        allMenuItems.push(item);
+                    });
+                }
+                xmlhttp.send(JSON.stringify(allMenuItems));
             },
             savePage() {
                 var data = {
