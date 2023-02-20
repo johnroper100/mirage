@@ -609,8 +609,8 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.send();
             },
-            getMenuItems(menuID) {
-                return this.menuItems.filter(id => menuID).sort((a, b) => a.order - b.order);
+            getMenuItems(mID) {
+                return this.menuItems.filter((item) => item.menuID == mID).sort((a, b) => a.order - b.order);
             },
             getCounts() {
                 var comp = this;
