@@ -604,6 +604,7 @@
                     var initialMenuItems = JSON.parse(this.responseText);
                     comp.menuItems = {};
                     initialMenuItems.forEach(function (item) {
+                        delete item._id;
                         if (comp.menuItems[item.menuID] == undefined) {
                             comp.menuItems[item.menuID] = [];
                         }

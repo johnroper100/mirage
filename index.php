@@ -502,7 +502,6 @@ if (!file_exists("config.php")) {
 
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
-            $menuItems = $menuStore->createQueryBuilder()->getQuery()->delete();
             foreach ($data as &$menuItem) {
                 if ($menuItem["type"] == 0) {
                     $menuItem["link"] = $pageStore->findById($menuItem["page"])["path"];
@@ -511,6 +510,7 @@ if (!file_exists("config.php")) {
                     }
                 }
             }
+            $menuItems = $menuStore->createQueryBuilder()->getQuery()->delete();
             $menuItems = $menuStore->insertMany($data);
             $allMenuItems = $menuStore->findAll(["order" => "asc"]);
             $myJSON = json_encode($allMenuItems);
