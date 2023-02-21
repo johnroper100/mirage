@@ -24,5 +24,10 @@
             </div>
         </div>
     </div>
+    <div class="row mt-3">
+        <div class="col-12 text-center">
+            <small class="text-secondary">View Mirage on <i class="fa-brands fa-github me-1 ms-1"></i><a href="https://github.com/johnroper100/mirage" target="_blank" class="text-secondary">GitHub</a></small>
+        </div>
+    </div>
 </div>
 <?php include 'footer.php'; ?>
