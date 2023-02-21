@@ -26,6 +26,7 @@
                 href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
             <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary">System Version: v<?php echo MIRAGE_VERSION; ?></small>
             <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary">PHP Version: v<?php echo phpversion(); ?></small>
+            <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-brands fa-github me-1"></i> <a href="https://github.com/johnroper100/mirage" class="text-secondary" target="_blank">GitHub</a></small>
         </div>
     </div>
     <!-- Page content wrapper-->
