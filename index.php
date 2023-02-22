@@ -106,6 +106,7 @@ function generatePage($json, $isNewPage = false)
 
     $page["templateName"] = $data["templateName"];
     $page["title"] = $data["title"];
+    $page["featuredImage"] = $data["featuredImage"];
     $page["path"] = $data["path"];
     $page["isPathless"] = $data["isPathless"];
     $page["collection"] = $data["collection"];

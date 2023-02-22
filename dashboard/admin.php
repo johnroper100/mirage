@@ -163,6 +163,12 @@
                                 <input v-model="editingTitle" type="text" class="form-control"
                                     placeholder="My awesome page">
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label d-block">Featured Image:</label>
+                                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                                <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
+                                <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
+                            </div>
                             <div class="accordion">
                                 <div class="accordion-item mb-2" v-for="(section, index) in editingTemplate.sections">
                                     <h2 class="accordion-header" :id="'heading'+index">
@@ -534,6 +540,7 @@
                 formSubmissions: {},
                 editingTemplate: {},
                 editingTitle: "",
+                editingFeaturedImage: "",
                 editingTemplateName: "",
                 editingPath: "",
                 editingPathless: false,
@@ -785,6 +792,7 @@
             addPage() {
                 addPageModal.show();
                 this.editingTitle = "";
+                this.editingFeaturedImage = "";
                 this.editingPath = "";
                 this.editingTemplateName = "";
             },
@@ -834,6 +842,7 @@
                     comp.setPage('editPage', update);
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
+                    comp.editingFeaturedImage = page.featuredImage;
                     comp.editingPath = page.path;
                     comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingID = page._id;
@@ -873,6 +882,7 @@
                     template: this.editingTemplate,
                     templateName: this.editingTemplateName,
                     title: this.editingTitle,
+                    featuredImage: this.editingFeaturedImage,
                     path: this.editingPath,
                     isPathless: this.editingTemplate.isPathless,
                     collection: this.activeCollection.id,
@@ -896,25 +906,31 @@
             },
             selectFileItem(id) {
                 var comp = this;
-                this.editingTemplate.sections.forEach(function (section) {
-                    section.fields.forEach(function (field) {
-                        if (comp.selectFileFieldParent != "") {
-                            if (field.id == comp.selectFileFieldParent) {
-                                field.value[comp.selectFileFieldIndex].forEach(function (field2) {
-                                    if (field2.id == comp.selectFileFieldID) {
-                                        field2.value = id;
-                                        selectFileModal.hide();
-                                    }
-                                });
+                if (comp.selectFileFieldParent == "featuredImage") {
+                    comp.editingFeaturedImage = id;
+                    selectFileModal.hide();
+                    return;
+                } else {
+                    this.editingTemplate.sections.forEach(function (section) {
+                        section.fields.forEach(function (field) {
+                            if (comp.selectFileFieldParent != "") {
+                                if (field.id == comp.selectFileFieldParent) {
+                                    field.value[comp.selectFileFieldIndex].forEach(function (field2) {
+                                        if (field2.id == comp.selectFileFieldID) {
+                                            field2.value = id;
+                                            selectFileModal.hide();
+                                        }
+                                    });
+                                }
+                            } else {
+                                if (field.id == comp.selectFileFieldID) {
+                                    field.value = id;
+                                    selectFileModal.hide();
+                                }
                             }
-                        } else {
-                            if (field.id == comp.selectFileFieldID) {
-                                field.value = id;
-                                selectFileModal.hide();
-                            }
-                        }
+                        });
                     });
-                });
+                }
             },
             openUploadMediaModal() {
                 uploadMediaModal.show();
@@ -997,6 +1013,10 @@
                     xmlhttp.send();
                 }
             },
+            selectFeaturedImage() {
+                this.selectFileFieldParent = "featuredImage";
+                selectFileModal.show();
+            }
         },
         mounted() {
             this.getTheme();
