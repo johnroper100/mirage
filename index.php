@@ -65,6 +65,10 @@ function test_input($data) {
     return $data;
 }
 
+function getFullBasepath() {
+    return htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://") . $_SERVER['HTTP_HOST'] . BASEPATH, ENT_QUOTES, 'UTF-8');
+}
+
 # Generate page field
 function generateField($field)
 {
