@@ -163,11 +163,21 @@
                                 <input v-model="editingTitle" type="text" class="form-control"
                                     placeholder="My awesome page">
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label d-block">Featured Image:</label>
-                                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                                <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
-                                <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
+                            <div class="row">
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label d-block">Featured Image:</label>
+                                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                                        <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
+                                        <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Featured Image:</label>
+                                        <textarea rows="3" class="form-control" v-model="editingDescription"></textarea>
+                                    </div>
+                                </div>
                             </div>
                             <div class="accordion">
                                 <div class="accordion-item mb-2" v-for="(section, index) in editingTemplate.sections">
@@ -541,6 +551,7 @@
                 editingTemplate: {},
                 editingTitle: "",
                 editingFeaturedImage: "",
+                editingDescription: "",
                 editingTemplateName: "",
                 editingPath: "",
                 editingPathless: false,
@@ -793,6 +804,7 @@
                 addPageModal.show();
                 this.editingTitle = "";
                 this.editingFeaturedImage = "";
+                this.editingDescription = "";
                 this.editingPath = "";
                 this.editingTemplateName = "";
             },
@@ -843,6 +855,7 @@
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingFeaturedImage = page.featuredImage;
+                    this.editingDescription = page.description;
                     comp.editingPath = page.path;
                     comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingID = page._id;
@@ -883,6 +896,7 @@
                     templateName: this.editingTemplateName,
                     title: this.editingTitle,
                     featuredImage: this.editingFeaturedImage,
+                    description: this.editingDescription,
                     path: this.editingPath,
                     isPathless: this.editingTemplate.isPathless,
                     collection: this.activeCollection.id,
