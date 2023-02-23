@@ -855,7 +855,7 @@
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingFeaturedImage = page.featuredImage;
-                    this.editingDescription = page.description || "";
+                    comp.editingDescription = page.description;
                     comp.editingPath = page.path;
                     comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingID = page._id;
