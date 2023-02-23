@@ -166,7 +166,7 @@
                             <div class="row">
                                 <div class="col-12 col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Page Meta Description:</label>
+                                        <label class="form-label">Page Description:</label>
                                         <textarea rows="3" class="form-control" v-model="editingDescription"></textarea>
                                     </div>
                                 </div>
