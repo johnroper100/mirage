@@ -166,16 +166,16 @@
                             <div class="row">
                                 <div class="col-12 col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label d-block">Featured Image:</label>
-                                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                                        <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
-                                        <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
+                                        <label class="form-label">Page Meta Description:</label>
+                                        <textarea rows="3" class="form-control" v-model="editingDescription"></textarea>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="mb-3">
-                                        <label class="form-label">Featured Image:</label>
-                                        <textarea rows="3" class="form-control" v-model="editingDescription"></textarea>
+                                        <label class="form-label d-block">Featured Image:</label>
+                                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                                        <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
+                                        <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
                                     </div>
                                 </div>
                             </div>
