@@ -201,7 +201,7 @@
                                     <div :id="'collapse'+index" class="accordion-collapse collapse"
                                         aria-labelledby="'heading'+index">
                                         <div class="accordion-body">
-                                            <templateinput :field="field" v-for="field in section.fields">
+                                            <templateinput :field="field" :key="field.id" v-for="field in section.fields">
                                             </templateinput>
                                         </div>
                                     </div>
@@ -592,7 +592,7 @@
                 viewPage: 'general',
                 activeCollection: {},
                 activeTheme: {},
-                pages: {},
+                pages: [],
                 counts: {},
                 activeUser: {},
                 users: {},
@@ -612,9 +612,7 @@
                 editingPublished: true,
                 editingDate: null,
                 editingEditedDate: null,
-                selectFileFieldID: "",
-                selectFileFieldParent: "",
-                selectFileFiendIndex: null,
+                selectFileTarget: null,
                 editingUser: {
                     "accountType": "",
                     "editingMode": 0,
@@ -1211,33 +1209,53 @@
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(data));
             },
+            findTemplateFieldByPath(fields, path, offset) {
+                for (var i = 0; i < fields.length; i++) {
+                    var field = fields[i];
+                    if (field.id != path[offset]) {
+                        continue;
+                    }
+                    if (offset == path.length - 1) {
+                        return field;
+                    }
+                    if (field.type != 'list' || !Array.isArray(field.value)) {
+                        return null;
+                    }
+                    var listItem = field.value[path[offset + 1]];
+                    if (!Array.isArray(listItem)) {
+                        return null;
+                    }
+                    return this.findTemplateFieldByPath(listItem, path, offset + 2);
+                }
+                return null;
+            },
+            setTemplateFieldValue(path, value) {
+                for (var i = 0; i < this.editingTemplate.sections.length; i++) {
+                    var field = this.findTemplateFieldByPath(this.editingTemplate.sections[i].fields, path, 0);
+                    if (field != null) {
+                        field.value = value;
+                        return true;
+                    }
+                }
+                return false;
+            },
+            clearSelectFileTarget() {
+                this.selectFileTarget = null;
+                this.selectMediaItemType = "image";
+            },
             selectFileItem(id) {
                 var comp = this;
-                if (comp.selectFileFieldParent == "featuredImage") {
+                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "featuredImage") {
                     comp.editingFeaturedImage = id;
                     selectFileModal.hide();
+                    comp.clearSelectFileTarget();
                     return;
-                } else {
-                    this.editingTemplate.sections.forEach(function (section) {
-                        section.fields.forEach(function (field) {
-                            if (comp.selectFileFieldParent != "") {
-                                if (field.id == comp.selectFileFieldParent) {
-                                    field.value[comp.selectFileFieldIndex].forEach(function (field2) {
-                                        if (field2.id == comp.selectFileFieldID) {
-                                            field2.value = id;
-                                            selectFileModal.hide();
-                                        }
-                                    });
-                                }
-                            } else {
-                                if (field.id == comp.selectFileFieldID) {
-                                    field.value = id;
-                                    selectFileModal.hide();
-                                }
-                            }
-                        });
-                    });
                 }
+                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "templateField") {
+                    comp.setTemplateFieldValue(comp.selectFileTarget.path, id);
+                    selectFileModal.hide();
+                }
+                comp.clearSelectFileTarget();
             },
             openUploadMediaModal() {
                 uploadMediaModal.show();
@@ -1391,7 +1409,10 @@
                 }
             },
             selectFeaturedImage() {
-                this.selectFileFieldParent = "featuredImage";
+                this.selectFileTarget = {
+                    type: "featuredImage"
+                };
+                this.selectMediaItemType = "image";
                 selectFileModal.show();
             }
         },
@@ -1411,10 +1432,18 @@
     app.component('Trumbowyg', VueTrumbowyg.default);
 
     app.component('templateinput', {
-        props: ['field', 'parent', "index"],
+        props: {
+            field: Object,
+            path: {
+                type: Array,
+                default() {
+                    return [];
+                }
+            }
+        },
         data() {
             if (this.field.type == 'page') {
-                this.$parent.getAllPages();
+                this.$root.getAllPages();
             }
             return {
                 richtextOptions: {
@@ -1445,18 +1474,18 @@
             }
         },
         methods: {
-            selectMediaItem(fieldID, parent, index, type) {
-                if (parent) {
-                    this.$parent.$parent.selectFileFieldID = fieldID;
-                    this.$parent.$parent.selectFileFieldParent = parent.id;
-                    this.$parent.$parent.selectFileFieldIndex = index;
-                    this.$parent.$parent.selectMediaItemType = type;
-                } else {
-                    this.$parent.selectFileFieldID = fieldID;
-                    this.$parent.selectFileFieldParent = "";
-                    this.$parent.selectFileFieldIndex = "";
-                    this.$parent.selectMediaItemType = type;
-                }
+            buildFieldPath(fieldID) {
+                return this.path.concat(fieldID);
+            },
+            buildListPath(fieldID, index) {
+                return this.path.concat([fieldID, index]);
+            },
+            selectMediaItem(fieldPath, type) {
+                this.$root.selectFileTarget = {
+                    type: "templateField",
+                    path: fieldPath
+                };
+                this.$root.selectMediaItemType = type;
                 selectFileModal.show();
             },
             addListItem(field) {
@@ -1474,6 +1503,9 @@
                 return this.$root.getMediaFilePath(id);
             },
             filter_collection(list, name) {
+                if (!Array.isArray(list)) {
+                    return [];
+                }
                 return list.filter(function (item) {
                     return item.collection == name;
                 });
@@ -1490,7 +1522,7 @@
                 </select>
                 <select v-if="field.type == 'page'" v-model="field.value" class="form-select" :aria-label="field.name">
                     <option value="">None</option>
-                    <option :value="option._id" v-for="option in filter_collection(this.$parent.pages, field.collection)">{{option.title}}</option>
+                    <option :value="option._id" v-for="option in filter_collection(this.$root.pages, field.collection)">{{option.title}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
@@ -1499,12 +1531,12 @@
                     <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                     <p>{{getMediaFilePath(field.value)}}</p>
                 </div>
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(field.id, parent, index, field.subtype)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(buildFieldPath(field.id), field.subtype)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && field.value != null" @click="field.value = null">Remove Item</button>
                 <div v-if="field.type == 'list'" class="ps-3">
-                    <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="listItem.id">
+                    <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="field.id + '-' + i">
                         <button class="btn btn-danger btn-sm mb-2" @click="removeListItem(field, i)">Remove</button>
-                        <templateinput :field="subField" :parent="field" :index="i" v-for="subField in listItem"></templateinput>
+                        <templateinput :field="subField" :path="buildListPath(field.id, i)" :key="subField.id + '-' + i + '-' + subIndex" v-for="(subField, subIndex) in listItem"></templateinput>
                     </div>
                     <button class="btn btn-sm btn-success w-100" @click="addListItem(field)">Add Item</button>
                 </div>
