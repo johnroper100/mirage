@@ -21,7 +21,8 @@
                 Media</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
-            <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>-->
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings'); getSiteSettings();"
+                :class="{'active text-light': viewPage == 'settings'}" v-if="activeUser.accountType == 0"><i class="fa-solid fa-gears me-1"></i> Settings</span>
             <form action="<?php echo BASEPATH ?>/logout" method="POST" class="m-0">
                 <?php echo getCsrfTokenFieldHtml(); ?>
                 <button type="submit" class="btn btn-link w-100 text-start p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</button>
@@ -46,7 +47,7 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Form Submissions</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
-                <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>-->
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
                 <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
@@ -81,6 +82,8 @@
                         <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
                             v-if="activeUser.accountType != 2"><i class="fa-solid fa-user-plus me-1"></i> Add
                             User</button>
+                        <button class="btn btn-success" v-if="viewPage == 'settings'" @click="saveSiteSettings"><i
+                                class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                     </div>
                 </div>
             </div>
@@ -375,9 +378,32 @@
                     </table>
                 </div>
             </div>
-            <!--<div v-if="viewPage == 'settings'">
-                Settings
-            </div>-->
+            <div v-if="viewPage == 'settings'">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Site Title:</label>
+                            <input v-model="siteSettings.siteTitle" type="text" class="form-control" placeholder="My website">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Footer Text:</label>
+                            <textarea v-model="siteSettings.footerText" rows="3" class="form-control" placeholder="Optional footer text"></textarea>
+                            <div class="form-text">Optional text shown above the copyright line. Tokens are supported here too.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Copyright Text:</label>
+                            <textarea v-model="siteSettings.copyrightText" rows="3" class="form-control" placeholder="{{year}} {{siteTitle}} - All Rights Reserved."></textarea>
+                            <div class="form-text">Available variables: <code v-pre>{{year}}</code> for the current year and <code v-pre>{{siteTitle}}</code> for the current site title.</div>
+                        </div>
+                        <div class="border rounded bg-light p-3">
+                            <h6 class="mb-2">Preview</h6>
+                            <p class="mb-1" v-if="siteSettings.footerText != ''">{{applySiteSettingTokens(siteSettings.footerText)}}</p>
+                            <p class="mb-0" v-if="siteSettings.copyrightText != ''">{{applySiteSettingTokens(siteSettings.copyrightText)}}</p>
+                            <p class="mb-0 text-secondary" v-if="siteSettings.footerText == '' && siteSettings.copyrightText == ''">Footer preview is empty.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" id="addPageModal" tabindex="-1"
                 aria-labelledby="addPageModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -679,6 +705,11 @@
                 activeTheme: {},
                 pages: [],
                 counts: {},
+                siteSettings: {
+                    siteTitle: "",
+                    footerText: "",
+                    copyrightText: ""
+                },
                 activeUser: {
                     accountType: 2
                 },
@@ -722,6 +753,13 @@
         methods: {
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
+            },
+            applySiteSettingTokens(text) {
+                var siteTitle = typeof this.siteSettings.siteTitle === 'string' ? this.siteSettings.siteTitle.trim() : '';
+
+                return String(text || '')
+                    .replace(/\{\{\s*year\s*\}\}/gi, String(new Date().getFullYear()))
+                    .replace(/\{\{\s*site(?:_|)title\s*\}\}/gi, siteTitle);
             },
             normalizeOptionalMediaId(itemID) {
                 if (itemID == null) {
@@ -1015,11 +1053,39 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/counts", true);
                 xmlhttp.send();
             },
+            getSiteSettings() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    if (this.status < 200 || this.status >= 300) {
+                        return;
+                    }
+
+                    var settings = JSON.parse(this.responseText);
+                    comp.siteSettings = {
+                        siteTitle: settings.siteTitle || "",
+                        footerText: settings.footerText || "",
+                        copyrightText: settings.copyrightText || ""
+                    };
+                }
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/settings", true);
+                xmlhttp.send();
+            },
             getActiveUser() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeUser = JSON.parse(this.responseText);
+                    if (comp.activeUser.accountType == 0) {
+                        comp.getSiteSettings();
+                    } else {
+                        comp.siteSettings = {
+                            siteTitle: "",
+                            footerText: "",
+                            copyrightText: ""
+                        };
+                    }
+
                     if (comp.activeUser.accountType != 2) {
                         comp.getFormSubmissions();
                         comp.getMenus();
@@ -1317,6 +1383,39 @@
                         });
                 }
                 xmlhttp.send(JSON.stringify(allMenuItems));
+            },
+            saveSiteSettings() {
+                if ((this.siteSettings.siteTitle || '').trim() === '') {
+                    alert("Site title is required.");
+                    return;
+                }
+
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onload = function () {
+                    var response = {};
+
+                    try {
+                        response = JSON.parse(this.responseText);
+                    } catch (error) {
+                        response = {};
+                    }
+
+                    if (this.status < 200 || this.status >= 300) {
+                        alert(response.message || "Settings could not be saved.");
+                        return;
+                    }
+
+                    comp.siteSettings = {
+                        siteTitle: response.siteTitle || "",
+                        footerText: response.footerText || "",
+                        copyrightText: response.copyrightText || ""
+                    };
+                    alert("Settings saved!");
+                }
+                xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/settings", true);
+                xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                xmlhttp.send(JSON.stringify(comp.siteSettings));
             },
             savePage() {
                 var data = {

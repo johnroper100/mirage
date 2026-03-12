@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.1.7");
+define('MIRAGE_VERSION', "1.1.8");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -757,6 +757,83 @@ function sendJsonResponse($response, $statusCode = 200)
     http_response_code($statusCode);
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($response);
+}
+
+function getDefaultSiteSettings()
+{
+    return [
+        'siteTitle' => '',
+        'footerText' => '',
+        'copyrightText' => '{{year}} {{siteTitle}} - All Rights Reserved.'
+    ];
+}
+
+function normalizeSiteSettings($settings)
+{
+    $defaults = getDefaultSiteSettings();
+    $settings = is_array($settings) ? $settings : [];
+
+    return [
+        'siteTitle' => array_key_exists('siteTitle', $settings) ? trim((string) $settings['siteTitle']) : $defaults['siteTitle'],
+        'footerText' => array_key_exists('footerText', $settings) ? trim((string) $settings['footerText']) : $defaults['footerText'],
+        'copyrightText' => array_key_exists('copyrightText', $settings) ? trim((string) $settings['copyrightText']) : $defaults['copyrightText']
+    ];
+}
+
+function getCurrentSiteSettings()
+{
+    global $siteTitle;
+    global $footerText;
+    global $copyrightText;
+
+    $settings = [];
+    if (isset($siteTitle)) {
+        $settings['siteTitle'] = $siteTitle;
+    }
+
+    if (isset($footerText)) {
+        $settings['footerText'] = $footerText;
+    }
+
+    if (isset($copyrightText)) {
+        $settings['copyrightText'] = $copyrightText;
+    }
+
+    return normalizeSiteSettings($settings);
+}
+
+function writeSiteConfigFile($settings)
+{
+    $settings = normalizeSiteSettings($settings);
+
+    $configContents = "<?php\n\n";
+    $configContents .= '$siteTitle = ' . var_export($settings['siteTitle'], true) . ";\n";
+    $configContents .= '$footerText = ' . var_export($settings['footerText'], true) . ";\n";
+    $configContents .= '$copyrightText = ' . var_export($settings['copyrightText'], true) . ";\n";
+
+    return file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . 'config.php', $configContents, LOCK_EX) !== false;
+}
+
+function renderSiteTextTemplate($text, $context = [])
+{
+    $context = is_array($context) ? $context : [];
+    $siteTitleValue = array_key_exists('siteTitle', $context) ? (string) $context['siteTitle'] : '';
+
+    $renderedText = preg_replace_callback('/\{\{\s*(year|siteTitle|site_title)\s*\}\}/i', function ($matches) use ($siteTitleValue) {
+        $token = strtolower(str_replace('_', '', (string) ($matches[1] ?? '')));
+
+        if ($token === 'year') {
+            return date('Y');
+        }
+
+        if ($token === 'sitetitle') {
+            return $siteTitleValue;
+        }
+
+        return $matches[0];
+    }, (string) $text);
+
+    return $renderedText !== null ? $renderedText : (string) $text;
 }
 
 function getUploadErrorMessage($errorCode)
@@ -1505,14 +1582,21 @@ function injectMirageFrontendAssets($html)
 
 function includeThemeFile($filename, $data = [])
 {
-    global $siteTitle;
-
     if (!isset($data['page']) || !is_array($data['page'])) {
         $data['page'] = [];
     }
 
+    $siteSettings = getCurrentSiteSettings();
     if (!array_key_exists('siteTitle', $data)) {
-        $data['siteTitle'] = isset($siteTitle) ? $siteTitle : '';
+        $data['siteTitle'] = $siteSettings['siteTitle'];
+    }
+
+    if (!array_key_exists('footerText', $data)) {
+        $data['footerText'] = $siteSettings['footerText'];
+    }
+
+    if (!array_key_exists('copyrightText', $data)) {
+        $data['copyrightText'] = $siteSettings['copyrightText'];
     }
 
     extract($data, EXTR_SKIP);
@@ -1595,14 +1679,19 @@ if (!file_exists("config.php")) {
 
         $user = $userStore->insert($user);
 
-        $myfile = fopen("config.php", "w") or die("Unable to open file!");
-        $txt = "<?php\n\n";
-        fwrite($myfile, $txt);
-        $txt = "\$siteTitle = " . var_export((string) ($_POST["siteTitle"] ?? ''), true) . ";\n";
-        fwrite($myfile, $txt);
-        $txt = "?>";
-        fwrite($myfile, $txt);
-        fclose($myfile);
+        $siteSettings = normalizeSiteSettings([
+            'siteTitle' => $_POST["siteTitle"] ?? ''
+        ]);
+
+        if ($siteSettings['siteTitle'] === '') {
+            getErrorPage(400);
+            return;
+        }
+
+        if (!writeSiteConfigFile($siteSettings)) {
+            getErrorPage(500);
+            return;
+        }
 
         header('Location: ' . BASEPATH . '/login');
     }, 'POST');
@@ -1614,6 +1703,11 @@ if (!file_exists("config.php")) {
 # if config.php exists, run the rest of the application
 
     require_once 'config.php';
+
+    $siteSettings = getCurrentSiteSettings();
+    $siteTitle = $siteSettings['siteTitle'];
+    $footerText = $siteSettings['footerText'];
+    $copyrightText = $siteSettings['copyrightText'];
 
     define('THEMEPATH', BASEPATH . "/theme");
 
@@ -1712,6 +1806,84 @@ if (!file_exists("config.php")) {
             getErrorPage(401);
         }
     });
+
+    Route::add('/api/settings', function () {
+        if (!isLoggedIn()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You must be logged in to view site settings.'
+            ], 401);
+            return;
+        }
+
+        if (!isAdministrator()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Only administrators can view site settings.'
+            ], 403);
+            return;
+        }
+
+        sendJsonResponse(getCurrentSiteSettings());
+    });
+
+    Route::add('/api/settings', function () {
+        if (!isLoggedIn()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You must be logged in to update site settings.'
+            ], 401);
+            return;
+        }
+
+        if (!isAdministrator()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Only administrators can update site settings.'
+            ], 403);
+            return;
+        }
+
+        if (!requireCsrfToken(true)) {
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Invalid settings payload.'
+            ], 400);
+            return;
+        }
+
+        $siteSettings = normalizeSiteSettings($data);
+        if ($siteSettings['siteTitle'] === '') {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Site title is required.'
+            ], 400);
+            return;
+        }
+
+        if (!writeSiteConfigFile($siteSettings)) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Site settings could not be saved.'
+            ], 500);
+            return;
+        }
+
+        global $siteTitle;
+        global $footerText;
+        global $copyrightText;
+
+        $siteTitle = $siteSettings['siteTitle'];
+        $footerText = $siteSettings['footerText'];
+        $copyrightText = $siteSettings['copyrightText'];
+
+        sendJsonResponse($siteSettings);
+    }, 'PUT');
 
     /* Users */
 
