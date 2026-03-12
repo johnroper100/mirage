@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.1.8");
+define('MIRAGE_VERSION', "1.1.9");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -372,6 +372,30 @@ function getCollectionConfigById($collectionID)
     }
 
     return null;
+}
+
+function normalizeCollectionSortMode($sortMode)
+{
+    $sortMode = strtolower(trim((string) $sortMode));
+    if (!in_array($sortMode, ['newest', 'oldest', 'custom'], true)) {
+        return 'newest';
+    }
+
+    return $sortMode;
+}
+
+function getCollectionSortMode($collectionID, $sortMode = null)
+{
+    if (is_array($sortMode)) {
+        return $sortMode;
+    }
+
+    if ($sortMode !== null) {
+        return normalizeCollectionSortMode($sortMode);
+    }
+
+    $collection = getCollectionConfigById($collectionID);
+    return normalizeCollectionSortMode($collection['sort'] ?? 'newest');
 }
 
 function isValidTemplateForCollection($templateID, $collectionID)
@@ -973,6 +997,12 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
     $page["collection"] = $collectionID;
     $page["collectionSubpath"] = $collectionSubpath ?? "";
     $page["isPublished"] = isAuthor() ? (bool) ($existingPage["isPublished"] ?? false) : !empty($data["isPublished"]);
+    if ($isNewPage) {
+        $page["order"] = getNextCollectionPageOrder($collectionID);
+    } else if (is_array($existingPage) && isset($existingPage["order"]) && is_numeric($existingPage["order"])) {
+        $page["order"] = (int) $existingPage["order"];
+    }
+
     return $page;
 };
 
@@ -995,22 +1025,211 @@ function getErrorPage($errorCode)
     }
 };
 
-function getPages($collection, $numEntries, $sort = ["created" => "desc"])
+function getPageCreatedTimestamp($page)
 {
-    global $pageStore;
-    if ($numEntries > 0) {
-        if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], $sort, $numEntries);
-        } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], $sort, $numEntries);
+    return isset($page['created']) ? (int) $page['created'] : 0;
+}
+
+function getPageOrderValue($page)
+{
+    return isset($page['order']) && is_numeric($page['order']) ? (int) $page['order'] : null;
+}
+
+function comparePagesByCollectionSort($leftPage, $rightPage, $sortMode)
+{
+    $leftId = isset($leftPage['_id']) ? (int) $leftPage['_id'] : 0;
+    $rightId = isset($rightPage['_id']) ? (int) $rightPage['_id'] : 0;
+
+    if ($sortMode === 'oldest') {
+        $leftCreated = getPageCreatedTimestamp($leftPage);
+        $rightCreated = getPageCreatedTimestamp($rightPage);
+        if ($leftCreated === $rightCreated) {
+            return $leftId <=> $rightId;
         }
-    } else {
-        if (isset($_SESSION['loggedin'])) {
-            $pages = $pageStore->findBy(["collection", "=", $collection], $sort);
-        } else {
-            $pages = $pageStore->findBy([["collection", "=", $collection], ["isPublished", "=", true]], $sort);
+
+        return $leftCreated <=> $rightCreated;
+    }
+
+    if ($sortMode === 'custom') {
+        $leftOrder = getPageOrderValue($leftPage);
+        $rightOrder = getPageOrderValue($rightPage);
+        $leftHasOrder = $leftOrder !== null;
+        $rightHasOrder = $rightOrder !== null;
+
+        if ($leftHasOrder && $rightHasOrder && $leftOrder !== $rightOrder) {
+            return $leftOrder <=> $rightOrder;
+        }
+
+        if ($leftHasOrder !== $rightHasOrder) {
+            return $leftHasOrder ? -1 : 1;
         }
     }
+
+    $leftCreated = getPageCreatedTimestamp($leftPage);
+    $rightCreated = getPageCreatedTimestamp($rightPage);
+    if ($leftCreated === $rightCreated) {
+        return $rightId <=> $leftId;
+    }
+
+    return $rightCreated <=> $leftCreated;
+}
+
+function sortPagesByCollectionSort($pages, $sortMode)
+{
+    $sortMode = normalizeCollectionSortMode($sortMode);
+    if ($sortMode === 'custom') {
+        $explicitPages = [];
+        $missingOrderPages = [];
+
+        foreach ($pages as $page) {
+            $pageOrder = getPageOrderValue($page);
+            if ($pageOrder === null || $pageOrder < 0) {
+                $missingOrderPages[] = $page;
+                continue;
+            }
+
+            $page['_mirageEffectiveOrder'] = $pageOrder;
+            $explicitPages[] = $page;
+        }
+
+        usort($explicitPages, function ($leftPage, $rightPage) {
+            $leftOrder = (int) ($leftPage['_mirageEffectiveOrder'] ?? 0);
+            $rightOrder = (int) ($rightPage['_mirageEffectiveOrder'] ?? 0);
+            if ($leftOrder === $rightOrder) {
+                return comparePagesByCollectionSort($leftPage, $rightPage, 'newest');
+            }
+
+            return $leftOrder <=> $rightOrder;
+        });
+
+        usort($missingOrderPages, function ($leftPage, $rightPage) {
+            return comparePagesByCollectionSort($leftPage, $rightPage, 'newest');
+        });
+
+        $occupiedOrders = [];
+        foreach ($explicitPages as $page) {
+            $occupiedOrders[(int) $page['_mirageEffectiveOrder']] = true;
+        }
+
+        $nextFallbackOrder = 0;
+        foreach ($missingOrderPages as $index => $page) {
+            while (isset($occupiedOrders[$nextFallbackOrder])) {
+                $nextFallbackOrder++;
+            }
+
+            $missingOrderPages[$index]['_mirageEffectiveOrder'] = $nextFallbackOrder;
+            $occupiedOrders[$nextFallbackOrder] = true;
+            $nextFallbackOrder++;
+        }
+
+        $pages = array_merge($explicitPages, $missingOrderPages);
+        usort($pages, function ($leftPage, $rightPage) {
+            $leftOrder = (int) ($leftPage['_mirageEffectiveOrder'] ?? 0);
+            $rightOrder = (int) ($rightPage['_mirageEffectiveOrder'] ?? 0);
+            if ($leftOrder === $rightOrder) {
+                return comparePagesByCollectionSort($leftPage, $rightPage, 'newest');
+            }
+
+            return $leftOrder <=> $rightOrder;
+        });
+
+        foreach ($pages as $index => $page) {
+            unset($pages[$index]['_mirageEffectiveOrder']);
+        }
+
+        return $pages;
+    }
+
+    usort($pages, function ($leftPage, $rightPage) use ($sortMode) {
+        return comparePagesByCollectionSort($leftPage, $rightPage, $sortMode);
+    });
+
+    return $pages;
+}
+
+function getNextCollectionPageOrder($collectionID)
+{
+    global $pageStore;
+
+    $pages = $pageStore->findBy(["collection", "=", $collectionID]);
+    $highestOrder = -1;
+    foreach ($pages as $page) {
+        $pageOrder = getPageOrderValue($page);
+        if ($pageOrder !== null && $pageOrder > $highestOrder) {
+            $highestOrder = $pageOrder;
+        }
+    }
+
+    return max(count($pages), $highestOrder + 1);
+}
+
+function syncCollectionPageOrders($collectionID, $orderedPageIDs = null)
+{
+    global $pageStore;
+
+    $pages = $pageStore->findBy(["collection", "=", $collectionID]);
+    if (count($pages) === 0) {
+        return [];
+    }
+
+    $pagesById = [];
+    foreach ($pages as $page) {
+        $pagesById[(string) ($page['_id'] ?? '')] = $page;
+    }
+
+    $orderedPages = [];
+    if (is_array($orderedPageIDs)) {
+        foreach ($orderedPageIDs as $pageID) {
+            $pageKey = (string) $pageID;
+            if (!isset($pagesById[$pageKey])) {
+                continue;
+            }
+
+            $orderedPages[] = $pagesById[$pageKey];
+            unset($pagesById[$pageKey]);
+        }
+    }
+
+    if (count($pagesById) > 0) {
+        $remainingPages = sortPagesByCollectionSort(array_values($pagesById), 'custom');
+        $orderedPages = array_merge($orderedPages, $remainingPages);
+    }
+
+    foreach ($orderedPages as $index => $page) {
+        if (getPageOrderValue($page) !== $index) {
+            $pageStore->updateById($page['_id'], [
+                'order' => $index
+            ]);
+        }
+        $orderedPages[$index]['order'] = $index;
+    }
+
+    return $orderedPages;
+}
+
+function getPages($collection, $numEntries, $sort = null)
+{
+    global $pageStore;
+
+    $conditions = isset($_SESSION['loggedin'])
+        ? ["collection", "=", $collection]
+        : [["collection", "=", $collection], ["isPublished", "=", true]];
+
+    if (is_array($sort) && count($sort) > 0) {
+        if ($numEntries > 0) {
+            return $pageStore->findBy($conditions, $sort, $numEntries);
+        }
+
+        return $pageStore->findBy($conditions, $sort);
+    }
+
+    $pages = $pageStore->findBy($conditions);
+    $pages = sortPagesByCollectionSort($pages, getCollectionSortMode($collection, $sort));
+
+    if ($numEntries > 0) {
+        return array_slice($pages, 0, $numEntries);
+    }
+
     return $pages;
 };
 
@@ -2049,14 +2268,88 @@ if (!file_exists("config.php")) {
 
     Route::add('/api/collections/(.*)/pages', function ($who) {
         if (isset($_SESSION['loggedin'])) {
-            global $pageStore;
-            $allPages = $pageStore->findBy(["collection", "=", $who]);
+            $allPages = getPages($who, 0);
             $myJSON = json_encode($allPages);
             echo $myJSON;
         } else {
             getErrorPage(401);
         }
     });
+
+    Route::add('/api/collections/(.*)/order', function ($who) {
+        if (!isset($_SESSION['loggedin'])) {
+            getErrorPage(401);
+            return;
+        }
+
+        global $pageStore;
+
+        if (!requireCsrfToken(true)) {
+            return;
+        }
+
+        if (getCollectionConfigById($who) === null) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'The requested collection does not exist.'
+            ], 404);
+            return;
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        $orderedPageIDs = $payload['pageIDs'] ?? null;
+        if (!is_array($orderedPageIDs)) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Invalid page order payload.'
+            ], 400);
+            return;
+        }
+
+        $orderedPageIDs = array_values(array_map('strval', $orderedPageIDs));
+        if (count($orderedPageIDs) !== count(array_unique($orderedPageIDs))) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'The page order payload contains duplicate pages.'
+            ], 400);
+            return;
+        }
+
+        $collectionPages = $pageStore->findBy(["collection", "=", $who]);
+        if (count($orderedPageIDs) !== count($collectionPages)) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'The page order payload does not match the collection.'
+            ], 400);
+            return;
+        }
+
+        $pagesById = [];
+        foreach ($collectionPages as $page) {
+            $pageID = (string) ($page['_id'] ?? '');
+            $pagesById[$pageID] = $page;
+
+            if (!canEditPage($page)) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'You do not have permission to reorder this collection.'
+                ], 403);
+                return;
+            }
+        }
+
+        foreach ($orderedPageIDs as $pageID) {
+            if (!isset($pagesById[$pageID])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The page order payload does not match the collection.'
+                ], 400);
+                return;
+            }
+        }
+
+        sendJsonResponse(syncCollectionPageOrders($who, $orderedPageIDs));
+    }, 'PUT');
 
     Route::add('/api/pages', function () {
         if (isset($_SESSION['loggedin'])) {
@@ -2175,7 +2468,11 @@ if (!file_exists("config.php")) {
                     $menuStore->deleteById($menuItem["_id"]);
                 }
             }
+            $deletedPageCollection = $existingPage['collection'] ?? null;
             $pageStore->deleteById($who);
+            if (is_string($deletedPageCollection) && $deletedPageCollection !== '') {
+                syncCollectionPageOrders($deletedPageCollection);
+            }
             sendJsonResponse([
                 'success' => true
             ]);

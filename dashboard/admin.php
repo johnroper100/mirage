@@ -55,6 +55,8 @@
                     <div class="navbar-nav ms-auto mt-2 mt-lg-0">
                         <a href="<?php echo ORIGBASEPATH; ?>" class="btn btn-primary" v-if="viewPage == 'general'"
                             target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
+                        <button class="btn btn-success me-md-2 mb-1 mb-md-0" v-if="viewPage == 'pages' && canReorderCollectionPages()" @click="savePageOrder" :disabled="!pageOrderDirty || pageOrderSaving"><i
+                                class="fa-solid fa-floppy-disk me-1"></i><span v-if="!pageOrderSaving">Save Order</span><span v-else>Saving...</span></button>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
                         <a v-bind:href="viewPath(editingPath)" class="btn btn-primary me-md-2 mb-1 mb-md-0"
@@ -130,8 +132,11 @@
                 </div>
             </div>
             <div v-if="viewPage == 'pages'">
+                <div class="alert alert-light border shadow-sm mt-2 mb-0" v-if="getCollectionSortMode(activeCollection) == 'custom'">
+                    This collection uses custom ordering. Arrange items with the arrow buttons, then save the order.
+                </div>
                 <ul class="list-group mt-2 shadow-sm">
-                    <li v-for="page in pages" class="list-group-item">
+                    <li v-for="(page, index) in pages" class="list-group-item">
                         <div class="row mt-1">
                             <div class="col-12 col-md-9">
                                 <h4><small class="text-warning me-1" v-if="page.isPublished == false">🔒</small>{{page.title}}</h4>
@@ -142,6 +147,10 @@
                                 <h6 class="text-secondary" v-else>T: {{page.templateName}}</h6>
                             </div>
                             <div class="col-12 col-md-3 text-md-end">
+                                <button class="btn btn-outline-secondary btn-sm me-1" @click="movePageUp(page._id)" :disabled="pageOrderSaving || index === 0" v-if="canReorderCollectionPages()"><i
+                                        class="fa-solid fa-angle-up"></i></button>
+                                <button class="btn btn-outline-secondary btn-sm me-1" @click="movePageDown(page._id)" :disabled="pageOrderSaving || index === pages.length - 1" v-if="canReorderCollectionPages()"><i
+                                        class="fa-solid fa-angle-down"></i></button>
                                 <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank" v-if="page.isPathless == false"><i
                                         class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType != 2 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
@@ -730,6 +739,8 @@
                 editingPublished: true,
                 editingDate: null,
                 editingEditedDate: null,
+                pageOrderDirty: false,
+                pageOrderSaving: false,
                 selectFileTarget: null,
                 editingUser: {
                     "accountType": "",
@@ -780,14 +791,49 @@
             hasSelectedMedia(itemID) {
                 return this.normalizeOptionalMediaId(itemID) != null;
             },
-            setPage(page, update = false) {
-                if (update == false && this.viewPage == 'editPage') {
-                    if (confirm('Are you sure you want to leave? Any unsaved work will be lost.')) {
-                        this.viewPage = page;
-                    }
-                } else {
-                    this.viewPage = page;
+            canEditPageRecord(page) {
+                return this.activeUser.accountType != 2 || this.activeUser._id == page.createdUser || this.activeUser._id == page.editedUser;
+            },
+            getCollectionSortMode(collection = null) {
+                var selectedCollection = collection || {};
+                var sortMode = typeof selectedCollection.sort === 'string' ? selectedCollection.sort.trim().toLowerCase() : 'newest';
+                return ['newest', 'oldest', 'custom'].includes(sortMode) ? sortMode : 'newest';
+            },
+            canReorderCollectionPages(collection = null) {
+                var selectedCollection = collection || this.activeCollection;
+                if (this.getCollectionSortMode(selectedCollection) !== 'custom' || !Array.isArray(this.pages) || this.pages.length < 2) {
+                    return false;
                 }
+
+                return this.pages.every((page) => this.canEditPageRecord(page));
+            },
+            canLeaveCurrentView(update = false) {
+                if (update === true) {
+                    return true;
+                }
+
+                if (this.viewPage == 'editPage') {
+                    return confirm('Are you sure you want to leave? Any unsaved work will be lost.');
+                }
+
+                if (this.viewPage == 'pages' && this.pageOrderDirty) {
+                    return confirm('Are you sure you want to leave? Any unsaved collection order changes will be lost.');
+                }
+
+                return true;
+            },
+            setPage(page, update = false) {
+                if (!this.canLeaveCurrentView(update)) {
+                    return false;
+                }
+
+                this.viewPage = page;
+                if (page !== 'pages') {
+                    this.pageOrderDirty = false;
+                    this.pageOrderSaving = false;
+                }
+
+                return true;
             },
             getTheme() {
                 var comp = this;
@@ -1233,13 +1279,97 @@
                     xmlhttp.send();
                 }
             },
-            getPages(collection) {
+            syncPageOrders() {
+                this.pages.forEach(function (page, index) {
+                    page.order = index;
+                });
+            },
+            movePageUp(pageID) {
+                if (!this.canReorderCollectionPages() || this.pageOrderSaving) {
+                    return;
+                }
+
+                var from = this.pages.findIndex((page) => page._id === pageID);
+                if (from <= 0) {
+                    return;
+                }
+
+                var movedPage = this.pages.splice(from, 1)[0];
+                this.pages.splice(from - 1, 0, movedPage);
+                this.syncPageOrders();
+                this.pageOrderDirty = true;
+            },
+            movePageDown(pageID) {
+                if (!this.canReorderCollectionPages() || this.pageOrderSaving) {
+                    return;
+                }
+
+                var from = this.pages.findIndex((page) => page._id === pageID);
+                if (from < 0 || from >= this.pages.length - 1) {
+                    return;
+                }
+
+                var movedPage = this.pages.splice(from, 1)[0];
+                this.pages.splice(from + 1, 0, movedPage);
+                this.syncPageOrders();
+                this.pageOrderDirty = true;
+            },
+            savePageOrder() {
+                if (!this.canReorderCollectionPages() || !this.pageOrderDirty) {
+                    return;
+                }
+
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                comp.pageOrderSaving = true;
+                xmlhttp.onload = function () {
+                    comp.pageOrderSaving = false;
+
+                    var response = [];
+                    try {
+                        response = JSON.parse(this.responseText);
+                    } catch (error) {
+                        response = [];
+                    }
+
+                    if (this.status < 200 || this.status >= 300) {
+                        alert((response && response.message) || "Collection order could not be saved.");
+                        comp.getPages(comp.activeCollection, true);
+                        return;
+                    }
+
+                    comp.pages = Array.isArray(response) ? response : Object.values(response);
+                    comp.syncPageOrders();
+                    comp.pageOrderDirty = false;
+                    alert("Collection order saved!");
+                }
+                xmlhttp.onerror = function () {
+                    comp.pageOrderSaving = false;
+                    alert("Collection order could not be saved.");
+                    comp.getPages(comp.activeCollection, true);
+                }
+                xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/collections/" + comp.activeCollection.id + "/order", true);
+                xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                xmlhttp.send(JSON.stringify({
+                    pageIDs: comp.pages.map(function (page) {
+                        return page._id;
+                    })
+                }));
+            },
+            getPages(collection, update = false) {
+                if (!this.canLeaveCurrentView(update)) {
+                    return;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.pages = JSON.parse(this.responseText);
-                    comp.setPage('pages');
                     comp.activeCollection = collection;
+                    comp.syncPageOrders();
+                    comp.pageOrderDirty = false;
+                    comp.pageOrderSaving = false;
+                    comp.setPage('pages', true);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/collections/" + collection.id + "/pages", true);
                 xmlhttp.send();
@@ -1268,7 +1398,7 @@
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
-                        comp.getPages(comp.activeCollection);
+                        comp.getPages(comp.activeCollection, true);
                         comp.getCounts();
                         comp.getMenus();
                     }
