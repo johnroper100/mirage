@@ -12,10 +12,6 @@ If you use Git, make sure you run the command: `git submodule update --init --re
 
 Once you have downloaded and installed Mirage, go to `https://{your website url}/admin` to access the dashboard. You will be prompted for an email and password. During the setup process, the initial administrator account is created. Additional user accounts can be added from the dashboard.
 
-## Theme Development Documentation
-
-All documentation needed to develop themes is located on [our Wiki](https://github.com/johnroper100/mirage/wiki).
-
 ## Backing Up Your Site
 
 Backups are easy with Mirage, simply save the `database` and `uploads` directories as often as you would like. As long as the theme stays the same, the content should be able to be transfered to a new server if needed by simply copying these folders over. This is also helpful for moving a development website into production.
