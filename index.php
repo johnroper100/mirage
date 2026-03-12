@@ -2,7 +2,7 @@
 
 session_start();
 
-define('MIRAGE_VERSION', "1.1.0");
+define('MIRAGE_VERSION', "1.1.1");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -65,8 +65,124 @@ function test_input($data) {
     return $data;
 }
 
+function getFullBasepathRaw()
+{
+    $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
+    $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://";
+
+    return $scheme . $host . BASEPATH;
+}
+
 function getFullBasepath() {
-    return htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://") . $_SERVER['HTTP_HOST'] . BASEPATH, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(getFullBasepathRaw(), ENT_QUOTES, 'UTF-8');
+}
+
+function getPublicPagePath($page)
+{
+    if (!is_array($page) || !empty($page['isPathless']) || empty($page['isPublished'])) {
+        return null;
+    }
+
+    $templateName = trim((string) ($page['templateName'] ?? ''));
+    if ($templateName === '' || !file_exists('./theme/' . $templateName . '.php')) {
+        return null;
+    }
+
+    $pathParts = [];
+    $collectionSubpath = trim((string) ($page['collectionSubpath'] ?? ''), '/');
+    $path = trim((string) ($page['path'] ?? ''), '/');
+
+    if ($collectionSubpath !== '') {
+        $pathParts[] = $collectionSubpath;
+    }
+
+    if ($path !== '') {
+        $pathParts[] = $path;
+    }
+
+    if (count($pathParts) === 0) {
+        return '/';
+    }
+
+    $encodedSegments = array_map('rawurlencode', explode('/', implode('/', $pathParts)));
+
+    return '/' . implode('/', $encodedSegments);
+}
+
+function getPublicPageUrl($page)
+{
+    $path = getPublicPagePath($page);
+    if ($path === null) {
+        return null;
+    }
+
+    return rtrim(getFullBasepathRaw(), '/') . $path;
+}
+
+function getPageLastModifiedW3C($page)
+{
+    if (!is_array($page)) {
+        return null;
+    }
+
+    $edited = isset($page['edited']) ? (int) $page['edited'] : 0;
+    $created = isset($page['created']) ? (int) $page['created'] : 0;
+    $timestamp = max($edited, $created);
+
+    if ($timestamp <= 0) {
+        return null;
+    }
+
+    return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
+}
+
+function getSitemapEntries()
+{
+    global $pageStore;
+
+    $pages = $pageStore->findAll(["edited" => "desc"]);
+    $entries = [];
+    $seenUrls = [];
+
+    foreach ($pages as $page) {
+        $url = getPublicPageUrl($page);
+        if ($url === null || isset($seenUrls[$url])) {
+            continue;
+        }
+
+        $entries[] = [
+            'loc' => $url,
+            'lastmod' => getPageLastModifiedW3C($page)
+        ];
+        $seenUrls[$url] = true;
+    }
+
+    return $entries;
+}
+
+function escapeXml($value)
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+}
+
+function outputSitemapXml()
+{
+    header('Content-Type: application/xml; charset=UTF-8');
+
+    $entries = getSitemapEntries();
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    echo "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
+
+    foreach ($entries as $entry) {
+        echo "  <url>\n";
+        echo "    <loc>" . escapeXml($entry['loc']) . "</loc>\n";
+        if (!empty($entry['lastmod'])) {
+            echo "    <lastmod>" . escapeXml($entry['lastmod']) . "</lastmod>\n";
+        }
+        echo "  </url>\n";
+    }
+
+    echo "</urlset>";
 }
 
 function parseIniSizeToBytes($size)
@@ -1451,6 +1567,10 @@ if (!file_exists("config.php")) {
             getErrorPage(401);
         }
     }, 'DELETE');
+
+    Route::add('/sitemap.xml', function () {
+        outputSitemapXml();
+    });
 
     /* Page Display */
 
