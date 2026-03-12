@@ -582,7 +582,57 @@
         return originalXhrSend.call(this, body);
     };
 
+    function canRestoreFocus(element) {
+        return element instanceof HTMLElement
+            && element.isConnected
+            && typeof element.focus === 'function'
+            && element.closest('[aria-hidden="true"], [inert]') == null;
+    }
+
+    function setupModalFocusManagement(modalElement) {
+        if (!(modalElement instanceof HTMLElement)) {
+            return;
+        }
+
+        if (!modalElement.classList.contains('show')) {
+            modalElement.setAttribute('inert', '');
+        }
+
+        modalElement.addEventListener('show.bs.modal', function () {
+            var activeElement = document.activeElement;
+            modalElement._mirageReturnFocus = activeElement instanceof HTMLElement ? activeElement : null;
+            modalElement.removeAttribute('inert');
+        });
+
+        modalElement.addEventListener('shown.bs.modal', function () {
+            modalElement.removeAttribute('inert');
+        });
+
+        modalElement.addEventListener('hide.bs.modal', function () {
+            var activeElement = document.activeElement;
+            if (activeElement instanceof HTMLElement && modalElement.contains(activeElement)) {
+                activeElement.blur();
+            }
+
+            modalElement.setAttribute('inert', '');
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            var returnFocusTarget = modalElement._mirageReturnFocus;
+            modalElement._mirageReturnFocus = null;
+
+            if (canRestoreFocus(returnFocusTarget)) {
+                returnFocusTarget.focus({ preventScroll: true });
+            }
+        });
+    }
+
     window.addEventListener('DOMContentLoaded', event => {
+        const addPageModalElement = document.getElementById('addPageModal');
+        const addUserModalElement = document.getElementById('addUserModal');
+        const selectFileModalElement = document.getElementById('selectFileModal');
+        const uploadMediaModalElement = document.getElementById('uploadMediaModal');
+        const editMediaModalElement = document.getElementById('editMediaModal');
 
         // Toggle the side navigation
         const sidebarToggle = document.body.querySelector('#sidebarToggle');
@@ -598,13 +648,21 @@
             });
         }
 
-        addPageModal = new bootstrap.Modal(document.getElementById('addPageModal'), {});
-        addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'), {});
-        selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
-        uploadMediaModal = new bootstrap.Modal(document.getElementById('uploadMediaModal'), {});
-        editMediaModal = new bootstrap.Modal(document.getElementById('editMediaModal'), {});
+        [
+            addPageModalElement,
+            addUserModalElement,
+            selectFileModalElement,
+            uploadMediaModalElement,
+            editMediaModalElement
+        ].forEach(setupModalFocusManagement);
 
-        document.getElementById('selectFileModal').addEventListener('hidden.bs.modal', function () {
+        addPageModal = new bootstrap.Modal(addPageModalElement, {});
+        addUserModal = new bootstrap.Modal(addUserModalElement, {});
+        selectFileModal = new bootstrap.Modal(selectFileModalElement, {});
+        uploadMediaModal = new bootstrap.Modal(uploadMediaModalElement, {});
+        editMediaModal = new bootstrap.Modal(editMediaModalElement, {});
+
+        selectFileModalElement.addEventListener('hidden.bs.modal', function () {
             if (window.mirageAdminApp != null && typeof window.mirageAdminApp.clearSelectFileTarget === 'function') {
                 window.mirageAdminApp.clearSelectFileTarget();
             } else {

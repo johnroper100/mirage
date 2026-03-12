@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.1.4");
+define('MIRAGE_VERSION', "1.1.5");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
