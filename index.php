@@ -69,6 +69,115 @@ function getFullBasepath() {
     return htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://") . $_SERVER['HTTP_HOST'] . BASEPATH, ENT_QUOTES, 'UTF-8');
 }
 
+function parseIniSizeToBytes($size)
+{
+    $size = trim((string) $size);
+    if ($size === '') {
+        return 0;
+    }
+
+    $unit = strtolower(substr($size, -1));
+    $bytes = (float) $size;
+
+    switch ($unit) {
+        case 'g':
+            $bytes *= 1024;
+        case 'm':
+            $bytes *= 1024;
+        case 'k':
+            $bytes *= 1024;
+    }
+
+    return (int) round($bytes);
+}
+
+function formatBytes($bytes)
+{
+    $bytes = (int) $bytes;
+    if ($bytes <= 0) {
+        return '0 B';
+    }
+
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $power = (int) floor(log($bytes, 1024));
+    $power = min($power, count($units) - 1);
+    $value = $bytes / (1024 ** $power);
+    $precision = $value >= 10 || $power === 0 ? 0 : 1;
+
+    return rtrim(rtrim(number_format($value, $precision), '0'), '.') . ' ' . $units[$power];
+}
+
+function getPostMaxSizeBytes()
+{
+    return parseIniSizeToBytes(ini_get('post_max_size'));
+}
+
+function getUploadFileLimitBytes()
+{
+    $uploadMaxBytes = parseIniSizeToBytes(ini_get('upload_max_filesize'));
+    $postMaxBytes = getPostMaxSizeBytes();
+
+    if ($uploadMaxBytes > 0 && $postMaxBytes > 0) {
+        return min($uploadMaxBytes, $postMaxBytes);
+    }
+
+    if ($uploadMaxBytes > 0) {
+        return $uploadMaxBytes;
+    }
+
+    return $postMaxBytes;
+}
+
+function getUploadTooLargeMessage()
+{
+    $fileLimitBytes = getUploadFileLimitBytes();
+    $postLimitBytes = getPostMaxSizeBytes();
+
+    if ($fileLimitBytes > 0 && $postLimitBytes > 0 && $fileLimitBytes !== $postLimitBytes) {
+        return 'Upload is too large. Each file must be ' . formatBytes($fileLimitBytes) . ' or smaller, and the total upload must stay under ' . formatBytes($postLimitBytes) . '.';
+    }
+
+    if ($fileLimitBytes > 0) {
+        return 'Upload is too large. The maximum allowed size is ' . formatBytes($fileLimitBytes) . '.';
+    }
+
+    return 'Upload is too large.';
+}
+
+function requestExceededPostMaxSize()
+{
+    $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int) $_SERVER['CONTENT_LENGTH'] : 0;
+    $postMaxBytes = getPostMaxSizeBytes();
+
+    return $postMaxBytes > 0 && $contentLength > $postMaxBytes;
+}
+
+function sendJsonResponse($response, $statusCode = 200)
+{
+    http_response_code($statusCode);
+    header('Content-Type: application/json');
+    echo json_encode($response);
+}
+
+function getUploadErrorMessage($errorCode)
+{
+    switch ($errorCode) {
+        case UPLOAD_ERR_INI_SIZE:
+        case UPLOAD_ERR_FORM_SIZE:
+            return 'File is too large to upload. The maximum allowed size is ' . formatBytes(getUploadFileLimitBytes()) . '.';
+        case UPLOAD_ERR_PARTIAL:
+            return 'Upload did not complete. Please try again.';
+        case UPLOAD_ERR_NO_FILE:
+            return 'No file was selected.';
+        case UPLOAD_ERR_NO_TMP_DIR:
+        case UPLOAD_ERR_CANT_WRITE:
+        case UPLOAD_ERR_EXTENSION:
+            return 'The server could not save the uploaded file. Please try again.';
+        default:
+            return 'Upload failed. Please try again.';
+    }
+}
+
 # Generate page field
 function generateField($field)
 {
@@ -1088,14 +1197,44 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
+            if (requestExceededPostMaxSize()) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => getUploadTooLargeMessage(),
+                ], 413);
+                return;
+            }
+
             if (!file_exists('./uploads')) {
                 mkdir('./uploads');
             }
 
+            if (!isset($_FILES['uploadMediaFiles']) || !isset($_FILES['uploadMediaFiles']['name'])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'No file was selected.',
+                ], 400);
+                return;
+            }
+
             $count = count($_FILES['uploadMediaFiles']['name']);
+            $uploadedMedia = [];
             for ($i = 0; $i < $count; $i++) {
+                $uploadError = $_FILES['uploadMediaFiles']['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+                if ($uploadError !== UPLOAD_ERR_OK) {
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => getUploadErrorMessage($uploadError),
+                    ], $uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE ? 413 : 400);
+                    return;
+                }
+
                 if (!move_uploaded_file($_FILES['uploadMediaFiles']['tmp_name'][$i], "./uploads/" . $_FILES['uploadMediaFiles']['name'][$i])) {
-                    getErrorPage(500);
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => 'The server could not save the uploaded file. Please try again.',
+                    ], 500);
+                    return;
                 } else {
                     $page = [];
                     $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
@@ -1122,10 +1261,19 @@ if (!file_exists("config.php")) {
                     }
 
                     $page = $mediaStore->insert($page);
+                    $uploadedMedia[] = $page;
                 }
             }
+
+            sendJsonResponse([
+                'success' => true,
+                'items' => $uploadedMedia,
+            ]);
         } else {
-            getErrorPage(401);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You do not have permission to upload files.',
+            ], 401);
         }
     }, 'POST');
 
@@ -1133,15 +1281,42 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
+            if (requestExceededPostMaxSize()) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => getUploadTooLargeMessage(),
+                ], 413);
+                return;
+            }
+
             if (!file_exists('./uploads')) {
                 mkdir('./uploads');
             }
 
+            if (!isset($_FILES['fileToUpload'])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'No file was selected.',
+                ], 400);
+                return;
+            }
+
+            $uploadError = $_FILES['fileToUpload']['error'] ?? UPLOAD_ERR_NO_FILE;
+            if ($uploadError !== UPLOAD_ERR_OK) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => getUploadErrorMessage($uploadError),
+                ], in_array($uploadError, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 413 : 400);
+                return;
+            }
+
             if (!move_uploaded_file($_FILES['fileToUpload']['tmp_name'], "./uploads/" . $_FILES['fileToUpload']['name'])) {
-                $response = [];
-                $response['success'] = false;
-                echo json_encode($response);
-            } else {    
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The server could not save the uploaded file. Please try again.',
+                ], 500);
+                return;
+            } else {
                 $page = [];
                 $page['file'] = $_FILES['fileToUpload']['name'];
                 $page['fileSmall'] = "min_" . $page['file'];
@@ -1159,15 +1334,16 @@ if (!file_exists("config.php")) {
                 $image->save("./uploads/min_" . $page['file']);
 
                 $page = $mediaStore->insert($page);
-                $response = [];
-                $response['success'] = true;
-                $response['file'] = BASEPATH . '/uploads/' . $page['file'];
-                echo json_encode($response);
+                sendJsonResponse([
+                    'success' => true,
+                    'file' => BASEPATH . '/uploads/' . $page['file'],
+                ]);
             }
         } else {
-            $response = [];
-            $response['success'] = false;
-            echo json_encode($response);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You do not have permission to upload files.',
+            ], 401);
         }
     }, 'POST');
 

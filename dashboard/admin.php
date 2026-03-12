@@ -512,6 +512,12 @@
                                 <label for="formFile" class="form-label">Select File(s):</label>
                                 <input class="form-control" type="file" id="uploadMediaFiles" name="uploadMediaFiles[]"
                                     multiple>
+                                <small class="text-muted d-block mt-2">
+                                    Max file size: <?php echo htmlspecialchars(formatBytes(getUploadFileLimitBytes()), ENT_QUOTES, 'UTF-8'); ?>.
+                                    <?php if (getPostMaxSizeBytes() > 0 && getPostMaxSizeBytes() !== getUploadFileLimitBytes()) { ?>
+                                        Total upload limit: <?php echo htmlspecialchars(formatBytes(getPostMaxSizeBytes()), ENT_QUOTES, 'UTF-8'); ?>.
+                                    <?php } ?>
+                                </small>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -532,6 +538,10 @@
     var selectFileModal;
     var uploadMediaModal;
     var editMediaModal;
+    const MAX_UPLOAD_FILE_BYTES = <?php echo (int) getUploadFileLimitBytes(); ?>;
+    const MAX_UPLOAD_TOTAL_BYTES = <?php echo (int) getPostMaxSizeBytes(); ?>;
+    const MAX_UPLOAD_FILE_LABEL = <?php echo json_encode(formatBytes(getUploadFileLimitBytes())); ?>;
+    const MAX_UPLOAD_TOTAL_LABEL = <?php echo json_encode(formatBytes(getPostMaxSizeBytes())); ?>;
 
     window.addEventListener('DOMContentLoaded', event => {
 
@@ -1187,21 +1197,68 @@
             openUploadMediaModal() {
                 uploadMediaModal.show();
             },
+            validateUploadFiles(files) {
+                if (files.length === 0) {
+                    alert("Select at least one file to upload.");
+                    return false;
+                }
+
+                var totalBytes = 0;
+                for (var i = 0; i < files.length; i++) {
+                    totalBytes += files[i].size;
+
+                    if (MAX_UPLOAD_FILE_BYTES > 0 && files[i].size > MAX_UPLOAD_FILE_BYTES) {
+                        alert('"' + files[i].name + '" is too large to upload. The maximum allowed size is ' + MAX_UPLOAD_FILE_LABEL + '.');
+                        return false;
+                    }
+                }
+
+                if (MAX_UPLOAD_TOTAL_BYTES > 0 && totalBytes > MAX_UPLOAD_TOTAL_BYTES) {
+                    alert('These files are too large to upload together. The total upload limit is ' + MAX_UPLOAD_TOTAL_LABEL + '.');
+                    return false;
+                }
+
+                return true;
+            },
+            getUploadErrorMessage(xmlhttp) {
+                try {
+                    var response = JSON.parse(xmlhttp.responseText);
+                    if (response.message) {
+                        return response.message;
+                    }
+                } catch (error) {
+                }
+
+                return "Upload failed. Please try again.";
+            },
             uploadMediaFiles() {
                 var comp = this;
+                var fileInput = document.getElementById('uploadMediaFiles');
+                var files = Array.from(fileInput.files);
+
+                if (!comp.validateUploadFiles(files)) {
+                    return;
+                }
+
                 var formData = new FormData();
-                var ins = document.getElementById('uploadMediaFiles').files.length;
-                for (var x = 0; x < ins; x++) {
-                    formData.append("uploadMediaFiles[]", document.getElementById('uploadMediaFiles').files[x]);
+                for (var x = 0; x < files.length; x++) {
+                    formData.append("uploadMediaFiles[]", files[x]);
                 }
 
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
-                    document.getElementById('uploadMediaFiles').value = "";
-                    uploadMediaModal.hide();
-                    comp.getMedia();
-                    comp.getCounts();
+                    if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+                        fileInput.value = "";
+                        uploadMediaModal.hide();
+                        comp.getMedia();
+                        comp.getCounts();
+                    } else {
+                        alert(comp.getUploadErrorMessage(xmlhttp));
+                    }
                 }
+                xmlhttp.onerror = function () {
+                    alert("Upload failed. Please try again.");
+                };
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/media");
                 xmlhttp.send(formData);
             },
