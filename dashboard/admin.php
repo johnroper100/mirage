@@ -185,9 +185,9 @@
                                 <div class="col-12 col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label d-block">Featured Image:</label>
-                                        <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(editingFeaturedImage)" v-if="editingFeaturedImage != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                                        <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="editingFeaturedImage == null">Select</span><span v-if="editingFeaturedImage != null">Replace</span> Image</button>
-                                        <button class="btn btn-sm btn-danger" v-if="editingFeaturedImage != null" @click="editingFeaturedImage = null">Remove Image</button>
+                                        <img v-bind:src="getMediaPreviewUrl(editingFeaturedImage)" v-if="getMediaPreviewUrl(editingFeaturedImage) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                                        <button class="btn btn-sm btn-primary me-2" @click="selectFeaturedImage"><span v-if="!hasSelectedMedia(editingFeaturedImage)">Select</span><span v-else>Replace</span> Image</button>
+                                        <button class="btn btn-sm btn-danger" v-if="hasSelectedMedia(editingFeaturedImage)" @click="editingFeaturedImage = null">Remove Image</button>
                                     </div>
                                 </div>
                             </div>
@@ -689,7 +689,7 @@
                 selectedFormSubmissionIDs: [],
                 editingTemplate: {},
                 editingTitle: "",
-                editingFeaturedImage: "",
+                editingFeaturedImage: null,
                 editingDescription: "",
                 editingTemplateName: "",
                 editingPath: "",
@@ -716,6 +716,25 @@
         methods: {
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
+            },
+            normalizeOptionalMediaId(itemID) {
+                if (itemID == null) {
+                    return null;
+                }
+
+                if (typeof itemID === 'string') {
+                    var normalized = itemID.trim();
+                    if (normalized === '' || normalized.toLowerCase() === 'null' || normalized.toLowerCase() === 'undefined') {
+                        return null;
+                    }
+
+                    return /^\d+$/.test(normalized) ? Number(normalized) : normalized;
+                }
+
+                return itemID;
+            },
+            hasSelectedMedia(itemID) {
+                return this.normalizeOptionalMediaId(itemID) != null;
             },
             setPage(page, update = false) {
                 if (update == false && this.viewPage == 'editPage') {
@@ -1188,7 +1207,7 @@
             addPage() {
                 addPageModal.show();
                 this.editingTitle = "";
-                this.editingFeaturedImage = "";
+                this.editingFeaturedImage = null;
                 this.editingDescription = "";
                 this.editingPath = "";
                 this.editingTemplateName = "";
@@ -1217,7 +1236,9 @@
                 var comp = this;
                 if (content[field.id] != null) {
                     if (field.type != 'list') {
-                        field.value = content[field.id];
+                        field.value = field.type == 'media'
+                            ? comp.normalizeOptionalMediaId(content[field.id])
+                            : content[field.id];
                     } else {
                         field.value = [];
                         content[field.id].forEach(function (subField) {
@@ -1239,7 +1260,7 @@
                     comp.setPage('editPage', update);
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
-                    comp.editingFeaturedImage = page.featuredImage;
+                    comp.editingFeaturedImage = comp.normalizeOptionalMediaId(page.featuredImage);
                     comp.editingDescription = page.description;
                     comp.editingPath = page.path;
                     comp.editingPathless = comp.editingTemplate.isPathless;
@@ -1292,7 +1313,7 @@
                     template: this.editingTemplate,
                     templateName: this.editingTemplateName,
                     title: this.editingTitle,
-                    featuredImage: this.editingFeaturedImage,
+                    featuredImage: this.normalizeOptionalMediaId(this.editingFeaturedImage),
                     description: this.editingDescription,
                     path: this.editingPath,
                     isPathless: this.editingTemplate.isPathless,
@@ -1316,6 +1337,11 @@
                 xmlhttp.send(JSON.stringify(data));
             },
             getMediaItemById(itemID) {
+                itemID = this.normalizeOptionalMediaId(itemID);
+                if (itemID == null) {
+                    return null;
+                }
+
                 return Object.values(this.mediaItems).find(function (item) {
                     return item._id == itemID;
                 }) || null;
@@ -1358,6 +1384,10 @@
             },
             buildMediaFileUrl(filename) {
                 return '<?php echo BASEPATH; ?>/uploads/' + encodeURIComponent(filename);
+            },
+            getMediaPreviewUrl(itemID) {
+                var mediaPath = this.getMediaFilePath(itemID);
+                return mediaPath != null ? this.buildMediaFileUrl(mediaPath) : null;
             },
             insertRichtextImageFromMedia(itemID) {
                 var mediaItem = this.getMediaItemById(itemID);
@@ -1575,6 +1605,11 @@
                 xmlhttp.send(JSON.stringify(comp.editingMediaItem));
             },
             getMediaFilePath(itemID) {
+                itemID = this.normalizeOptionalMediaId(itemID);
+                if (itemID == null) {
+                    return null;
+                }
+
                 var mediaItem = this.getMediaItemById(itemID);
                 return mediaItem != null ? mediaItem.fileSmall : null;
             },
@@ -1722,6 +1757,12 @@
             getMediaFilePath(id) {
                 return this.$root.getMediaFilePath(id);
             },
+            getMediaPreviewUrl(id) {
+                return this.$root.getMediaPreviewUrl(id);
+            },
+            hasMediaSelection(id) {
+                return this.$root.hasSelectedMedia(id);
+            },
             filter_collection(list, name) {
                 if (!Array.isArray(list)) {
                     return [];
@@ -1746,13 +1787,13 @@
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
                 <trumbowyg v-if="field.type == 'richtext' && richtextOptions != null" v-model="field.value" :config="richtextOptions"></trumbowyg>
-                <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <div v-if="field.type == 'media' && field.subtype == 'file' && field.value != null">
+                <img v-bind:src="getMediaPreviewUrl(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && getMediaPreviewUrl(field.value) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                <div v-if="field.type == 'media' && field.subtype == 'file' && getMediaFilePath(field.value) != null">
                     <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                     <p>{{getMediaFilePath(field.value)}}</p>
                 </div>
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(buildFieldPath(field.id), field.subtype)"><span v-if="field.value == null">Select</span><span v-if="field.value != null">Replace</span> Item</button>
-                <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && field.value != null" @click="field.value = null">Remove Item</button>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(buildFieldPath(field.id), field.subtype)"><span v-if="!hasMediaSelection(field.value)">Select</span><span v-else>Replace</span> Item</button>
+                <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && hasMediaSelection(field.value)" @click="field.value = null">Remove Item</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="field.id + '-' + i">
                         <button class="btn btn-danger btn-sm mb-2" @click="removeListItem(field, i)">Remove</button>

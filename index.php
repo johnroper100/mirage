@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.1.5");
+define('MIRAGE_VERSION', "1.1.6");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -787,10 +787,40 @@ function getInvalidUploadTypeMessage($imageOnly = false)
     return 'That file type is not allowed. Use a common image or document format.';
 }
 
+function normalizeOptionalMediaReference($value)
+{
+    if ($value === null) {
+        return null;
+    }
+
+    if (is_string($value)) {
+        $value = trim($value);
+        if ($value === '' || strtolower($value) === 'null' || strtolower($value) === 'undefined') {
+            return null;
+        }
+
+        return ctype_digit($value) ? (int) $value : $value;
+    }
+
+    if (is_int($value)) {
+        return $value;
+    }
+
+    if (is_float($value) && floor($value) === $value) {
+        return (int) $value;
+    }
+
+    return is_scalar($value) ? $value : null;
+}
+
 # Generate page field
 function generateField($field)
 {
     if ($field['type'] != 'list') {
+        if (($field['type'] ?? '') === 'media') {
+            return normalizeOptionalMediaReference($field['value'] ?? null);
+        }
+
         return $field['value'];
     } else {
         $itemList = [];
@@ -859,7 +889,7 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
 
     $page["templateName"] = $templateName;
     $page["title"] = (string) ($data["title"] ?? '');
-    $page["featuredImage"] = $data["featuredImage"] ?? null;
+    $page["featuredImage"] = normalizeOptionalMediaReference($data["featuredImage"] ?? null);
     $page["description"] = (string) ($data["description"] ?? '');
     $page["path"] = $path;
     $page["isPathless"] = !empty($data["isPathless"]);
