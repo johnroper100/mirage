@@ -230,36 +230,57 @@
                     <div class="card-body">
                         <span v-if="getMenuItems(menu.id).length == 0">There are no menu items yet. Add one to
                             begin.</span>
-                        <div class="row" v-for="(item, i) in getMenuItems(menu.id)">
+                        <div class="border rounded p-3 mb-3" v-for="entry in getMenuItems(menu.id)"
+                            :style="{ marginLeft: (entry.depth * 1.25) + 'rem' }">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <strong>{{ entry.item.name }}</strong>
+                                    <div class="text-secondary small">
+                                        {{ entry.depth == 0 ? 'Top level item' : 'Dropdown under ' + getMenuItemName(menu.id, entry.item.parentItemID) }}
+                                    </div>
+                                </div>
+                                <span class="badge text-bg-secondary" v-if="entry.childCount > 0">{{ entry.childCount }} child{{ entry.childCount == 1 ? '' : 'ren' }}</span>
+                            </div>
+                            <div class="row">
                             <div class="col-12 col-md-3 mb-3">
                                 <label class="form-label">Item Type:</label>
-                                <select class="form-select" v-model="item.type">
-                                    <option value="0">Page</option>
-                                    <option value="1">External Link</option>
+                                <select class="form-select" v-model.number="entry.item.type" @change="onMenuItemTypeChange(entry.item)">
+                                    <option :value="0">Page</option>
+                                    <option :value="1">External Link</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-3 mb-3" v-if="item.type == 0">
+                            <div class="col-12 col-md-3 mb-3">
+                                <label class="form-label">Parent Item:</label>
+                                <select class="form-select" v-model="entry.item.parentItemID" @change="onMenuParentChange(menu.id, entry.item)">
+                                    <option :value="null">Top level</option>
+                                    <option v-for="parentItem in getMenuParentOptions(menu.id, entry.item.itemID)" :value="parentItem.itemID">
+                                        {{ getMenuItemName(menu.id, parentItem.itemID) }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3 mb-3" v-if="entry.item.type == 0">
                                 <label class="form-label">Page:</label>
-                                <select class="form-select" v-model="item.page">
+                                <select class="form-select" v-model="entry.item.page">
                                     <option v-for="page in pages" v-bind:value="page._id">{{page.collection}} -> {{page.title}}</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-3 mb-3" v-if="item.type == 1">
+                            <div class="col-12 col-md-3 mb-3" v-if="entry.item.type == 1">
                                 <label class="form-label">External Link:</label>
-                                <input type="url" v-model="item.link" class="form-control"
+                                <input type="url" v-model="entry.item.link" class="form-control"
                                     placeholder="https://www.mywebsite.com/">
                             </div>
                             <div class="col-12 col-md-4 mb-3">
                                 <label class="form-label">Item Name:</label>
-                                <input type="text" v-model="item.name" class="form-control" placeholder="New Menu Item">
+                                <input type="text" v-model="entry.item.name" class="form-control" placeholder="New Menu Item">
                             </div>
                             <div class="col-12 col-md-2 mb-3">
-                                <button class="btn btn-success me-1" @click="moveMenuItemUp(menu.id, i)"><i
+                                <button class="btn btn-success me-1" @click="moveMenuItemUp(menu.id, entry.item.itemID)"><i
                                         class="fa-solid fa-angle-up"></i></button>
-                                <button class="btn btn-success me-1" @click="moveMenuItemDown(menu.id, i)"><i
+                                <button class="btn btn-success me-1" @click="moveMenuItemDown(menu.id, entry.item.itemID)"><i
                                         class="fa-solid fa-angle-down"></i></button>
-                                <button class="btn btn-danger" @click="deleteMenuItem(menu.id, i)"><i
+                                <button class="btn btn-danger" @click="deleteMenuItem(menu.id, entry.item.itemID)"><i
                                         class="fa-solid fa-trash"></i></button>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -623,7 +644,7 @@
                     var initialMenuItems = JSON.parse(this.responseText);
                     comp.menuItems = {};
                     initialMenuItems.forEach(function (item) {
-                        delete item._id;
+                        item = comp.normalizeMenuItem(item);
                         if (comp.menuItems[item.menuID] == undefined) {
                             comp.menuItems[item.menuID] = [];
                         }
@@ -633,11 +654,181 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.send();
             },
-            getMenuItems(menuID) {
-                if (this.menuItems[menuID] != undefined) {
-                    return this.menuItems[menuID].sort((a, b) => a.order - b.order);
+            generateMenuItemID() {
+                return "menu_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10);
+            },
+            normalizeMenuItem(item = {}, menuID = "", order = 0) {
+                return {
+                    "menuID": item.menuID || menuID,
+                    "itemID": item.itemID || (item._id != undefined ? "legacy_" + item._id : this.generateMenuItemID()),
+                    "parentItemID": item.parentItemID || null,
+                    "name": item.name || "New Menu Item",
+                    "type": Number(item.type || 0),
+                    "page": item.page != undefined && item.page !== null ? item.page : "",
+                    "link": item.link || "",
+                    "order": item.order != undefined ? Number(item.order) : order
+                };
+            },
+            ensureRawMenuItems(menuID) {
+                if (!Array.isArray(this.menuItems[menuID])) {
+                    this.menuItems[menuID] = [];
                 }
-                return [];
+
+                return this.menuItems[menuID];
+            },
+            getRawMenuItems(menuID) {
+                return Array.isArray(this.menuItems[menuID]) ? this.menuItems[menuID] : [];
+            },
+            isValidMenuParent(menuID, itemID, parentItemID) {
+                if (parentItemID == null || parentItemID === "" || itemID === parentItemID) {
+                    return false;
+                }
+
+                var itemsByID = {};
+                this.getRawMenuItems(menuID).forEach(function (item) {
+                    itemsByID[item.itemID] = item;
+                });
+
+                if (itemsByID[parentItemID] == undefined) {
+                    return false;
+                }
+
+                var visited = new Set([itemID]);
+                var currentParentID = parentItemID;
+                while (currentParentID != null) {
+                    if (visited.has(currentParentID)) {
+                        return false;
+                    }
+
+                    visited.add(currentParentID);
+                    if (itemsByID[currentParentID] == undefined) {
+                        return false;
+                    }
+
+                    currentParentID = itemsByID[currentParentID].parentItemID || null;
+                }
+
+                return true;
+            },
+            getMenuDescendantIDs(menuID, itemID) {
+                var descendants = [];
+                var visited = new Set();
+                var walk = (parentItemID) => {
+                    this.getRawMenuItems(menuID).forEach((item) => {
+                        if (item.parentItemID !== parentItemID || visited.has(item.itemID)) {
+                            return;
+                        }
+
+                        visited.add(item.itemID);
+                        descendants.push(item.itemID);
+                        walk(item.itemID);
+                    });
+                };
+
+                walk(itemID);
+                return descendants;
+            },
+            getMenuItems(menuID) {
+                var items = this.getRawMenuItems(menuID);
+                if (items.length == 0) {
+                    return [];
+                }
+
+                var itemsByID = {};
+                var sortedItems = items
+                    .map((item) => ({
+                        item: item,
+                        itemID: item.itemID,
+                        parentItemID: item.parentItemID || null,
+                        order: item.order,
+                        children: []
+                    }))
+                    .sort((a, b) => a.order - b.order);
+
+                sortedItems.forEach((entry) => {
+                    itemsByID[entry.itemID] = entry;
+                });
+
+                var roots = [];
+                sortedItems.forEach((entry) => {
+                    var parent = entry.parentItemID ? itemsByID[entry.parentItemID] : null;
+                    if (parent != null && this.isValidMenuParent(menuID, entry.itemID, entry.parentItemID)) {
+                        parent.children.push(entry);
+                    } else {
+                        roots.push(entry);
+                    }
+                });
+
+                var flattenedItems = [];
+                var visit = (entry, depth) => {
+                    flattenedItems.push({
+                        item: entry.item,
+                        depth: depth,
+                        childCount: entry.children.length
+                    });
+                    entry.children
+                        .sort((a, b) => a.order - b.order)
+                        .forEach((childEntry) => visit(childEntry, depth + 1));
+                };
+
+                roots
+                    .sort((a, b) => a.order - b.order)
+                    .forEach((entry) => visit(entry, 0));
+
+                return flattenedItems;
+            },
+            getMenuParentOptions(menuID, itemID) {
+                var blockedItemIDs = new Set([itemID, ...this.getMenuDescendantIDs(menuID, itemID)]);
+                return this.getMenuItems(menuID)
+                    .map((entry) => entry.item)
+                    .filter((item) => !blockedItemIDs.has(item.itemID));
+            },
+            getMenuItemName(menuID, itemID) {
+                if (itemID == null || itemID === "") {
+                    return "Top level";
+                }
+
+                var item = this.getRawMenuItems(menuID).find((menuItem) => menuItem.itemID === itemID);
+                if (item == undefined || item.name === "") {
+                    return "Unnamed Item";
+                }
+
+                return item.name;
+            },
+            syncMenuOrders(menuID) {
+                var orderLookup = {};
+                this.getMenuItems(menuID).forEach(function (entry, index) {
+                    orderLookup[entry.item.itemID] = index;
+                });
+
+                this.getRawMenuItems(menuID).forEach(function (item) {
+                    if (orderLookup[item.itemID] != undefined) {
+                        item.order = orderLookup[item.itemID];
+                    }
+                });
+            },
+            syncAllMenuOrders() {
+                for (let menuID in this.menuItems) {
+                    this.syncMenuOrders(menuID);
+                }
+            },
+            onMenuItemTypeChange(item) {
+                item.type = Number(item.type);
+                if (item.type === 0) {
+                    item.link = "";
+                    if ((item.page === "" || item.page == null) && Array.isArray(this.pages) && this.pages.length > 0) {
+                        item.page = this.pages[0]._id;
+                    }
+                } else {
+                    item.page = "";
+                }
+            },
+            onMenuParentChange(menuID, item) {
+                if (!this.isValidMenuParent(menuID, item.itemID, item.parentItemID)) {
+                    item.parentItemID = null;
+                }
+
+                this.syncMenuOrders(menuID);
             },
             getCounts() {
                 var comp = this;
@@ -667,46 +858,81 @@
                 xmlhttp.send();
             },
             addMenuItem(menuID) {
-                if (this.menuItems[menuID] == undefined) {
-                    this.menuItems[menuID] = [];
-                }
-                this.menuItems[menuID].push({
+                var pageID = Array.isArray(this.pages) && this.pages.length > 0 ? this.pages[0]._id : "";
+                this.ensureRawMenuItems(menuID).push(this.normalizeMenuItem({
                     "menuID": menuID,
                     "name": "New Menu Item",
                     "type": 0,
-                    "page": "",
+                    "page": pageID,
                     "link": "",
-                    "order": this.menuItems[menuID].length
-                });
+                    "parentItemID": null,
+                    "order": this.getRawMenuItems(menuID).length
+                }, menuID, this.getRawMenuItems(menuID).length));
             },
-            moveMenuItemUp(menuID, from) {
+            moveMenuItemUp(menuID, itemID) {
+                var orderedItems = this.getMenuItems(menuID);
+                var from = orderedItems.findIndex((entry) => entry.item.itemID === itemID);
+                if (from < 0 || orderedItems.length < 2) {
+                    return;
+                }
+
                 var to = from - 1;
                 if (to < 0) {
-                    to = this.menuItems[menuID].length - 1;
+                    to = orderedItems.length - 1;
                 }
-                var f = this.menuItems[menuID].splice(from, 1)[0];
-                this.menuItems[menuID].splice(to, 0, f);
-                this.menuItems[menuID].forEach(function (item, index) {
-                    item.order = index;
+
+                var orderedIDs = orderedItems.map((entry) => entry.item.itemID);
+                var movedID = orderedIDs.splice(from, 1)[0];
+                orderedIDs.splice(to, 0, movedID);
+
+                var orderLookup = {};
+                orderedIDs.forEach(function (orderedID, index) {
+                    orderLookup[orderedID] = index;
+                });
+
+                this.getRawMenuItems(menuID).forEach(function (item) {
+                    item.order = orderLookup[item.itemID];
                 });
             },
-            moveMenuItemDown(menuID, from) {
+            moveMenuItemDown(menuID, itemID) {
+                var orderedItems = this.getMenuItems(menuID);
+                var from = orderedItems.findIndex((entry) => entry.item.itemID === itemID);
+                if (from < 0 || orderedItems.length < 2) {
+                    return;
+                }
+
                 var to = from + 1;
-                if (to > this.menuItems[menuID].length - 1) {
+                if (to > orderedItems.length - 1) {
                     to = 0;
                 }
-                var f = this.menuItems[menuID].splice(from, 1)[0];
-                this.menuItems[menuID].splice(to, 0, f);
-                this.menuItems[menuID].forEach(function (item, index) {
-                    item.order = index;
+
+                var orderedIDs = orderedItems.map((entry) => entry.item.itemID);
+                var movedID = orderedIDs.splice(from, 1)[0];
+                orderedIDs.splice(to, 0, movedID);
+
+                var orderLookup = {};
+                orderedIDs.forEach(function (orderedID, index) {
+                    orderLookup[orderedID] = index;
+                });
+
+                this.getRawMenuItems(menuID).forEach(function (item) {
+                    item.order = orderLookup[item.itemID];
                 });
             },
-            deleteMenuItem(menuID, index) {
+            deleteMenuItem(menuID, itemID) {
                 if (confirm('Are you sure you want to do this?')) {
-                    this.menuItems[menuID].splice(index, 1);
-                    this.menuItems[menuID].forEach(function (item, index) {
-                        item.order = index;
+                    var deletedItem = this.getRawMenuItems(menuID).find((item) => item.itemID === itemID);
+                    if (deletedItem == undefined) {
+                        return;
+                    }
+
+                    this.getRawMenuItems(menuID).forEach(function (item) {
+                        if (item.parentItemID === itemID) {
+                            item.parentItemID = deletedItem.parentItemID;
+                        }
                     });
+                    this.menuItems[menuID] = this.getRawMenuItems(menuID).filter((item) => item.itemID !== itemID);
+                    this.syncMenuOrders(menuID);
                 }
             },
             addUser() {
@@ -882,11 +1108,23 @@
                 }
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/menus", true);
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
+                comp.syncAllMenuOrders();
                 var allMenuItems = [];
                 for (let menuID in comp.menuItems) {
-                    comp.menuItems[menuID].forEach(function (item) {
-                        allMenuItems.push(item);
-                    });
+                    comp.menuItems[menuID]
+                        .sort((a, b) => a.order - b.order)
+                        .forEach(function (item) {
+                            allMenuItems.push({
+                                "menuID": item.menuID,
+                                "itemID": item.itemID,
+                                "parentItemID": item.parentItemID || null,
+                                "name": item.name,
+                                "type": Number(item.type),
+                                "page": item.type === 0 ? item.page : "",
+                                "link": item.type === 1 ? item.link : "",
+                                "order": item.order
+                            });
+                        });
                 }
                 xmlhttp.send(JSON.stringify(allMenuItems));
             },

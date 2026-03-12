@@ -2,7 +2,7 @@
 
 session_start();
 
-define('MIRAGE_VERSION', "1.0.2");
+define('MIRAGE_VERSION', "1.1.0");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -156,12 +156,376 @@ function getPages($collection, $numEntries, $sort = ["created" => "desc"])
     return $pages;
 };
 
-function getMenuItems($menuID)
+function generateMenuItemID()
+{
+    return str_replace('.', '', uniqid('menu_', true));
+}
+
+function normalizeMenuItemValue($value)
+{
+    if ($value === '' || $value === null) {
+        return null;
+    }
+
+    if (is_numeric($value)) {
+        return (int) $value;
+    }
+
+    return $value;
+}
+
+function normalizeMenuItem($menuItem, $fallbackItemID = null)
+{
+    $itemID = $menuItem['itemID'] ?? ($menuItem['_id'] ?? $fallbackItemID ?? generateMenuItemID());
+    $parentItemID = $menuItem['parentItemID'] ?? null;
+    if ($parentItemID === '') {
+        $parentItemID = null;
+    }
+
+    $normalized = [
+        'menuID' => isset($menuItem['menuID']) ? (string) $menuItem['menuID'] : '',
+        'itemID' => (string) $itemID,
+        'parentItemID' => $parentItemID === null ? null : (string) $parentItemID,
+        'name' => isset($menuItem['name']) ? (string) $menuItem['name'] : '',
+        'type' => isset($menuItem['type']) ? (int) $menuItem['type'] : 0,
+        'page' => normalizeMenuItemValue($menuItem['page'] ?? null),
+        'link' => isset($menuItem['link']) ? trim((string) $menuItem['link']) : '',
+        'order' => isset($menuItem['order']) ? (int) $menuItem['order'] : 0
+    ];
+
+    if (isset($menuItem['_id'])) {
+        $normalized['_id'] = $menuItem['_id'];
+    }
+
+    return $normalized;
+}
+
+function menuItemCreatesCycle($itemID, $parentItemID, $itemsByID)
+{
+    $visited = [$itemID => true];
+    $currentParentID = $parentItemID;
+
+    while ($currentParentID !== null) {
+        if (isset($visited[$currentParentID])) {
+            return true;
+        }
+
+        $visited[$currentParentID] = true;
+
+        if (!isset($itemsByID[$currentParentID])) {
+            return false;
+        }
+
+        $currentParentID = $itemsByID[$currentParentID]['parentItemID'] ?? null;
+    }
+
+    return false;
+}
+
+function buildNormalizedMenuItems($menuItems)
+{
+    if (!is_array($menuItems)) {
+        return [];
+    }
+
+    $normalizedMenuItems = [];
+    foreach ($menuItems as $index => $menuItem) {
+        $normalized = normalizeMenuItem($menuItem, 'legacy_' . $index);
+        $normalizedMenuItems[] = $normalized;
+    }
+
+    $itemsByID = [];
+    foreach ($normalizedMenuItems as $menuItem) {
+        $itemsByID[$menuItem['itemID']] = $menuItem;
+    }
+
+    foreach ($normalizedMenuItems as &$menuItem) {
+        $parentItemID = $menuItem['parentItemID'];
+        if (
+            $parentItemID !== null
+            && (
+                !isset($itemsByID[$parentItemID])
+                || $itemsByID[$parentItemID]['menuID'] !== $menuItem['menuID']
+                || menuItemCreatesCycle($menuItem['itemID'], $parentItemID, $itemsByID)
+            )
+        ) {
+            $menuItem['parentItemID'] = null;
+        }
+    }
+    unset($menuItem);
+
+    usort($normalizedMenuItems, function ($a, $b) {
+        $menuCompare = strcmp($a['menuID'], $b['menuID']);
+        if ($menuCompare !== 0) {
+            return $menuCompare;
+        }
+
+        return $a['order'] <=> $b['order'];
+    });
+
+    return $normalizedMenuItems;
+}
+
+function getAllMenuItems()
 {
     global $menuStore;
-    $menuItems = $menuStore->findBy(["menuID", "=", $menuID], ["order" => "asc"]);
-    return $menuItems;
+
+    return buildNormalizedMenuItems($menuStore->findAll());
+}
+
+function getMenuItems($menuID)
+{
+    $allMenuItems = getAllMenuItems();
+
+    return array_values(array_filter($allMenuItems, function ($menuItem) use ($menuID) {
+        return $menuItem['menuID'] === $menuID;
+    }));
 };
+
+function getMenuTreeBranch($menuItems, $parentItemID = null)
+{
+    $branch = [];
+    foreach ($menuItems as $menuItem) {
+        if (($menuItem['parentItemID'] ?? null) !== $parentItemID) {
+            continue;
+        }
+
+        $menuItem['children'] = getMenuTreeBranch($menuItems, $menuItem['itemID']);
+        $branch[] = $menuItem;
+    }
+
+    usort($branch, function ($a, $b) {
+        return $a['order'] <=> $b['order'];
+    });
+
+    return $branch;
+}
+
+function getMenuTree($menuID)
+{
+    return getMenuTreeBranch(getMenuItems($menuID));
+}
+
+function resolveMenuItemLink($menuItem)
+{
+    global $pageStore;
+
+    if ((int) ($menuItem['type'] ?? 0) !== 0) {
+        return trim((string) ($menuItem['link'] ?? ''));
+    }
+
+    $pageID = normalizeMenuItemValue($menuItem['page'] ?? null);
+    if ($pageID === null) {
+        return '';
+    }
+
+    $page = $pageStore->findById($pageID);
+    if ($page == null) {
+        return '';
+    }
+
+    $link = $page['path'];
+    if (isset($page['collectionSubpath']) && $page['collectionSubpath'] !== '') {
+        $link = $page['collectionSubpath'] . '/' . $link;
+    }
+
+    return $link;
+}
+
+function prepareMenuItemsForStore($menuItems)
+{
+    $normalizedMenuItems = buildNormalizedMenuItems($menuItems);
+    $menuIndexes = [];
+
+    foreach ($normalizedMenuItems as &$menuItem) {
+        if (!isset($menuIndexes[$menuItem['menuID']])) {
+            $menuIndexes[$menuItem['menuID']] = 0;
+        }
+
+        $menuItem['order'] = $menuIndexes[$menuItem['menuID']];
+        $menuItem['link'] = resolveMenuItemLink($menuItem);
+        $menuIndexes[$menuItem['menuID']]++;
+    }
+    unset($menuItem);
+
+    return $normalizedMenuItems;
+}
+
+function reparentChildMenuItems($itemID, $newParentItemID = null)
+{
+    global $menuStore;
+
+    $childMenuItems = $menuStore->findBy(['parentItemID', '=', $itemID]);
+    foreach ($childMenuItems as $childMenuItem) {
+        $menuStore->updateById($childMenuItem['_id'], [
+            'parentItemID' => $newParentItemID
+        ]);
+    }
+}
+
+function getMenuItemUrl($menuItem)
+{
+    $link = trim((string) ($menuItem['link'] ?? ''));
+    if ((int) ($menuItem['type'] ?? 0) === 1) {
+        return $link;
+    }
+
+    if ($link === '') {
+        return BASEPATH . '/';
+    }
+
+    return BASEPATH . '/' . ltrim($link, '/');
+}
+
+function appendHtmlClass($attributes, $className)
+{
+    $className = trim($className);
+    if ($className === '') {
+        return $attributes;
+    }
+
+    $existingClass = isset($attributes['class']) ? trim((string) $attributes['class']) : '';
+    $attributes['class'] = trim($existingClass . ' ' . $className);
+
+    return $attributes;
+}
+
+function buildHtmlAttributes($attributes)
+{
+    if (!is_array($attributes) || count($attributes) === 0) {
+        return '';
+    }
+
+    $attributePairs = [];
+    foreach ($attributes as $name => $value) {
+        if ($value === null || $value === false) {
+            continue;
+        }
+
+        $escapedName = htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8');
+        if ($value === true) {
+            $attributePairs[] = $escapedName;
+            continue;
+        }
+
+        $attributePairs[] = $escapedName . '="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '"';
+    }
+
+    if (count($attributePairs) === 0) {
+        return '';
+    }
+
+    return ' ' . implode(' ', $attributePairs);
+}
+
+function applyActiveStateToMenuItems($menuItems, $currentPageID = null)
+{
+    $itemsWithState = [];
+    foreach ($menuItems as $menuItem) {
+        $menuItem['children'] = applyActiveStateToMenuItems($menuItem['children'] ?? [], $currentPageID);
+        $menuItem['isCurrent'] = $currentPageID !== null
+            && (int) ($menuItem['type'] ?? 0) === 0
+            && (string) ($menuItem['page'] ?? '') === (string) $currentPageID;
+        $menuItem['isActive'] = $menuItem['isCurrent'];
+
+        foreach ($menuItem['children'] as $childMenuItem) {
+            if (!empty($childMenuItem['isActive'])) {
+                $menuItem['isActive'] = true;
+                break;
+            }
+        }
+
+        $itemsWithState[] = $menuItem;
+    }
+
+    return $itemsWithState;
+}
+
+function renderMenuListHtml($menuItems, $options, $isRoot = false)
+{
+    if (count($menuItems) === 0) {
+        return '';
+    }
+
+    $listAttributes = $isRoot ? ($options['listAttributes'] ?? []) : ($options['submenuAttributes'] ?? []);
+    if ($isRoot) {
+        $listAttributes = appendHtmlClass($listAttributes, 'mirage-menu');
+        $listAttributes = appendHtmlClass($listAttributes, $options['listClass'] ?? '');
+        $listAttributes['data-mirage-menu'] = $options['menuID'];
+    } else {
+        $listAttributes = appendHtmlClass($listAttributes, 'mirage-menu__submenu');
+        $listAttributes = appendHtmlClass($listAttributes, $options['submenuClass'] ?? '');
+    }
+
+    $html = '<ul' . buildHtmlAttributes($listAttributes) . '>';
+    foreach ($menuItems as $menuItem) {
+        $itemAttributes = [
+            'data-menu-item-id' => $menuItem['itemID']
+        ];
+        $itemAttributes = appendHtmlClass($itemAttributes, 'mirage-menu__item');
+        $itemAttributes = appendHtmlClass($itemAttributes, $options['itemClass'] ?? '');
+        if (!empty($menuItem['isActive'])) {
+            $itemAttributes = appendHtmlClass($itemAttributes, 'mirage-menu__item--active');
+            $itemAttributes = appendHtmlClass($itemAttributes, $options['activeItemClass'] ?? '');
+        }
+        if (!empty($menuItem['children'])) {
+            $itemAttributes = appendHtmlClass($itemAttributes, 'mirage-menu__item--has-children');
+            $itemAttributes = appendHtmlClass($itemAttributes, $options['hasChildrenItemClass'] ?? '');
+        }
+
+        $linkAttributes = $options['linkAttributes'] ?? [];
+        $linkAttributes['href'] = getMenuItemUrl($menuItem);
+        $linkAttributes = appendHtmlClass($linkAttributes, 'mirage-menu__link');
+        $linkAttributes = appendHtmlClass($linkAttributes, $options['linkClass'] ?? '');
+        if (!empty($menuItem['isCurrent'])) {
+            $linkAttributes['aria-current'] = 'page';
+        }
+        if ((int) ($menuItem['type'] ?? 0) === 1) {
+            if (!isset($linkAttributes['target'])) {
+                $linkAttributes['target'] = '_blank';
+            }
+            if (!isset($linkAttributes['rel'])) {
+                $linkAttributes['rel'] = 'noopener noreferrer';
+            }
+        }
+
+        $html .= '<li' . buildHtmlAttributes($itemAttributes) . '>';
+        $html .= '<a' . buildHtmlAttributes($linkAttributes) . '>' . htmlspecialchars($menuItem['name'], ENT_QUOTES, 'UTF-8') . '</a>';
+
+        if (!empty($menuItem['children'])) {
+            $buttonAttributes = $options['buttonAttributes'] ?? [];
+            $buttonAttributes['type'] = 'button';
+            $buttonAttributes['aria-expanded'] = !empty($menuItem['isActive']) ? 'true' : 'false';
+            $buttonAttributes['aria-label'] = $options['submenuToggleLabel'] ?? 'Toggle submenu';
+            $buttonAttributes = appendHtmlClass($buttonAttributes, 'mirage-menu__toggle');
+            $buttonAttributes = appendHtmlClass($buttonAttributes, $options['buttonClass'] ?? '');
+
+            $html .= '<button' . buildHtmlAttributes($buttonAttributes) . '><span aria-hidden="true">&#9662;</span></button>';
+
+            $submenuAttributes = $options['submenuAttributes'] ?? [];
+            if (empty($menuItem['isActive'])) {
+                $submenuAttributes['hidden'] = true;
+            }
+
+            $submenuOptions = $options;
+            $submenuOptions['submenuAttributes'] = $submenuAttributes;
+            $html .= renderMenuListHtml($menuItem['children'], $submenuOptions, false);
+        }
+
+        $html .= '</li>';
+    }
+    $html .= '</ul>';
+
+    return $html;
+}
+
+function renderMenu($menuID, $options = [])
+{
+    $options['menuID'] = $menuID;
+    $menuTree = applyActiveStateToMenuItems(getMenuTree($menuID), $options['currentPageID'] ?? null);
+
+    return renderMenuListHtml($menuTree, $options, true);
+}
 
 function getMedia($mediaID)
 {
@@ -283,6 +647,34 @@ function injectSpamProtectionIntoForms($html)
     }, $html);
 }
 
+function injectMirageFrontendAssets($html)
+{
+    if (strpos($html, 'data-mirage-menu') === false) {
+        return $html;
+    }
+
+    $menuStylesheet = '<link rel="stylesheet" href="' . htmlspecialchars(BASEPATH . '/assets/css/mirage-menu.css', ENT_QUOTES, 'UTF-8') . '">';
+    $menuScript = '<script src="' . htmlspecialchars(BASEPATH . '/assets/js/mirage-menu.js', ENT_QUOTES, 'UTF-8') . '"></script>';
+
+    if (strpos($html, 'mirage-menu.css') === false) {
+        if (stripos($html, '</head>') !== false) {
+            $html = preg_replace('/<\/head>/i', $menuStylesheet . "\n</head>", $html, 1);
+        } else {
+            $html = $menuStylesheet . "\n" . $html;
+        }
+    }
+
+    if (strpos($html, 'mirage-menu.js') === false) {
+        if (stripos($html, '</body>') !== false) {
+            $html = preg_replace('/<\/body>/i', $menuScript . "\n</body>", $html, 1);
+        } else {
+            $html .= "\n" . $menuScript;
+        }
+    }
+
+    return $html;
+}
+
 function includeThemeFile($filename, $data = [])
 {
     global $siteTitle;
@@ -301,7 +693,8 @@ function includeThemeFile($filename, $data = [])
     include $filename;
     $output = ob_get_clean();
 
-    echo injectSpamProtectionIntoForms($output);
+    $output = injectSpamProtectionIntoForms($output);
+    echo injectMirageFrontendAssets($output);
 }
 
 function getRecentFormSubmission($formID, $ipAddress)
@@ -611,11 +1004,13 @@ if (!file_exists("config.php")) {
             $allMenuItems = $menuStore->findAll();
             foreach ($allMenuItems as &$menuItem) {
                 if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
-                    $menuItem["link"] = $page["path"];
-                    if ($page["collectionSubpath"] != "") {
-                        $menuItem["link"] = $page["collectionSubpath"] . "/" . $menuItem["link"];
-                    }
-                    $menuItem = $menuStore->updateById($menuItem["_id"], ["link" => $menuItem["link"]]);
+                    $normalizedMenuItem = normalizeMenuItem($menuItem);
+                    $menuItem["link"] = resolveMenuItemLink($menuItem);
+                    $menuItem = $menuStore->updateById($menuItem["_id"], [
+                        "link" => $menuItem["link"],
+                        "itemID" => $normalizedMenuItem["itemID"],
+                        "parentItemID" => $normalizedMenuItem["parentItemID"]
+                    ]);
                 }
             }
 
@@ -632,7 +1027,9 @@ if (!file_exists("config.php")) {
             $allMenuItems = $menuStore->findAll();
             foreach ($allMenuItems as &$menuItem) {
                 if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
-                    $menuStore->deleteById($menuItem["_id"]); // TODO: this may cause issues once menus can be nested
+                    $normalizedMenuItem = normalizeMenuItem($menuItem);
+                    reparentChildMenuItems($normalizedMenuItem["itemID"], $normalizedMenuItem["parentItemID"]);
+                    $menuStore->deleteById($menuItem["_id"]);
                 }
             }
             $pageStore->deleteById($who);
@@ -645,8 +1042,7 @@ if (!file_exists("config.php")) {
 
     Route::add('/api/menus', function () {
         if (isset($_SESSION['loggedin'])) {
-            global $menuStore;
-            $allMenuItems = $menuStore->findAll(["order" => "asc"]);
+            $allMenuItems = getAllMenuItems();
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {
@@ -657,21 +1053,17 @@ if (!file_exists("config.php")) {
     Route::add('/api/menus', function () {
         if (isset($_SESSION['loggedin'])) {
             global $menuStore;
-            global $pageStore;
 
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
-            foreach ($data as &$menuItem) {
-                if ($menuItem["type"] == 0) {
-                    $menuItem["link"] = $pageStore->findById($menuItem["page"])["path"];
-                    if ($pageStore->findById($menuItem["page"])["collectionSubpath"] != "") {
-                        $menuItem["link"] = $pageStore->findById($menuItem["page"])["collectionSubpath"] . "/" . $menuItem["link"];
-                    }
-                }
+            $data = prepareMenuItemsForStore($data);
+
+            $menuStore->createQueryBuilder()->getQuery()->delete();
+            if (count($data) > 0) {
+                $menuStore->insertMany($data);
             }
-            $menuItems = $menuStore->createQueryBuilder()->getQuery()->delete();
-            $menuItems = $menuStore->insertMany($data);
-            $allMenuItems = $menuStore->findAll(["order" => "asc"]);
+
+            $allMenuItems = getAllMenuItems();
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
         } else {

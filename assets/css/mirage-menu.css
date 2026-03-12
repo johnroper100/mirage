@@ -1,0 +1,101 @@
+.mirage-menu,
+.mirage-menu__submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mirage-menu__item {
+  position: relative;
+}
+
+.mirage-menu__link {
+  display: inline-block;
+}
+
+.mirage-menu__toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0 0 0.35rem;
+  vertical-align: middle;
+}
+
+.mirage-menu__toggle span {
+  display: inline-block;
+  font-size: 0.75em;
+  transition: transform 0.2s ease;
+}
+
+.mirage-menu__toggle[aria-expanded="true"] span {
+  transform: rotate(180deg);
+}
+
+.mirage-menu__submenu {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+  min-width: 12rem;
+  z-index: 1000;
+}
+
+.mirage-menu__submenu[hidden] {
+  display: none !important;
+}
+
+.mirage-menu__submenu .mirage-menu__item {
+  display: block;
+  padding: 0;
+}
+
+.mirage-menu__submenu .mirage-menu__link {
+  display: block;
+  padding: 0.6rem 0.9rem;
+  white-space: nowrap;
+}
+
+.mirage-menu__submenu .mirage-menu__toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@media screen and (min-width: 769px) {
+  .mirage-menu > .mirage-menu__item {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .mirage-menu__item--has-children > .mirage-menu__submenu {
+    left: 0;
+    margin-top: 0.35rem;
+    position: absolute;
+    top: 100%;
+  }
+
+  .mirage-menu__submenu .mirage-menu__item--has-children > .mirage-menu__submenu {
+    left: calc(100% + 0.35rem);
+    margin-top: 0;
+    top: 0;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .mirage-menu__submenu {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    margin-top: 0.35rem;
+    min-width: 0;
+    padding-left: 1rem;
+    position: static;
+  }
+
+  .mirage-menu__item--has-children > .mirage-menu__link {
+    max-width: calc(100% - 2rem);
+  }
+}
