@@ -1,6 +1,24 @@
 <?php
 
+$isHttpsRequest = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+if (PHP_VERSION_ID >= 70300) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => $isHttpsRequest,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+} else {
+    session_set_cookie_params(0, '/; samesite=Lax', '', $isHttpsRequest, true);
+}
+
 session_start();
+
+if (!isset($_SESSION['sessionStartedAt'])) {
+    session_regenerate_id(true);
+    $_SESSION['sessionStartedAt'] = time();
+}
 
 define('MIRAGE_VERSION', "1.1.3");
 
@@ -15,6 +33,8 @@ if (ORIGBASEPATH == "/") {
 # Generate .htaccess to block database from view and enable url rewrite
 if (!file_exists(".htaccess")) {
     $myfile = fopen(".htaccess", "w") or die("Unable to open file!");
+    $txt = "Options -Indexes\n";
+    fwrite($myfile, $txt);
     $txt = "DirectoryIndex index.php\n";
     fwrite($myfile, $txt);
     // Enable apache rewrite engine
@@ -27,6 +47,8 @@ if (!file_exists(".htaccess")) {
     $txt = "RewriteRule ^database/?$ - [F,L]\n";
     fwrite($myfile, $txt);
     $txt = "RewriteRule ^dashboard/?$ - [F,L]\n";
+    fwrite($myfile, $txt);
+    $txt = "RewriteRule ^uploads/.*\\.(?:php[0-9]?|phtml|phar|cgi|pl|asp|aspx|jsp|sh|bat|cmd)$ - [F,NC,L]\n";
     fwrite($myfile, $txt);
     $txt = "RewriteCond %{REQUEST_FILENAME} !-f\n";
     fwrite($myfile, $txt);
@@ -65,10 +87,472 @@ function test_input($data) {
     return $data;
 }
 
+function normalizeEmailAddress($email)
+{
+    return strtolower(trim((string) $email));
+}
+
+function isValidEmailAddress($email)
+{
+    return filter_var((string) $email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+function sendCommonSecurityHeaders()
+{
+    if (!headers_sent()) {
+        header_remove('X-Powered-By');
+        header('X-Frame-Options: SAMEORIGIN');
+        header('X-Content-Type-Options: nosniff');
+        header('Referrer-Policy: same-origin');
+        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    }
+}
+
+sendCommonSecurityHeaders();
+
+function getNormalizedRequestHost()
+{
+    $candidates = [
+        $_SERVER['HTTP_HOST'] ?? '',
+        $_SERVER['SERVER_NAME'] ?? ''
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+        if ($candidate === '') {
+            continue;
+        }
+
+        if (preg_match('/\A(?:[a-z0-9-]+\.)*[a-z0-9-]+(?::\d{1,5})?\z/i', $candidate) === 1) {
+            return $candidate;
+        }
+    }
+
+    return 'localhost';
+}
+
+function isHttpsRequest()
+{
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        return true;
+    }
+
+    if (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443) {
+        return true;
+    }
+
+    return false;
+}
+
+function getCsrfToken()
+{
+    if (empty($_SESSION['csrfToken']) || !is_string($_SESSION['csrfToken'])) {
+        $_SESSION['csrfToken'] = bin2hex(random_bytes(32));
+    }
+
+    return $_SESSION['csrfToken'];
+}
+
+function getCsrfTokenFieldHtml()
+{
+    return '<input type="hidden" name="_mirage_csrf" value="' . htmlspecialchars(getCsrfToken(), ENT_QUOTES, 'UTF-8') . '">';
+}
+
+function getRequestCsrfToken()
+{
+    if (isset($_SERVER['HTTP_X_MIRAGE_CSRF'])) {
+        return trim((string) $_SERVER['HTTP_X_MIRAGE_CSRF']);
+    }
+
+    if (isset($_POST['_mirage_csrf'])) {
+        return trim((string) $_POST['_mirage_csrf']);
+    }
+
+    return '';
+}
+
+function isValidCsrfToken($token)
+{
+    return is_string($token) && $token !== '' && hash_equals(getCsrfToken(), $token);
+}
+
+function requireCsrfToken($expectsJson = false)
+{
+    if (isValidCsrfToken(getRequestCsrfToken())) {
+        return true;
+    }
+
+    if ($expectsJson) {
+        sendJsonResponse([
+            'success' => false,
+            'message' => 'Security token mismatch. Refresh the page and try again.'
+        ], 403);
+    } else {
+        getErrorPage(403);
+    }
+
+    return false;
+}
+
+function isLoggedIn()
+{
+    return !empty($_SESSION['loggedin']) && isset($_SESSION['id']);
+}
+
+function getCurrentUserId()
+{
+    return isset($_SESSION['id']) ? (string) $_SESSION['id'] : null;
+}
+
+function getCurrentAccountType()
+{
+    return isset($_SESSION['accountType']) ? (int) $_SESSION['accountType'] : null;
+}
+
+function isAdministrator()
+{
+    return getCurrentAccountType() === 0;
+}
+
+function isEditor()
+{
+    return getCurrentAccountType() === 1;
+}
+
+function isAuthor()
+{
+    return getCurrentAccountType() === 2;
+}
+
+function canManageMenus()
+{
+    return isLoggedIn() && !isAuthor();
+}
+
+function canManageForms()
+{
+    return isLoggedIn() && !isAuthor();
+}
+
+function canEditPage($page)
+{
+    if (!isLoggedIn() || !is_array($page)) {
+        return false;
+    }
+
+    if (!isAuthor()) {
+        return true;
+    }
+
+    $currentUserId = getCurrentUserId();
+    return $currentUserId !== null
+        && (
+            (string) ($page['createdUser'] ?? '') === $currentUserId
+            || (string) ($page['editedUser'] ?? '') === $currentUserId
+        );
+}
+
+function canEditMediaItem($mediaItem)
+{
+    if (!isLoggedIn() || !is_array($mediaItem)) {
+        return false;
+    }
+
+    if (!isAuthor()) {
+        return true;
+    }
+
+    $currentUserId = getCurrentUserId();
+    return $currentUserId !== null
+        && (
+            (string) ($mediaItem['createdUser'] ?? '') === $currentUserId
+            || (string) ($mediaItem['editedUser'] ?? '') === $currentUserId
+        );
+}
+
+function canManageUserRecord($targetUser)
+{
+    if (!isLoggedIn() || !is_array($targetUser)) {
+        return false;
+    }
+
+    $targetAccountType = isset($targetUser['accountType']) ? (int) $targetUser['accountType'] : 2;
+    $targetUserId = isset($targetUser['_id']) ? (string) $targetUser['_id'] : '';
+    $currentUserId = getCurrentUserId();
+
+    if (isAdministrator()) {
+        return true;
+    }
+
+    if (!isEditor() && $currentUserId !== $targetUserId) {
+        return false;
+    }
+
+    if (isEditor()) {
+        return $targetAccountType !== 0 || $currentUserId === $targetUserId;
+    }
+
+    return $currentUserId === $targetUserId;
+}
+
+function clampEditableAccountType($requestedAccountType, $existingUser = null)
+{
+    $requestedAccountType = (int) $requestedAccountType;
+    if (!in_array($requestedAccountType, [0, 1, 2], true)) {
+        $requestedAccountType = 2;
+    }
+
+    if (isAdministrator()) {
+        return $requestedAccountType;
+    }
+
+    if ($existingUser !== null && isset($existingUser['accountType']) && (string) ($existingUser['_id'] ?? '') === getCurrentUserId()) {
+        return (int) $existingUser['accountType'];
+    }
+
+    if (isEditor()) {
+        return max($requestedAccountType, 1);
+    }
+
+    if ($existingUser !== null && isset($existingUser['accountType'])) {
+        return (int) $existingUser['accountType'];
+    }
+
+    return 2;
+}
+
+function isSafeRelativePathValue($value)
+{
+    return is_string($value)
+        && strpos($value, "\0") === false
+        && strpos($value, '..') === false
+        && strpos($value, '\\') === false;
+}
+
+function getThemeConfiguration()
+{
+    static $themeConfiguration = null;
+
+    if ($themeConfiguration === null) {
+        $themeConfiguration = [];
+        if (file_exists('./theme/config.json')) {
+            $decoded = json_decode(file_get_contents('./theme/config.json'), true);
+            if (is_array($decoded)) {
+                $themeConfiguration = $decoded;
+            }
+        }
+    }
+
+    return $themeConfiguration;
+}
+
+function getTemplateConfigById($templateID)
+{
+    if (!is_string($templateID) || preg_match('/\A[a-zA-Z0-9_-]+\z/', $templateID) !== 1) {
+        return null;
+    }
+
+    $templates = getThemeConfiguration()['templates'] ?? [];
+    foreach ($templates as $template) {
+        if (($template['id'] ?? null) === $templateID) {
+            return $template;
+        }
+    }
+
+    return null;
+}
+
+function getCollectionConfigById($collectionID)
+{
+    $collections = getThemeConfiguration()['collections'] ?? [];
+    foreach ($collections as $collection) {
+        if (($collection['id'] ?? null) === $collectionID) {
+            return $collection;
+        }
+    }
+
+    return null;
+}
+
+function isValidTemplateForCollection($templateID, $collectionID)
+{
+    $template = getTemplateConfigById($templateID);
+    $collection = getCollectionConfigById($collectionID);
+
+    if ($template === null || $collection === null) {
+        return false;
+    }
+
+    $allowedTemplates = $collection['allowed_templates'] ?? [];
+    return in_array($templateID, $allowedTemplates, true);
+}
+
+function getTemplateDefinitionPath($templateID)
+{
+    $template = getTemplateConfigById($templateID);
+    if ($template === null) {
+        return null;
+    }
+
+    $templateFile = trim((string) ($template['file'] ?? ''));
+    if (preg_match('/\A[a-zA-Z0-9_-]+\.json\z/', $templateFile) !== 1) {
+        return null;
+    }
+
+    $path = './theme/template_defs/' . $templateFile;
+    if (!file_exists($path)) {
+        return null;
+    }
+
+    return $path;
+}
+
+function getThemeTemplatePhpPath($templateID)
+{
+    if (getTemplateConfigById($templateID) === null) {
+        return null;
+    }
+
+    $path = './theme/' . $templateID . '.php';
+    if (!file_exists($path)) {
+        return null;
+    }
+
+    return $path;
+}
+
+function getUploadedFileMimeType($temporaryFile)
+{
+    if (!is_string($temporaryFile) || $temporaryFile === '' || !file_exists($temporaryFile)) {
+        return '';
+    }
+
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo !== false) {
+            $mimeType = finfo_file($finfo, $temporaryFile);
+            finfo_close($finfo);
+            if (is_string($mimeType)) {
+                return strtolower($mimeType);
+            }
+        }
+    }
+
+    if (function_exists('mime_content_type')) {
+        $mimeType = mime_content_type($temporaryFile);
+        if (is_string($mimeType)) {
+            return strtolower($mimeType);
+        }
+    }
+
+    return '';
+}
+
+function getAllowedUploadTypes()
+{
+    return [
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'png' => ['image/png'],
+        'gif' => ['image/gif'],
+        'webp' => ['image/webp'],
+        'pdf' => ['application/pdf'],
+        'txt' => ['text/plain'],
+        'csv' => ['text/csv', 'text/plain', 'application/vnd.ms-excel'],
+        'doc' => ['application/msword'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+        'xls' => ['application/vnd.ms-excel'],
+        'xlsx' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip'],
+        'ppt' => ['application/vnd.ms-powerpoint'],
+        'pptx' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip'],
+        'zip' => ['application/zip', 'application/x-zip-compressed']
+    ];
+}
+
+function isAllowedUploadedFile($temporaryFile, $originalFilename, $imageOnly = false)
+{
+    $extension = strtolower((string) pathinfo((string) $originalFilename, PATHINFO_EXTENSION));
+    $allowedTypes = getAllowedUploadTypes();
+
+    if ($imageOnly) {
+        $allowedTypes = array_intersect_key($allowedTypes, array_flip(['jpg', 'jpeg', 'png', 'gif', 'webp']));
+    }
+
+    if (!isset($allowedTypes[$extension])) {
+        return false;
+    }
+
+    $mimeType = getUploadedFileMimeType($temporaryFile);
+    if ($mimeType === '') {
+        return false;
+    }
+
+    return in_array($mimeType, $allowedTypes[$extension], true);
+}
+
+function getStoredUploadFilename($originalFilename)
+{
+    $extension = strtolower((string) pathinfo((string) $originalFilename, PATHINFO_EXTENSION));
+    $baseName = (string) pathinfo((string) $originalFilename, PATHINFO_FILENAME);
+    $baseName = preg_replace('/[^A-Za-z0-9_-]+/', '-', $baseName);
+    $baseName = trim((string) $baseName, '-_');
+
+    if ($baseName === '') {
+        $baseName = 'file';
+    }
+
+    return $baseName . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
+}
+
+function ensureUploadsDirectoryExists()
+{
+    $uploadsDirectory = __DIR__ . '/uploads';
+    if (!is_dir($uploadsDirectory)) {
+        mkdir($uploadsDirectory, 0755, true);
+    }
+
+    return $uploadsDirectory;
+}
+
+function getUploadStoragePath($storedFilename)
+{
+    $storedFilename = trim((string) $storedFilename);
+    if ($storedFilename === '' || $storedFilename !== basename($storedFilename)) {
+        return null;
+    }
+
+    return ensureUploadsDirectoryExists() . '/' . $storedFilename;
+}
+
+function moveUploadedFileToStorage($temporaryFile, $originalFilename)
+{
+    $storedFilename = getStoredUploadFilename($originalFilename);
+    $storagePath = getUploadStoragePath($storedFilename);
+    if ($storagePath === null) {
+        return null;
+    }
+
+    if (!move_uploaded_file($temporaryFile, $storagePath)) {
+        return null;
+    }
+
+    return $storedFilename;
+}
+
+function deleteStoredUploadFile($storedFilename)
+{
+    $storagePath = getUploadStoragePath($storedFilename);
+    if ($storagePath === null || !file_exists($storagePath)) {
+        return true;
+    }
+
+    return unlink($storagePath);
+}
+
 function getFullBasepathRaw()
 {
-    $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? 'localhost');
-    $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https://" : "http://";
+    $host = getNormalizedRequestHost();
+    $scheme = isHttpsRequest() ? "https://" : "http://";
 
     return $scheme . $host . BASEPATH;
 }
@@ -84,7 +568,7 @@ function getPublicPagePath($page)
     }
 
     $templateName = trim((string) ($page['templateName'] ?? ''));
-    if ($templateName === '' || !file_exists('./theme/' . $templateName . '.php')) {
+    if ($templateName === '' || getThemeTemplatePhpPath($templateName) === null) {
         return null;
     }
 
@@ -271,7 +755,7 @@ function requestExceededPostMaxSize()
 function sendJsonResponse($response, $statusCode = 200)
 {
     http_response_code($statusCode);
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($response);
 }
 
@@ -294,6 +778,15 @@ function getUploadErrorMessage($errorCode)
     }
 }
 
+function getInvalidUploadTypeMessage($imageOnly = false)
+{
+    if ($imageOnly) {
+        return 'Only JPG, PNG, GIF, and WebP images can be uploaded here.';
+    }
+
+    return 'That file type is not allowed. Use a common image or document format.';
+}
+
 # Generate page field
 function generateField($field)
 {
@@ -312,20 +805,51 @@ function generateField($field)
     }
 };
 
+function sanitizeStoredPathSegment($value)
+{
+    $value = trim((string) $value, '/');
+    if (!isSafeRelativePathValue($value)) {
+        return null;
+    }
+
+    return $value;
+}
+
 # Function used for generating a page document from input information and page config
-function generatePage($json, $isNewPage = false)
+function generatePage($json, $isNewPage = false, $existingPage = null)
 {
     $data = json_decode($json, true);
+    if (!is_array($data) || !isset($data['template']) || !is_array($data['template'])) {
+        return null;
+    }
+
+    $templateName = trim((string) ($data["templateName"] ?? ''));
+    $collectionID = trim((string) ($data["collection"] ?? ''));
+    if (!isValidTemplateForCollection($templateName, $collectionID) || getThemeTemplatePhpPath($templateName) === null) {
+        return null;
+    }
+
+    $path = sanitizeStoredPathSegment($data["path"] ?? '');
+    $collectionSubpath = sanitizeStoredPathSegment($data["collectionSubpath"] ?? '');
+    if ($path === null || $collectionSubpath === null) {
+        return null;
+    }
+
     $page = [];
     $page["content"] = [];
-    $page["editedUser"] = $_SESSION['id']; // could be null if user has been deleted
+    $page["editedUser"] = getCurrentUserId(); // could be null if user has been deleted
     $page["edited"] = time();
     if ($isNewPage) {
         $page["createdUser"] = $page["editedUser"]; // could be null if user has been deleted
         $page["created"] = $page["edited"];
     }
 
-    foreach ($data["template"]["sections"] as $section) {
+    $sections = $data["template"]["sections"] ?? [];
+    foreach ($sections as $section) {
+        if (!isset($section["fields"]) || !is_array($section["fields"])) {
+            continue;
+        }
+
         foreach ($section["fields"] as $field) {
             if (isset($field['value'])) {
                 $page["content"][$field['id']] = generateField($field);
@@ -333,15 +857,15 @@ function generatePage($json, $isNewPage = false)
         }
     }
 
-    $page["templateName"] = $data["templateName"];
-    $page["title"] = $data["title"];
-    $page["featuredImage"] = $data["featuredImage"];
-    $page["description"] = $data["description"];
-    $page["path"] = $data["path"];
-    $page["isPathless"] = $data["isPathless"];
-    $page["collection"] = $data["collection"];
-    $page["collectionSubpath"] = $data["collectionSubpath"] ?? "";
-    $page["isPublished"] = $data["isPublished"];
+    $page["templateName"] = $templateName;
+    $page["title"] = (string) ($data["title"] ?? '');
+    $page["featuredImage"] = $data["featuredImage"] ?? null;
+    $page["description"] = (string) ($data["description"] ?? '');
+    $page["path"] = $path;
+    $page["isPathless"] = !empty($data["isPathless"]);
+    $page["collection"] = $collectionID;
+    $page["collectionSubpath"] = $collectionSubpath ?? "";
+    $page["isPublished"] = isAuthor() ? (bool) ($existingPage["isPublished"] ?? false) : !empty($data["isPublished"]);
     return $page;
 };
 
@@ -354,6 +878,8 @@ function getErrorPage($errorCode)
         $errorMessage = "you've lost your way, you may have attempted to get to a page that doesn't exist";
     } else if ($errorCode == 401) {
         $errorMessage = "you don't have permission to access this page";
+    } else if ($errorCode == 403) {
+        $errorMessage = "the request could not be verified, refresh the page and try again";
     }
     if (file_exists("./theme/error.php")) {
         include "./theme/error.php";
@@ -794,13 +1320,60 @@ function appendQueryParam($url, $key, $value)
     return $url . $separator . rawurlencode($key) . '=' . rawurlencode($value);
 }
 
+function getSafeInternalRedirectUrl($url)
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return BASEPATH . '/';
+    }
+
+    $parsedUrl = parse_url($url);
+    if ($parsedUrl === false) {
+        return BASEPATH . '/';
+    }
+
+    if (!isset($parsedUrl['host'])) {
+        $relativePath = '/' . ltrim($url, '/');
+        if (BASEPATH !== '' && strpos($relativePath, BASEPATH . '/') !== 0 && $relativePath !== BASEPATH) {
+            return BASEPATH . '/';
+        }
+
+        return $relativePath;
+    }
+
+    $requestHost = preg_replace('/:\d{1,5}\z/', '', getNormalizedRequestHost());
+    $redirectHost = preg_replace('/:\d{1,5}\z/', '', (string) $parsedUrl['host']);
+    if (strcasecmp($requestHost, $redirectHost) !== 0) {
+        return BASEPATH . '/';
+    }
+
+    $path = $parsedUrl['path'] ?? '/';
+    if (!isSafeRelativePathValue($path)) {
+        return BASEPATH . '/';
+    }
+
+    if (BASEPATH !== '' && strpos($path, BASEPATH . '/') !== 0 && $path !== BASEPATH) {
+        return BASEPATH . '/';
+    }
+
+    $safeUrl = $path;
+    if (!empty($parsedUrl['query'])) {
+        $safeUrl .= '?' . $parsedUrl['query'];
+    }
+    if (!empty($parsedUrl['fragment'])) {
+        $safeUrl .= '#' . $parsedUrl['fragment'];
+    }
+
+    return $safeUrl;
+}
+
 function getFormReferer()
 {
     if (!isset($_SERVER["HTTP_REFERER"]) || $_SERVER["HTTP_REFERER"] == "") {
         return BASEPATH . '/';
     }
 
-    return $_SERVER["HTTP_REFERER"];
+    return getSafeInternalRedirectUrl($_SERVER["HTTP_REFERER"]);
 }
 
 function getClientIpAddress()
@@ -971,9 +1544,19 @@ if (!file_exists("config.php")) {
     Route::add('/setup', function () {
         global $userStore;
 
+        if (!requireCsrfToken()) {
+            return;
+        }
+
+        $emailAddress = normalizeEmailAddress($_POST["email"] ?? '');
+        if (!isValidEmailAddress($emailAddress)) {
+            getErrorPage(400);
+            return;
+        }
+
         $user = [
             'name' => test_input($_POST["name"]),
-            'email' => test_input($_POST["email"]),
+            'email' => $emailAddress,
             'bio' => "",
             'notifySubmissions' => 1,
             'password' => password_hash($_POST["password"], PASSWORD_DEFAULT),
@@ -985,7 +1568,7 @@ if (!file_exists("config.php")) {
         $myfile = fopen("config.php", "w") or die("Unable to open file!");
         $txt = "<?php\n\n";
         fwrite($myfile, $txt);
-        $txt = "\$siteTitle = \"" . test_input($_POST["siteTitle"]) . "\";\n";
+        $txt = "\$siteTitle = " . var_export((string) ($_POST["siteTitle"] ?? ''), true) . ";\n";
         fwrite($myfile, $txt);
         $txt = "?>";
         fwrite($myfile, $txt);
@@ -1025,10 +1608,14 @@ if (!file_exists("config.php")) {
     Route::add('/login', function () {
         global $userStore;
 
-        $user = $userStore->findOneBy(["email", "=", test_input($_POST["email"])]);
+        if (!requireCsrfToken()) {
+            return;
+        }
+
+        $user = $userStore->findOneBy(["email", "=", normalizeEmailAddress($_POST["email"] ?? '')]);
 
         if ($user != null && password_verify($_POST["password"], $user['password'])) {
-            session_regenerate_id();
+            session_regenerate_id(true);
             $_SESSION['loggedin'] = true;
             $_SESSION['name'] = $user['name'];
             $_SESSION['id'] = $user['_id'];
@@ -1041,11 +1628,19 @@ if (!file_exists("config.php")) {
     }, 'POST');
 
     Route::add('/logout', function () {
+        if (!requireCsrfToken()) {
+            return;
+        }
+
         if (isset($_SESSION['loggedin'])) {
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                setcookie(session_name(), '', time() - 42000, '/');
+            }
             session_destroy();
         }
         header('Location: ' . BASEPATH . '/login');
-    });
+    }, 'POST');
 
     # Routes marked API are used by the backend to get data
 
@@ -1061,7 +1656,13 @@ if (!file_exists("config.php")) {
 
     Route::add('/api/templates/(.*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
-            echo file_get_contents("./theme/template_defs/" . $who . ".json");
+            $templatePath = getTemplateDefinitionPath($who);
+            if ($templatePath === null) {
+                getErrorPage(404);
+                return;
+            }
+
+            echo file_get_contents($templatePath);
         } else {
             getErrorPage(401);
         }
@@ -1105,18 +1706,42 @@ if (!file_exists("config.php")) {
     Route::add('/api/users', function () {
         if (isset($_SESSION['loggedin']) && $_SESSION['accountType'] != 2) {
             global $userStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
+            if (!is_array($data) || empty($data["password"])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'Name, email, and password are required.'
+                ], 400);
+                return;
+            }
+
             $user = [
-                'name' => $data["name"],
-                'email' => $data["email"],
+                'name' => trim((string) ($data["name"] ?? '')),
+                'email' => normalizeEmailAddress($data["email"] ?? ''),
                 'bio' => "",
                 'notifySubmissions' => 1,
                 'password' => password_hash($data["password"], PASSWORD_DEFAULT),
-                'accountType' => $data["accountType"]
+                'accountType' => clampEditableAccountType($data["accountType"] ?? 2)
             ];
 
-            $user = $userStore->insert($user);
+            if ($user['name'] === '' || !isValidEmailAddress($user['email'])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'A valid name and email are required.'
+                ], 400);
+                return;
+            }
+
+            $userStore->insert($user);
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1125,21 +1750,56 @@ if (!file_exists("config.php")) {
     Route::add('/api/users/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin']) && ($_SESSION['accountType'] != 2 || $_SESSION['id'] == $who)) {
             global $userStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
+            $existingUser = $userStore->findById($who);
+            if ($existingUser == null || !canManageUserRecord($existingUser)) {
+                getErrorPage(401);
+                return;
+            }
+
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
+            if (!is_array($data)) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'Invalid request body.'
+                ], 400);
+                return;
+            }
+
             $user = [
-                'name' => $data["name"],
-                'email' => $data["email"],
-                'bio' => $data["bio"],
-                'notifySubmissions' => $data["notifySubmissions"],
-                'accountType' => $data["accountType"]
+                'name' => trim((string) ($data["name"] ?? '')),
+                'email' => normalizeEmailAddress($data["email"] ?? ''),
+                'bio' => (string) ($data["bio"] ?? ''),
+                'notifySubmissions' => !empty($data["notifySubmissions"]) ? 1 : 0,
+                'accountType' => clampEditableAccountType($data["accountType"] ?? ($existingUser["accountType"] ?? 2), $existingUser)
             ];
+
+            if ($user['name'] === '' || !isValidEmailAddress($user['email'])) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'A valid name and email are required.'
+                ], 400);
+                return;
+            }
 
             if (isset($data["password"]) && $data["password"] != "") {
                 $user['password'] = password_hash($data["password"], PASSWORD_DEFAULT);
             }
 
-            $user = $userStore->updateById($who, $user);
+            $updatedUser = $userStore->updateById($who, $user);
+            if ((string) $who === getCurrentUserId()) {
+                $_SESSION['name'] = $updatedUser['name'];
+                $_SESSION['accountType'] = $updatedUser['accountType'];
+            }
+
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1149,6 +1809,17 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin']) && $_SESSION['accountType'] != 2) {
             global $userStore;
             global $pageStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
+            $existingUser = $userStore->findById($who);
+            if ($existingUser == null || !canManageUserRecord($existingUser) || (string) $who === getCurrentUserId()) {
+                getErrorPage(401);
+                return;
+            }
+
             if ($userStore->count() > 1) {
                 $userStore->deleteById($who);
 
@@ -1164,6 +1835,9 @@ if (!file_exists("config.php")) {
                 }
                 $pageStore->update($allPages);
             }
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1208,10 +1882,22 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
 
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
             $json = file_get_contents('php://input');
-            $page = $pageStore->insert(generatePage($json, true));
-            $myJSON = json_encode($page);
-            echo $myJSON;
+            $page = generatePage($json, true);
+            if ($page === null) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The page request is invalid.'
+                ], 400);
+                return;
+            }
+
+            $savedPage = $pageStore->insert($page);
+            sendJsonResponse($savedPage);
         } else {
             getErrorPage(401);
         }
@@ -1222,8 +1908,27 @@ if (!file_exists("config.php")) {
             global $pageStore;
             global $menuStore;
 
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
+            $existingPage = $pageStore->findById($who);
+            if ($existingPage == null || !canEditPage($existingPage)) {
+                getErrorPage(401);
+                return;
+            }
+
             $json = file_get_contents('php://input');
-            $page = $pageStore->updateById($who, generatePage($json));
+            $updatedPageData = generatePage($json, false, $existingPage);
+            if ($updatedPageData === null) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The page request is invalid.'
+                ], 400);
+                return;
+            }
+
+            $page = $pageStore->updateById($who, $updatedPageData);
             $myJSON = json_encode($page);
 
             $allMenuItems = $menuStore->findAll();
@@ -1249,6 +1954,17 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             global $menuStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
+            $existingPage = $pageStore->findById($who);
+            if ($existingPage == null || !canEditPage($existingPage)) {
+                getErrorPage(401);
+                return;
+            }
+
             $allMenuItems = $menuStore->findAll();
             foreach ($allMenuItems as &$menuItem) {
                 if ($menuItem["type"] == 0 && $menuItem["page"] == $who) {
@@ -1258,6 +1974,9 @@ if (!file_exists("config.php")) {
                 }
             }
             $pageStore->deleteById($who);
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1266,7 +1985,7 @@ if (!file_exists("config.php")) {
     /* Menus */
 
     Route::add('/api/menus', function () {
-        if (isset($_SESSION['loggedin'])) {
+        if (canManageMenus()) {
             $allMenuItems = getAllMenuItems();
             $myJSON = json_encode($allMenuItems);
             echo $myJSON;
@@ -1276,11 +1995,23 @@ if (!file_exists("config.php")) {
     });
 
     Route::add('/api/menus', function () {
-        if (isset($_SESSION['loggedin'])) {
+        if (canManageMenus()) {
             global $menuStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
 
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
+            if (!is_array($data)) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'Invalid menu payload.'
+                ], 400);
+                return;
+            }
+
             $data = prepareMenuItemsForStore($data);
 
             $menuStore->createQueryBuilder()->getQuery()->delete();
@@ -1313,6 +2044,10 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
             if (requestExceededPostMaxSize()) {
                 sendJsonResponse([
                     'success' => false,
@@ -1321,9 +2056,7 @@ if (!file_exists("config.php")) {
                 return;
             }
 
-            if (!file_exists('./uploads')) {
-                mkdir('./uploads');
-            }
+            ensureUploadsDirectoryExists();
 
             if (!isset($_FILES['uploadMediaFiles']) || !isset($_FILES['uploadMediaFiles']['name'])) {
                 sendJsonResponse([
@@ -1345,7 +2078,18 @@ if (!file_exists("config.php")) {
                     return;
                 }
 
-                if (!move_uploaded_file($_FILES['uploadMediaFiles']['tmp_name'][$i], "./uploads/" . $_FILES['uploadMediaFiles']['name'][$i])) {
+                $temporaryFile = $_FILES['uploadMediaFiles']['tmp_name'][$i] ?? '';
+                $originalFilename = $_FILES['uploadMediaFiles']['name'][$i] ?? '';
+                if (!isAllowedUploadedFile($temporaryFile, $originalFilename)) {
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => getInvalidUploadTypeMessage(),
+                    ], 400);
+                    return;
+                }
+
+                $storedFilename = moveUploadedFileToStorage($temporaryFile, $originalFilename);
+                if ($storedFilename === null) {
                     sendJsonResponse([
                         'success' => false,
                         'message' => 'The server could not save the uploaded file. Please try again.',
@@ -1353,27 +2097,36 @@ if (!file_exists("config.php")) {
                     return;
                 } else {
                     $page = [];
-                    $page['file'] = $_FILES['uploadMediaFiles']['name'][$i];
+                    $page['file'] = $storedFilename;
                     $page['fileSmall'] = $page['file'];
                     $page["caption"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
 
-                    $page["editedUser"] = $_SESSION['id'];
+                    $page["editedUser"] = getCurrentUserId();
                     $page["edited"] = time();
                     $page["createdUser"] = $page["editedUser"];
                     $page["created"] = $page["edited"];
 
-                    if (strtolower($page['extension']) == "png" || $page['extension'] == 'jpg' || $page['extension'] == 'gif' || $page['extension'] == 'jpeg' || $page['extension'] == 'svg') {
+                    if (in_array(strtolower($page['extension']), ['png', 'jpg', 'gif', 'jpeg', 'webp'], true)) {
                         $page['type'] = "image";
                     } else {
                         $page['type'] = "file";
                     }
 
                     if ($page["type"] == "image") {
-                        $image = new ImageResize("./uploads/" . $page['file']);
-                        $image->resizeToWidth(500);
-                        $image->save("./uploads/min_" . $page['file']);
-                        $page['fileSmall'] = "min_" . $page['file'];
+                        try {
+                            $image = new ImageResize(getUploadStoragePath($page['file']));
+                            $image->resizeToWidth(500);
+                            $page['fileSmall'] = "min_" . $page['file'];
+                            $image->save(getUploadStoragePath($page['fileSmall']));
+                        } catch (\Throwable $exception) {
+                            deleteStoredUploadFile($page['file']);
+                            sendJsonResponse([
+                                'success' => false,
+                                'message' => getInvalidUploadTypeMessage(true),
+                            ], 400);
+                            return;
+                        }
                     }
 
                     $page = $mediaStore->insert($page);
@@ -1397,6 +2150,10 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
 
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
             if (requestExceededPostMaxSize()) {
                 sendJsonResponse([
                     'success' => false,
@@ -1405,9 +2162,7 @@ if (!file_exists("config.php")) {
                 return;
             }
 
-            if (!file_exists('./uploads')) {
-                mkdir('./uploads');
-            }
+            ensureUploadsDirectoryExists();
 
             if (!isset($_FILES['fileToUpload'])) {
                 sendJsonResponse([
@@ -1426,7 +2181,18 @@ if (!file_exists("config.php")) {
                 return;
             }
 
-            if (!move_uploaded_file($_FILES['fileToUpload']['tmp_name'], "./uploads/" . $_FILES['fileToUpload']['name'])) {
+            $temporaryFile = $_FILES['fileToUpload']['tmp_name'] ?? '';
+            $originalFilename = $_FILES['fileToUpload']['name'] ?? '';
+            if (!isAllowedUploadedFile($temporaryFile, $originalFilename, true)) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => getInvalidUploadTypeMessage(true),
+                ], 400);
+                return;
+            }
+
+            $storedFilename = moveUploadedFileToStorage($temporaryFile, $originalFilename);
+            if ($storedFilename === null) {
                 sendJsonResponse([
                     'success' => false,
                     'message' => 'The server could not save the uploaded file. Please try again.',
@@ -1434,25 +2200,34 @@ if (!file_exists("config.php")) {
                 return;
             } else {
                 $page = [];
-                $page['file'] = $_FILES['fileToUpload']['name'];
+                $page['file'] = $storedFilename;
                 $page['fileSmall'] = "min_" . $page['file'];
                 $page["caption"] = "";
                 $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
                 $page['type'] = "image";
 
-                $page["editedUser"] = $_SESSION['id'];
+                $page["editedUser"] = getCurrentUserId();
                 $page["edited"] = time();
                 $page["createdUser"] = $page["editedUser"];
                 $page["created"] = $page["edited"];
 
-                $image = new ImageResize("./uploads/" . $page['file']);
-                $image->resizeToWidth(500);
-                $image->save("./uploads/min_" . $page['file']);
+                try {
+                    $image = new ImageResize(getUploadStoragePath($page['file']));
+                    $image->resizeToWidth(500);
+                    $image->save(getUploadStoragePath($page['fileSmall']));
+                } catch (\Throwable $exception) {
+                    deleteStoredUploadFile($page['file']);
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => getInvalidUploadTypeMessage(true),
+                    ], 400);
+                    return;
+                }
 
                 $page = $mediaStore->insert($page);
                 sendJsonResponse([
                     'success' => true,
-                    'file' => BASEPATH . '/uploads/' . $page['file'],
+                    'file' => BASEPATH . '/uploads/' . rawurlencode($page['file']),
                 ]);
             }
         } else {
@@ -1466,15 +2241,29 @@ if (!file_exists("config.php")) {
     Route::add('/api/media/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
+            $existingMedia = $mediaStore->findById($who);
+            if ($existingMedia == null || !canEditMediaItem($existingMedia)) {
+                getErrorPage(401);
+                return;
+            }
+
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
             $mediaItem = [
-                'caption' => $data["caption"],
-                'editedUser' => $_SESSION['id'],
+                'caption' => (string) ($data["caption"] ?? ''),
+                'editedUser' => getCurrentUserId(),
                 'edited' => time()
             ];
 
-            $mediaItem = $mediaStore->updateById($who, $mediaItem);
+            $mediaStore->updateById($who, $mediaItem);
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1483,23 +2272,39 @@ if (!file_exists("config.php")) {
     Route::add('/api/media/([0-9]*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
-            $selectedMedia = $mediaStore->findById($who);
-            $mediaStore->deleteById($who);
-            if (!unlink("./uploads/" . $selectedMedia['file'])) {
-                getErrorPage(500);
+
+            if (!requireCsrfToken(true)) {
+                return;
             }
-            if ($selectedMedia['type'] == "image") {
-                if (!unlink("./uploads/" . $selectedMedia['fileSmall'])) {
+
+            $selectedMedia = $mediaStore->findById($who);
+            if ($selectedMedia == null || !canEditMediaItem($selectedMedia)) {
+                getErrorPage(401);
+                return;
+            }
+
+            $mediaStore->deleteById($who);
+            if (!deleteStoredUploadFile($selectedMedia['file'])) {
+                getErrorPage(500);
+                return;
+            }
+            if ($selectedMedia['type'] == "image" && $selectedMedia['fileSmall'] !== $selectedMedia['file']) {
+                if (!deleteStoredUploadFile($selectedMedia['fileSmall'])) {
                     getErrorPage(500);
+                    return;
                 }
             }
+
+            sendJsonResponse([
+                'success' => true
+            ]);
         }
     }, 'DELETE');
 
     /* Forms */
 
     Route::add('/api/form', function () {
-        if (isset($_SESSION['loggedin'])) {
+        if (canManageForms()) {
             global $formStore;
             $allSubmissions = $formStore->findAll($orderBy = ["created" => "desc"]);
             $myJSON = json_encode($allSubmissions);
@@ -1531,20 +2336,20 @@ if (!file_exists("config.php")) {
                             "id" => $field["id"],
                             "name" => $field["name"],
                             "type" => $field["type"],
-                            "value" => test_input($_POST[$field["id"]])
+                            "value" => test_input($_POST[$field["id"]] ?? '')
                         ];
                     }
                     $submission = $formStore->insert($submission);
 
 
                     $subject = $form["name"] . " Form Submission From Your Website";
-                    $txt = "There is a new " . $form["name"] . " form submission on your website. <a href='" . $_SERVER['SERVER_NAME'] . '/admin' . "'>Log into to the dashboard to view it.</a>";
+                    $txt = "There is a new " . $form["name"] . " form submission on your website. <a href='" . rtrim(getFullBasepathRaw(), '/') . "/admin'>Log into to the dashboard to view it.</a>";
                     $headers = "MIME-Version: 1.0" . "\r\n";
                     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
 
                     $allUsers = $userStore->findAll();
                     foreach ($allUsers as $user) {
-                        if ($user["notifySubmissions"] == 1) {
+                        if ($user["notifySubmissions"] == 1 && isValidEmailAddress($user["email"] ?? '')) {
                             mail($user["email"], $subject, $txt, $headers);
                         }
                     };
@@ -1560,9 +2365,17 @@ if (!file_exists("config.php")) {
     }, 'POST');
 
     Route::add('/api/form/([0-9]*)', function ($who) {
-        if (isset($_SESSION['loggedin'])) {
+        if (canManageForms()) {
             global $formStore;
+
+            if (!requireCsrfToken(true)) {
+                return;
+            }
+
             $formStore->deleteById($who);
+            sendJsonResponse([
+                'success' => true
+            ]);
         } else {
             getErrorPage(401);
         }
@@ -1583,8 +2396,8 @@ if (!file_exists("config.php")) {
         if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            $filename = './theme/' . $page["templateName"] . ".php";
-            if (file_exists($filename)) {
+            $filename = getThemeTemplatePhpPath((string) ($page["templateName"] ?? ''));
+            if ($filename !== null) {
                 includeThemeFile($filename, [
                     'page' => $page,
                     'siteTitle' => $siteTitle
@@ -1604,8 +2417,8 @@ if (!file_exists("config.php")) {
         if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
             getErrorPage(404);
         } else {
-            $filename = './theme/' . $page["templateName"] . ".php";
-            if (file_exists($filename)) {
+            $filename = getThemeTemplatePhpPath((string) ($page["templateName"] ?? ''));
+            if ($filename !== null) {
                 includeThemeFile($filename, [
                     'page' => $page,
                     'siteTitle' => $siteTitle

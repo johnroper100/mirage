@@ -10,6 +10,7 @@
             <div class="card">
                 <div class="card-body">
                     <form action="<?php echo BASEPATH ?>/login" method="POST">
+                        <?php echo getCsrfTokenFieldHtml(); ?>
                         <div class="mb-3">
                             <label class="form-label">Email Address:</label>
                             <input type="email" class="form-control" placeholder="johndoe@mail.com" name="email" id="email">

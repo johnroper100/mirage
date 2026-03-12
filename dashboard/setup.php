@@ -10,6 +10,7 @@
             <div class="card">
                 <div class="card-body">
                     <form action="<?php echo BASEPATH ?>/setup" method="POST">
+                        <?php echo getCsrfTokenFieldHtml(); ?>
                         <div class="mb-3">
                             <label class="form-label">Site Title:</label>
                             <input required type="text" class="form-control" placeholder="My New Website" name="siteTitle" id="siteTitle">

@@ -22,8 +22,10 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings')" :class="{'active text-light': viewPage == 'settings'}"><i class="fa-solid fa-gears me-1"></i> Settings</span>-->
-            <a class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"
-                href="<?php echo BASEPATH ?>/logout"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</a>
+            <form action="<?php echo BASEPATH ?>/logout" method="POST" class="m-0">
+                <?php echo getCsrfTokenFieldHtml(); ?>
+                <button type="submit" class="btn btn-link w-100 text-start p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</button>
+            </form>
             <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary">System Version: v<?php echo MIRAGE_VERSION; ?></small>
             <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary">PHP Version: v<?php echo phpversion(); ?></small>
             <small class="p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-brands fa-github me-1"></i> <a href="https://github.com/johnroper100/mirage" class="text-secondary" target="_blank">GitHub</a></small>
@@ -558,10 +560,26 @@
     var selectFileModal;
     var uploadMediaModal;
     var editMediaModal;
+    const MIRAGE_CSRF_TOKEN = document.querySelector('meta[name="mirage-csrf-token"]')?.getAttribute('content') || '';
     const MAX_UPLOAD_FILE_BYTES = <?php echo (int) getUploadFileLimitBytes(); ?>;
     const MAX_UPLOAD_TOTAL_BYTES = <?php echo (int) getPostMaxSizeBytes(); ?>;
     const MAX_UPLOAD_FILE_LABEL = <?php echo json_encode(formatBytes(getUploadFileLimitBytes())); ?>;
     const MAX_UPLOAD_TOTAL_LABEL = <?php echo json_encode(formatBytes(getPostMaxSizeBytes())); ?>;
+
+    const originalXhrOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method) {
+        this._mirageMethod = String(method || 'GET').toUpperCase();
+        return originalXhrOpen.apply(this, arguments);
+    };
+
+    const originalXhrSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function(body) {
+        if (MIRAGE_CSRF_TOKEN && !['GET', 'HEAD', 'OPTIONS'].includes(this._mirageMethod || 'GET')) {
+            this.setRequestHeader('X-Mirage-Csrf', MIRAGE_CSRF_TOKEN);
+        }
+
+        return originalXhrSend.call(this, body);
+    };
 
     window.addEventListener('DOMContentLoaded', event => {
 
@@ -594,7 +612,9 @@
                 activeTheme: {},
                 pages: [],
                 counts: {},
-                activeUser: {},
+                activeUser: {
+                    accountType: 2
+                },
                 users: {},
                 menuItems: {},
                 mediaItems: {},
@@ -661,6 +681,12 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
+                    if (this.status < 200 || this.status >= 300) {
+                        comp.formSubmissions = [];
+                        comp.selectedFormSubmissionIDs = [];
+                        return;
+                    }
+
                     var submissions = JSON.parse(this.responseText);
                     comp.formSubmissions = Array.isArray(submissions) ? submissions : Object.values(submissions);
                     comp.selectedFormSubmissionIDs = comp.selectedFormSubmissionIDs.filter(function (selectedID) {
@@ -694,6 +720,11 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
+                    if (this.status < 200 || this.status >= 300) {
+                        comp.menuItems = {};
+                        return;
+                    }
+
                     var initialMenuItems = JSON.parse(this.responseText);
                     comp.menuItems = {};
                     initialMenuItems.forEach(function (item) {
@@ -897,6 +928,14 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeUser = JSON.parse(this.responseText);
+                    if (comp.activeUser.accountType != 2) {
+                        comp.getFormSubmissions();
+                        comp.getMenus();
+                    } else {
+                        comp.formSubmissions = [];
+                        comp.selectedFormSubmissionIDs = [];
+                        comp.menuItems = {};
+                    }
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users/active", true);
                 xmlhttp.send();
@@ -1419,8 +1458,6 @@
         mounted() {
             this.getTheme();
             this.getMedia();
-            this.getFormSubmissions();
-            this.getMenus();
             this.getCounts();
             this.getUsers();
             this.getActiveUser();
