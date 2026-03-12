@@ -2,7 +2,7 @@
 
 session_start();
 
-define('MIRAGE_VERSION', "1.0.1");
+define('MIRAGE_VERSION', "1.0.2");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -193,6 +193,159 @@ function getUser($userID)
 
 function getFirstParagraph($string) {
     return substr($string, strpos($string, "<p"), strpos($string, "</p>")+4);
+}
+
+function appendQueryParam($url, $key, $value)
+{
+    if ($url == null || $url == "") {
+        return BASEPATH . '/';
+    }
+
+    $separator = strpos($url, '?') === false ? '?' : '&';
+    return $url . $separator . rawurlencode($key) . '=' . rawurlencode($value);
+}
+
+function getFormReferer()
+{
+    if (!isset($_SERVER["HTTP_REFERER"]) || $_SERVER["HTTP_REFERER"] == "") {
+        return BASEPATH . '/';
+    }
+
+    return $_SERVER["HTTP_REFERER"];
+}
+
+function getClientIpAddress()
+{
+    if (isset($_SERVER['REMOTE_ADDR']) && $_SERVER['REMOTE_ADDR'] !== '') {
+        return $_SERVER['REMOTE_ADDR'];
+    }
+
+    return 'unknown';
+}
+
+function getSpamProtectionSession()
+{
+    if (!isset($_SESSION['formSpamProtection']) || !is_array($_SESSION['formSpamProtection'])) {
+        $_SESSION['formSpamProtection'] = [];
+    }
+
+    return $_SESSION['formSpamProtection'];
+}
+
+function buildFormSpamProtection($formID)
+{
+    $spamProtection = getSpamProtectionSession();
+
+    if (
+        !isset($spamProtection[$formID])
+        || !isset($spamProtection[$formID]['token'])
+        || !isset($spamProtection[$formID]['generatedAt'])
+        || (time() - (int) $spamProtection[$formID]['generatedAt']) > 7200
+    ) {
+        $spamProtection[$formID] = [
+            'token' => bin2hex(random_bytes(16)),
+            'generatedAt' => time()
+        ];
+    }
+
+    $_SESSION['formSpamProtection'] = $spamProtection;
+
+    return $spamProtection[$formID];
+}
+
+function extractFormIdFromAction($action)
+{
+    $matches = [];
+    if (preg_match('~(?:^|/)form/([^/?#"\']+)~', $action, $matches) !== 1) {
+        return null;
+    }
+
+    return rawurldecode($matches[1]);
+}
+
+function injectSpamProtectionIntoForms($html)
+{
+    return preg_replace_callback('/<form\b[^>]*\baction\s*=\s*(["\'])([^"\']+)\1[^>]*>/i', function ($matches) {
+        $formID = extractFormIdFromAction($matches[2]);
+        if ($formID == null) {
+            return $matches[0];
+        }
+
+        $protection = buildFormSpamProtection($formID);
+        $injectedFields = '<div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">'
+            . '<label>Leave this field empty'
+            . '<input type="text" name="_mirage_website" tabindex="-1" autocomplete="off">'
+            . '</label>'
+            . '</div>'
+            . '<input type="hidden" name="_mirage_form_token" value="' . htmlspecialchars($protection['token'], ENT_QUOTES, 'UTF-8') . '">';
+
+        return $matches[0] . $injectedFields;
+    }, $html);
+}
+
+function includeThemeFile($filename, $data = [])
+{
+    global $siteTitle;
+
+    if (!isset($data['page']) || !is_array($data['page'])) {
+        $data['page'] = [];
+    }
+
+    if (!array_key_exists('siteTitle', $data)) {
+        $data['siteTitle'] = isset($siteTitle) ? $siteTitle : '';
+    }
+
+    extract($data, EXTR_SKIP);
+
+    ob_start();
+    include $filename;
+    $output = ob_get_clean();
+
+    echo injectSpamProtectionIntoForms($output);
+}
+
+function getRecentFormSubmission($formID, $ipAddress)
+{
+    global $formStore;
+
+    $recentSubmissions = $formStore->findBy([
+        ["form", "=", $formID],
+        ["ipAddress", "=", $ipAddress]
+    ], ["created" => "desc"], 1);
+
+    if (!is_array($recentSubmissions) || count($recentSubmissions) === 0) {
+        return null;
+    }
+
+    return $recentSubmissions[0];
+}
+
+function isSpamSubmission($formID)
+{
+    $spamProtection = getSpamProtectionSession();
+    $storedProtection = isset($spamProtection[$formID]) ? $spamProtection[$formID] : null;
+    $submittedToken = isset($_POST['_mirage_form_token']) ? trim($_POST['_mirage_form_token']) : '';
+    $honeypotValue = isset($_POST['_mirage_website']) ? trim($_POST['_mirage_website']) : '';
+
+    if ($honeypotValue !== '') {
+        return true;
+    }
+
+    if ($storedProtection == null || $submittedToken === '' || !hash_equals($storedProtection['token'], $submittedToken)) {
+        return true;
+    }
+
+    $secondsSinceRendered = time() - $storedProtection['generatedAt'];
+    if ($secondsSinceRendered < 2 || $secondsSinceRendered > 7200) {
+        return true;
+    }
+
+    $recentSubmission = getRecentFormSubmission($formID, getClientIpAddress());
+    if ($recentSubmission != null && isset($recentSubmission['created']) && (time() - (int) $recentSubmission['created']) < 300) {
+        return true;
+    }
+
+    return false;
 }
 
 # Run setup if config.php does not yet exist
@@ -677,16 +830,18 @@ if (!file_exists("config.php")) {
         $forms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
         foreach ($forms as $form) {
             if ($form["id"] == $formID) {
-                if (test_input($_POST["math"]) != "5") {
-                    $error = true;
-
-                    header("Location: {$_SERVER["HTTP_REFERER"]}?error=1");
+                if (isSpamSubmission($formID) || test_input($_POST["math"]) != "5") {
+                    unset($_SESSION['formSpamProtection'][$formID]);
+                    header('Location: ' . appendQueryParam(getFormReferer(), 'error', '1'));
+                    return;
                 } else {
                     $submission = [];
                     $submission["form"] = $formID;
                     $submission["formName"] = $form["name"];
                     $submission["fields"] = [];
                     $submission["created"] = time();
+                    $submission["ipAddress"] = getClientIpAddress();
+                    $submission["userAgent"] = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 500) : '';
                     foreach ($form["fields"] as $field) {
                         $submission["fields"][] = [
                             "id" => $field["id"],
@@ -710,10 +865,14 @@ if (!file_exists("config.php")) {
                         }
                     };
 
-                    header("Location: {$_SERVER["HTTP_REFERER"]}?success=1");
+                    unset($_SESSION['formSpamProtection'][$formID]);
+                    header('Location: ' . appendQueryParam(getFormReferer(), 'success', '1'));
+                    return;
                 }
             }
         };
+
+        getErrorPage(404);
     }, 'POST');
 
     Route::add('/api/form/([0-9]*)', function ($who) {
@@ -738,7 +897,10 @@ if (!file_exists("config.php")) {
         } else {
             $filename = './theme/' . $page["templateName"] . ".php";
             if (file_exists($filename)) {
-                include $filename;
+                includeThemeFile($filename, [
+                    'page' => $page,
+                    'siteTitle' => $siteTitle
+                ]);
             } else {
                 getErrorPage(404);
             }
@@ -756,7 +918,10 @@ if (!file_exists("config.php")) {
         } else {
             $filename = './theme/' . $page["templateName"] . ".php";
             if (file_exists($filename)) {
-                include $filename;
+                includeThemeFile($filename, [
+                    'page' => $page,
+                    'siteTitle' => $siteTitle
+                ]);
             } else {
                 getErrorPage(404);
             }
