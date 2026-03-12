@@ -560,6 +560,7 @@
     var selectFileModal;
     var uploadMediaModal;
     var editMediaModal;
+    var richtextMediaTarget = null;
     const MIRAGE_CSRF_TOKEN = document.querySelector('meta[name="mirage-csrf-token"]')?.getAttribute('content') || '';
     const MAX_UPLOAD_FILE_BYTES = <?php echo (int) getUploadFileLimitBytes(); ?>;
     const MAX_UPLOAD_TOTAL_BYTES = <?php echo (int) getPostMaxSizeBytes(); ?>;
@@ -602,6 +603,14 @@
         selectFileModal = new bootstrap.Modal(document.getElementById('selectFileModal'), {});
         uploadMediaModal = new bootstrap.Modal(document.getElementById('uploadMediaModal'), {});
         editMediaModal = new bootstrap.Modal(document.getElementById('editMediaModal'), {});
+
+        document.getElementById('selectFileModal').addEventListener('hidden.bs.modal', function () {
+            if (window.mirageAdminApp != null && typeof window.mirageAdminApp.clearSelectFileTarget === 'function') {
+                window.mirageAdminApp.clearSelectFileTarget();
+            } else {
+                richtextMediaTarget = null;
+            }
+        });
     });
 
     const App = {
@@ -1248,6 +1257,90 @@
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(data));
             },
+            getMediaItemById(itemID) {
+                return Object.values(this.mediaItems).find(function (item) {
+                    return item._id == itemID;
+                }) || null;
+            },
+            resolveRichtextMediaTarget(target) {
+                if (target != null && target.$ta != null && target.$ta.length > 0) {
+                    return target.$ta;
+                }
+
+                var $target = null;
+                if (target != null) {
+                    if (target.jquery != null) {
+                        $target = target;
+                    } else if (target.currentTarget != null) {
+                        $target = $(target.currentTarget);
+                    } else {
+                        $target = $(target);
+                    }
+                }
+
+                if ($target != null && $target.length > 0) {
+                    var $targetBox = $target.closest('.trumbowyg-box');
+                    if ($targetBox.length > 0) {
+                        var $targetTextarea = $targetBox.find('textarea').first();
+                        if ($targetTextarea.length > 0) {
+                            return $targetTextarea;
+                        }
+                    }
+                }
+
+                var $activeBox = $(document.activeElement).closest('.trumbowyg-box');
+                if ($activeBox.length > 0) {
+                    var $activeTextarea = $activeBox.find('textarea').first();
+                    if ($activeTextarea.length > 0) {
+                        return $activeTextarea;
+                    }
+                }
+
+                return null;
+            },
+            buildMediaFileUrl(filename) {
+                return '<?php echo BASEPATH; ?>/uploads/' + encodeURIComponent(filename);
+            },
+            insertRichtextImageFromMedia(itemID) {
+                var mediaItem = this.getMediaItemById(itemID);
+                if (mediaItem == null || mediaItem.type !== 'image' || richtextMediaTarget == null || richtextMediaTarget.length === 0) {
+                    return false;
+                }
+
+                try {
+                    richtextMediaTarget.trumbowyg('restoreRange');
+                    var range = richtextMediaTarget.trumbowyg('getRange');
+                    var $editor = richtextMediaTarget.closest('.trumbowyg-box').find('.trumbowyg-editor').first();
+                    if (range == null || $editor.length === 0) {
+                        return false;
+                    }
+
+                    var imageNode = document.createElement('img');
+                    imageNode.src = this.buildMediaFileUrl(mediaItem.file);
+                    if (mediaItem.caption !== '') {
+                        imageNode.alt = mediaItem.caption;
+                    }
+
+                    range.deleteContents();
+                    range.insertNode(imageNode);
+                    range.setStartAfter(imageNode);
+                    range.setEndAfter(imageNode);
+
+                    var selection = window.getSelection();
+                    if (selection != null) {
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+
+                    richtextMediaTarget.trumbowyg('html', $editor.html());
+                    richtextMediaTarget.trumbowyg('saveRange');
+                    richtextMediaTarget.trigger('tbwchange');
+                    return true;
+                } catch (error) {
+                    console.error('Unable to insert media library image into rich text editor.', error);
+                    return false;
+                }
+            },
             findTemplateFieldByPath(fields, path, offset) {
                 for (var i = 0; i < fields.length; i++) {
                     var field = fields[i];
@@ -1281,6 +1374,7 @@
             clearSelectFileTarget() {
                 this.selectFileTarget = null;
                 this.selectMediaItemType = "image";
+                richtextMediaTarget = null;
             },
             selectFileItem(id) {
                 var comp = this;
@@ -1293,8 +1387,33 @@
                 if (comp.selectFileTarget != null && comp.selectFileTarget.type == "templateField") {
                     comp.setTemplateFieldValue(comp.selectFileTarget.path, id);
                     selectFileModal.hide();
+                    comp.clearSelectFileTarget();
+                    return;
+                }
+                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "richtextImage") {
+                    if (!comp.insertRichtextImageFromMedia(id)) {
+                        alert("The selected image could not be inserted.");
+                    }
+                    selectFileModal.hide();
+                    comp.clearSelectFileTarget();
+                    return;
                 }
                 comp.clearSelectFileTarget();
+            },
+            openRichtextMediaPicker(editor) {
+                var $target = this.resolveRichtextMediaTarget(editor);
+                if ($target == null) {
+                    alert("The editor selection could not be located.");
+                    return;
+                }
+
+                $target.trumbowyg('saveRange');
+                richtextMediaTarget = $target;
+                this.selectFileTarget = {
+                    type: "richtextImage"
+                };
+                this.selectMediaItemType = "image";
+                selectFileModal.show();
             },
             openUploadMediaModal() {
                 uploadMediaModal.show();
@@ -1398,13 +1517,8 @@
                 xmlhttp.send(JSON.stringify(comp.editingMediaItem));
             },
             getMediaFilePath(itemID) {
-                var returnVar = null;
-                this.mediaItems.forEach(function (item) {
-                    if (item._id == itemID) {
-                        returnVar = item.fileSmall;
-                    }
-                });
-                return returnVar;
+                var mediaItem = this.getMediaItemById(itemID);
+                return mediaItem != null ? mediaItem.fileSmall : null;
             },
             viewPath(path) {
                 if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
@@ -1483,15 +1597,33 @@
                 this.$root.getAllPages();
             }
             return {
-                richtextOptions: {
+                richtextOptions: null
+            }
+        },
+        created() {
+            this.richtextOptions = this.buildRichtextOptions();
+        },
+        methods: {
+            buildRichtextOptions() {
+                var comp = this;
+                return {
                     svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
+                    btnsDef: {
+                        mediaLibrary: {
+                            ico: 'insertImage',
+                            title: 'Insert image from media library',
+                            fn: function() {
+                                comp.$root.openRichtextMediaPicker(this);
+                            }
+                        }
+                    },
                     btns: [
                         ['historyUndo', 'historyRedo'],
                         ['formatting'],
                         ['strong', 'em', 'del'],
                         ['superscript', 'subscript'],
                         ['link'],
-                        ['insertImage', 'upload'],
+                        ['mediaLibrary'],
                         ['outdent', 'indent'],
                         ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
                         ['unorderedList', 'orderedList'],
@@ -1501,16 +1633,9 @@
                     ],
                     imageWidthModalEdit: true,
                     removeformatPasted: true,
-                    autogrow: true,
-                    plugins: {
-                        upload: {
-                            serverPath: "<?php echo BASEPATH ?>/api/media/richtext"
-                        }
-                    }
-                }
-            }
-        },
-        methods: {
+                    autogrow: true
+                };
+            },
             buildFieldPath(fieldID) {
                 return this.path.concat(fieldID);
             },
@@ -1562,7 +1687,7 @@
                     <option :value="option._id" v-for="option in filter_collection(this.$root.pages, field.collection)">{{option.title}}</option>
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
-                <trumbowyg v-if="field.type == 'richtext'" v-model="field.value" :config="richtextOptions"></trumbowyg>
+                <trumbowyg v-if="field.type == 'richtext' && richtextOptions != null" v-model="field.value" :config="richtextOptions"></trumbowyg>
                 <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+getMediaFilePath(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && field.value != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                 <div v-if="field.type == 'media' && field.subtype == 'file' && field.value != null">
                     <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
@@ -1581,6 +1706,6 @@
             `
     });
 
-    app.mount('#app');
+    window.mirageAdminApp = app.mount('#app');
 </script>
 <?php include 'footer.php'; ?>
