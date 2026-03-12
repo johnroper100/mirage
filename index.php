@@ -2,7 +2,7 @@
 
 session_start();
 
-define('MIRAGE_VERSION', "1.1.1");
+define('MIRAGE_VERSION', "1.1.2");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));

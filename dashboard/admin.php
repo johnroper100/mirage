@@ -64,6 +64,16 @@
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <button class="btn btn-success" v-if="viewPage == 'menus'" @click="saveMenus"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
+                        <div class="btn-group me-md-2 mb-1 mb-md-0" v-if="viewPage == 'forms'">
+                            <button class="btn btn-outline-secondary" @click="selectAllFormSubmissions" :disabled="formSubmissions.length == 0"><i
+                                    class="fa-solid fa-check-double me-1"></i> Select All</button>
+                            <button class="btn btn-outline-secondary" @click="clearFormSubmissionSelection" :disabled="selectedFormSubmissionIDs.length == 0"><i
+                                    class="fa-solid fa-xmark me-1"></i> Select None</button>
+                        </div>
+                        <button class="btn btn-danger me-md-2 mb-1 mb-md-0" v-if="viewPage == 'forms'"
+                            @click="deleteSelectedFormSubmissions" :disabled="selectedFormSubmissionIDs.length == 0"><i
+                                class="fa-solid fa-trash-can me-1"></i> Delete Selected<span
+                                v-if="selectedFormSubmissionIDs.length > 0"> ({{selectedFormSubmissionIDs.length}})</span></button>
                         <button class="btn btn-success" v-if="viewPage == 'media'" @click="openUploadMediaModal"><i
                                 class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                         <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
@@ -291,11 +301,21 @@
             </div>-->
             <div v-if="viewPage == 'forms'">
                 <div class="row">
+                    <div class="col-12 mb-3" v-if="formSubmissions.length == 0">
+                        <div class="alert alert-light border shadow-sm mb-0">No form submissions yet.</div>
+                    </div>
                     <div class="col-12 col-md-6 mb-3" v-for="submission in formSubmissions">
                         <div class="card">
-                            <div class="card-header">
-                                {{submission.formName}} Form Submission
-                                <button class="btn btn-sm btn-danger float-end" @click="deleteFormSubmission(submission._id)">Delete</button>
+                            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input" type="checkbox"
+                                        :id="'submissionSelect' + submission._id" v-model="selectedFormSubmissionIDs"
+                                        :value="submission._id">
+                                    <label class="form-check-label" :for="'submissionSelect' + submission._id">
+                                        {{submission.formName}} Form Submission
+                                    </label>
+                                </div>
+                                <button class="btn btn-sm btn-danger" @click="deleteFormSubmission(submission._id)">Delete</button>
                             </div>
                             <ul class="list-group list-group-flush">
                                 <li class="list-group-item" v-for="field in submission.fields"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
@@ -578,7 +598,8 @@
                 users: {},
                 menuItems: {},
                 mediaItems: {},
-                formSubmissions: {},
+                formSubmissions: [],
+                selectedFormSubmissionIDs: [],
                 editingTemplate: {},
                 editingTitle: "",
                 editingFeaturedImage: "",
@@ -642,10 +663,34 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
-                    comp.formSubmissions = JSON.parse(this.responseText);
+                    var submissions = JSON.parse(this.responseText);
+                    comp.formSubmissions = Array.isArray(submissions) ? submissions : Object.values(submissions);
+                    comp.selectedFormSubmissionIDs = comp.selectedFormSubmissionIDs.filter(function (selectedID) {
+                        return comp.formSubmissions.some(function (submission) {
+                            return submission._id == selectedID;
+                        });
+                    });
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/form", true);
                 xmlhttp.send();
+            },
+            selectAllFormSubmissions() {
+                this.selectedFormSubmissionIDs = this.formSubmissions.map(function (submission) {
+                    return submission._id;
+                });
+            },
+            clearFormSubmissionSelection() {
+                this.selectedFormSubmissionIDs = [];
+            },
+            deleteFormSubmissionRequest(submissionID) {
+                return new Promise(function (resolve) {
+                    var xmlhttp = new XMLHttpRequest();
+                    xmlhttp.onloadend = function () {
+                        resolve(xmlhttp);
+                    };
+                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/form/" + submissionID, true);
+                    xmlhttp.send();
+                });
             },
             getMenus() {
                 var comp = this;
@@ -1311,15 +1356,38 @@
                     return '<?php echo BASEPATH; ?>/' + path;
                 }
             },
-            deleteFormSubmission(submissionID) {
+            async deleteFormSubmission(submissionID) {
                 if (confirm("Are you sure you want to delete this?") == true) {
-                    var comp = this;
-                    var xmlhttp = new XMLHttpRequest();
-                    xmlhttp.onload = function () {
-                        comp.getFormSubmissions();
+                    var response = await this.deleteFormSubmissionRequest(submissionID);
+                    if (response.status >= 200 && response.status < 300) {
+                        this.selectedFormSubmissionIDs = this.selectedFormSubmissionIDs.filter(function (selectedID) {
+                            return selectedID != submissionID;
+                        });
+                        this.getFormSubmissions();
+                    } else {
+                        alert("Delete failed. Please try again.");
                     }
-                    xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/form/" + submissionID, true);
-                    xmlhttp.send();
+                }
+            },
+            async deleteSelectedFormSubmissions() {
+                if (this.selectedFormSubmissionIDs.length == 0) {
+                    return;
+                }
+
+                var selectedIDs = this.selectedFormSubmissionIDs.slice();
+                var submissionLabel = selectedIDs.length == 1 ? "submission" : "submissions";
+                if (confirm("Are you sure you want to delete " + selectedIDs.length + " " + submissionLabel + "?") == true) {
+                    var responses = await Promise.all(selectedIDs.map((submissionID) => this.deleteFormSubmissionRequest(submissionID)));
+                    var failedDeletes = responses.filter(function (response) {
+                        return response.status < 200 || response.status >= 300;
+                    });
+
+                    this.clearFormSubmissionSelection();
+                    this.getFormSubmissions();
+
+                    if (failedDeletes.length > 0) {
+                        alert("Some submissions could not be deleted. Please refresh and try again.");
+                    }
                 }
             },
             selectFeaturedImage() {
