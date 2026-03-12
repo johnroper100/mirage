@@ -410,7 +410,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                             <button type="button" class="btn btn-primary" @click="editNewPage"
-                                :class="{'disabled': editingTitle == '' || (editingTemplateName == '' && activeCollection.allowed_templates|length > 1) }">Add Page</button>
+                                :disabled="isAddPageDisabled">Add Page</button>
                         </div>
                     </div>
                 </div>
@@ -711,6 +711,12 @@
         computed: {
             listMediaItems() {
                 return Object.values(this.mediaItems).filter((obj) => obj.type == this.selectMediaItemType);
+            },
+            isAddPageDisabled() {
+                var allowedTemplates = Array.isArray(this.activeCollection.allowed_templates) ? this.activeCollection.allowed_templates : [];
+                var title = typeof this.editingTitle === 'string' ? this.editingTitle.trim() : '';
+
+                return title === '' || (this.editingTemplateName === '' && allowedTemplates.length > 1);
             }
         },
         methods: {
@@ -1213,6 +1219,10 @@
                 this.editingTemplateName = "";
             },
             editNewPage() {
+                if (this.isAddPageDisabled) {
+                    return;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
@@ -1226,7 +1236,7 @@
                     comp.editingEditedDate = "Never";
                     addPageModal.hide();
                 }
-                if (comp.editingTemplateName == "" && comp.activeCollection.allowed_templates.length > 0) {
+                if (comp.editingTemplateName == "" && Array.isArray(comp.activeCollection.allowed_templates) && comp.activeCollection.allowed_templates.length > 0) {
                     comp.editingTemplateName = comp.activeCollection.allowed_templates[0];
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + comp.editingTemplateName, true);
