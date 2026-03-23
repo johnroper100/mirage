@@ -115,6 +115,26 @@
         padding: 1rem;
     }
 
+    .mirage-analytics-metric-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mirage-analytics-metric {
+        border: 1px solid #dbe4ec;
+        border-radius: 0.85rem;
+        background: #f8fafc;
+        padding: 0.9rem 1rem;
+    }
+
+    .mirage-analytics-metric strong {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 1.6rem;
+        line-height: 1;
+    }
+
     .mirage-media-stat {
         border: 1px solid #d6dce2;
         border-radius: 0.75rem;
@@ -175,6 +195,10 @@
             min-width: 0;
         }
 
+        .mirage-analytics-metric-grid {
+            grid-template-columns: 1fr;
+        }
+
         .mirage-media-card-image,
         .mirage-media-file-placeholder {
             height: 7.5rem;
@@ -189,22 +213,26 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="openGeneralDashboard()"
                 :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i>
                 General</span>
+            <hr>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)"
                 :class="{'active text-light': (viewPage == 'pages' || viewPage == 'editPage') && activeCollection.id == collection.id}"
                 v-for="collection in activeTheme.collections"><i class="fa-solid me-1" :class="collection.icon"></i>
                 {{collection.name}}</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
-                :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessMenus()"><i class="fa-solid fa-chart-bar me-1"></i>
-                Menus</span>
+            <hr>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}" v-if="activeUser.accountType != 2"><i class="fa-solid fa-envelope-open-text me-1"></i> Form Submissions</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('media')"
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
                 Media</span>
+            <hr>
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
+                :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessMenus()"><i class="fa-solid fa-chart-bar me-1"></i>
+                Menus</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings'); getSiteSettings();"
                 :class="{'active text-light': viewPage == 'settings'}" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+            <hr>
             <form action="<?php echo BASEPATH ?>/logout" method="POST" class="m-0">
                 <?php echo getCsrfTokenFieldHtml(); ?>
                 <button type="submit" class="btn btn-link w-100 text-start p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</button>
@@ -307,6 +335,11 @@
                                             <small class="mirage-dashboard-label">Media Storage</small>
                                             <strong>{{formatBytes(mediaLibraryStats.totalStorageBytes)}}</strong>
                                             <div class="small text-secondary">{{mediaLibraryStats.attention}} item<span v-if="mediaLibraryStats.attention !== 1">s</span> need attention</div>
+                                        </div>
+                                        <div class="mirage-dashboard-glance-item">
+                                            <small class="mirage-dashboard-label">Live Traffic</small>
+                                            <strong>{{analyticsSummary.activeVisitors}}</strong>
+                                            <div class="small text-secondary">{{analyticsSummary.pageViewsLast30Minutes}} view<span v-if="analyticsSummary.pageViewsLast30Minutes !== 1">s</span> in the last 30 minutes</div>
                                         </div>
                                     </div>
                                 </div>
@@ -417,38 +450,69 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div>
-                                        <h5 class="mb-1">Recently Updated</h5>
-                                        <p class="small text-secondary mb-0">Latest changes across all collections.</p>
+                                        <h5 class="mb-1">Live Traffic</h5>
+                                        <p class="small text-secondary mb-0">First-party recent activity in Mirage, with Google Analytics status layered on top.</p>
                                     </div>
-                                    <span class="badge text-bg-light border" v-if="dashboardPagesLoading">Refreshing</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge text-bg-light border" v-if="analyticsLoading">Refreshing</span>
+                                        <span class="badge" :class="analyticsSummary.trackingConfigured ? 'text-bg-success' : 'text-bg-warning'">{{analyticsSummary.trackingConfigured ? 'GA Ready' : 'GA Not Set'}}</span>
+                                    </div>
                                 </div>
-                                <div class="mirage-dashboard-empty text-secondary small" v-if="dashboardPagesLoading && generalRecentPages.length === 0">
-                                    Loading recent content...
+                                <div class="mirage-analytics-metric-grid mb-3">
+                                    <div class="mirage-analytics-metric">
+                                        <small class="mirage-dashboard-label">Active Now</small>
+                                        <strong>{{analyticsSummary.activeVisitors}}</strong>
+                                        <div class="small text-secondary">Visitors seen in the last five minutes.</div>
+                                    </div>
+                                    <div class="mirage-analytics-metric">
+                                        <small class="mirage-dashboard-label">Last 30 Minutes</small>
+                                        <strong>{{analyticsSummary.pageViewsLast30Minutes}}</strong>
+                                        <div class="small text-secondary">Recent page views across public pages.</div>
+                                    </div>
+                                    <div class="mirage-analytics-metric">
+                                        <small class="mirage-dashboard-label">Today</small>
+                                        <strong>{{analyticsSummary.pageViewsToday}}</strong>
+                                        <div class="small text-secondary">Page views since midnight on this server.</div>
+                                    </div>
                                 </div>
-                                <div class="mirage-dashboard-empty text-secondary small" v-else-if="generalRecentPages.length === 0">
-                                    No pages have been created yet. Start with a collection on the right.
-                                </div>
-                                <div class="mirage-dashboard-list" v-else>
-                                    <div class="mirage-dashboard-list-item" v-for="page in generalRecentPages" :key="'recent-page-' + page._id">
-                                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
-                                            <div>
-                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                                    <strong>{{page.title || 'Untitled Page'}}</strong>
-                                                    <span class="badge" :class="page.isPublished === false ? 'text-bg-warning' : 'text-bg-success'">{{page.isPublished === false ? 'Draft' : 'Live'}}</span>
-                                                    <span class="badge text-bg-light border">{{getCollectionName(page.collection)}}</span>
+                                <div class="row g-3">
+                                    <div class="col-12 col-lg-6">
+                                        <div class="fw-semibold mb-2">Top Pages</div>
+                                        <div class="mirage-dashboard-empty text-secondary small" v-if="analyticsSummary.topPages.length === 0">
+                                            No public traffic has been recorded yet.
+                                        </div>
+                                        <div class="mirage-dashboard-list" v-else>
+                                            <div class="mirage-dashboard-list-item" v-for="page in analyticsSummary.topPages" :key="'analytics-top-page-' + page.path">
+                                                <div class="d-flex justify-content-between gap-3">
+                                                    <div>
+                                                        <div class="fw-semibold">{{page.title || 'Untitled Page'}}</div>
+                                                        <div class="mirage-dashboard-path">{{page.path || '/'}}</div>
+                                                    </div>
+                                                    <span class="badge text-bg-light border align-self-start">{{page.views}}</span>
                                                 </div>
-                                                <div class="mirage-dashboard-path">
-                                                    {{page.templateName || 'Template'}}
-                                                    <span v-if="getPageDisplayPath(page)"> - {{getPageDisplayPath(page)}}</span>
-                                                </div>
-                                                <div class="small text-secondary mt-1">Updated {{getDate(page.edited)}}</div>
-                                            </div>
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <a class="btn btn-sm btn-outline-secondary" :href="getPageViewPath(page)" target="_blank" v-if="getPageViewPath(page)"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
-                                                <button type="button" class="btn btn-sm btn-primary" @click="editPage(page._id, false)" v-if="canEditPageRecord(page)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="col-12 col-lg-6">
+                                        <div class="fw-semibold mb-2">Recent Views</div>
+                                        <div class="mirage-dashboard-empty text-secondary small" v-if="analyticsSummary.recentViews.length === 0">
+                                            Waiting for public traffic.
+                                        </div>
+                                        <div class="mirage-dashboard-list" v-else>
+                                            <div class="mirage-dashboard-list-item" v-for="view in analyticsSummary.recentViews" :key="'analytics-recent-view-' + view.path + '-' + view.created">
+                                                <div class="d-flex justify-content-between gap-3">
+                                                    <div>
+                                                        <div class="fw-semibold">{{view.title || 'Untitled Page'}}</div>
+                                                        <div class="mirage-dashboard-path">{{view.path || '/'}}</div>
+                                                    </div>
+                                                    <div class="small text-secondary text-end">{{formatRelativeTime(view.created)}}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="small text-secondary mt-3" v-if="canAccessSettings()">
+                                    Paste a Google Analytics tracking code in Settings. Theme developers only need <code v-pre>&lt;?php echo $mirageMetaTag; ?&gt;</code> inside the template <code>&lt;head&gt;</code>.
                                 </div>
                             </div>
                         </div>
@@ -504,6 +568,59 @@
                                         </div>
                                         <div class="text-end">
                                             <span class="badge" :class="(siteSettings.siteTitle || '').trim() !== '' ? 'text-bg-success' : 'text-bg-warning'">{{(siteSettings.siteTitle || '').trim() !== '' ? 'Ready' : 'Review'}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-health-item" v-if="canAccessSettings()">
+                                        <div>
+                                            <div class="fw-semibold">Google Analytics</div>
+                                            <div class="small text-secondary" v-if="analyticsSummary.trackingConfigured">Tracking code {{analyticsSummary.trackingCode}} is ready for Mirage head injection.</div>
+                                            <div class="small text-secondary" v-else>Add a tracking code in Settings to enable native Google Analytics loading.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="analyticsSummary.trackingConfigured ? 'text-bg-success' : 'text-bg-warning'">{{analyticsSummary.trackingConfigured ? 'Enabled' : 'Needs setup'}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-12">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h5 class="mb-1">Recently Updated</h5>
+                                        <p class="small text-secondary mb-0">Latest changes across all collections.</p>
+                                    </div>
+                                    <span class="badge text-bg-light border" v-if="dashboardPagesLoading">Refreshing</span>
+                                </div>
+                                <div class="mirage-dashboard-empty text-secondary small" v-if="dashboardPagesLoading && generalRecentPages.length === 0">
+                                    Loading recent content...
+                                </div>
+                                <div class="mirage-dashboard-empty text-secondary small" v-else-if="generalRecentPages.length === 0">
+                                    No pages have been created yet. Start with a collection on the right.
+                                </div>
+                                <div class="mirage-dashboard-list" v-else>
+                                    <div class="mirage-dashboard-list-item" v-for="page in generalRecentPages" :key="'recent-page-' + page._id">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                            <div>
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                    <strong>{{page.title || 'Untitled Page'}}</strong>
+                                                    <span class="badge" :class="page.isPublished === false ? 'text-bg-warning' : 'text-bg-success'">{{page.isPublished === false ? 'Draft' : 'Live'}}</span>
+                                                    <span class="badge text-bg-light border">{{getCollectionName(page.collection)}}</span>
+                                                </div>
+                                                <div class="mirage-dashboard-path">
+                                                    {{page.templateName || 'Template'}}
+                                                    <span v-if="getPageDisplayPath(page)"> - {{getPageDisplayPath(page)}}</span>
+                                                </div>
+                                                <div class="small text-secondary mt-1">Updated {{getDate(page.edited)}}</div>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <a class="btn btn-sm btn-outline-secondary" :href="getPageViewPath(page)" target="_blank" v-if="getPageViewPath(page)"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
+                                                <button type="button" class="btn btn-sm btn-primary" @click="editPage(page._id, false)" v-if="canEditPageRecord(page)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -924,11 +1041,23 @@
                             <textarea v-model="siteSettings.copyrightText" rows="3" class="form-control" placeholder="{{year}} {{siteTitle}} - All Rights Reserved."></textarea>
                             <div class="form-text">Available variables: <code v-pre>{{year}}</code> for the current year and <code v-pre>{{siteTitle}}</code> for the current site title.</div>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Google Analytics Tracking Code:</label>
+                            <input v-model="siteSettings.googleAnalyticsTrackingCode" type="text" class="form-control" placeholder="G-XXXXXXXXXX">
+                            <div class="form-text">Paste a Google Analytics measurement ID or the full Google tag snippet. Mirage will extract the tracking code automatically.</div>
+                        </div>
                         <div class="border rounded bg-light p-3">
                             <h6 class="mb-2">Preview</h6>
                             <p class="mb-1" v-if="siteSettings.footerText != ''">{{applySiteSettingTokens(siteSettings.footerText)}}</p>
                             <p class="mb-0" v-if="siteSettings.copyrightText != ''">{{applySiteSettingTokens(siteSettings.copyrightText)}}</p>
                             <p class="mb-0 text-secondary" v-if="siteSettings.footerText == '' && siteSettings.copyrightText == ''">Footer preview is empty.</p>
+                        </div>
+                        <div class="border rounded bg-light p-3 mt-3">
+                            <h6 class="mb-2">Analytics Integration</h6>
+                            <p class="mb-2" v-if="(siteSettings.googleAnalyticsTrackingCode || '').trim() !== ''">Tracking code detected: <code>{{siteSettings.googleAnalyticsTrackingCode}}</code></p>
+                            <p class="mb-2 text-secondary" v-else>Google Analytics is currently off.</p>
+                            <p class="small text-secondary mb-1">Theme developers only need <code v-pre>&lt;?php echo $mirageMetaTag; ?&gt;</code> inside the template <code>&lt;head&gt;</code>.</p>
+                            <p class="small text-secondary mb-0">Mirage injects the Google tag for the site owner and keeps a live traffic view in the admin dashboard.</p>
                         </div>
                     </div>
                 </div>
@@ -1450,10 +1579,22 @@
                 dashboardPages: [],
                 dashboardPagesLoading: false,
                 counts: {},
+                analyticsSummary: {
+                    trackingConfigured: false,
+                    trackingCode: "",
+                    activeVisitors: 0,
+                    pageViewsLast30Minutes: 0,
+                    pageViewsToday: 0,
+                    topPages: [],
+                    recentViews: [],
+                    lastUpdated: 0
+                },
+                analyticsLoading: false,
                 siteSettings: {
                     siteTitle: "",
                     footerText: "",
-                    copyrightText: ""
+                    copyrightText: "",
+                    googleAnalyticsTrackingCode: ""
                 },
                 activeUser: {
                     accountType: 2
@@ -1765,6 +1906,29 @@
             },
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
+            },
+            formatRelativeTime(dateItem) {
+                var timestamp = Number(dateItem || 0);
+                if (timestamp <= 0) {
+                    return 'Just now';
+                }
+
+                var secondsAgo = Math.max(0, Math.floor((Date.now() / 1000) - timestamp));
+                if (secondsAgo < 60) {
+                    return 'Just now';
+                }
+
+                if (secondsAgo < 3600) {
+                    var minutesAgo = Math.floor(secondsAgo / 60);
+                    return minutesAgo + ' min ago';
+                }
+
+                if (secondsAgo < 86400) {
+                    var hoursAgo = Math.floor(secondsAgo / 3600);
+                    return hoursAgo + ' hr ago';
+                }
+
+                return this.getDate(timestamp);
             },
             getFormSubmissionGroupKey(submission) {
                 if (submission == null || typeof submission !== 'object') {
@@ -2151,6 +2315,7 @@
                 this.getDashboardPages();
                 this.getUsers();
                 this.getMedia();
+                this.getAnalyticsSummary();
 
                 if (this.canAccessMenus()) {
                     this.getFormSubmissions();
@@ -2455,7 +2620,8 @@
                     this.siteSettings = {
                         siteTitle: "",
                         footerText: "",
-                        copyrightText: ""
+                        copyrightText: "",
+                        googleAnalyticsTrackingCode: ""
                     };
                     return;
                 }
@@ -2471,10 +2637,56 @@
                     comp.siteSettings = {
                         siteTitle: settings.siteTitle || "",
                         footerText: settings.footerText || "",
-                        copyrightText: settings.copyrightText || ""
+                        copyrightText: settings.copyrightText || "",
+                        googleAnalyticsTrackingCode: settings.googleAnalyticsTrackingCode || ""
                     };
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/settings", true);
+                xmlhttp.send();
+            },
+            getAnalyticsSummary() {
+                var emptySummary = {
+                    trackingConfigured: false,
+                    trackingCode: "",
+                    activeVisitors: 0,
+                    pageViewsLast30Minutes: 0,
+                    pageViewsToday: 0,
+                    topPages: [],
+                    recentViews: [],
+                    lastUpdated: 0
+                };
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                comp.analyticsLoading = true;
+                xmlhttp.onload = function () {
+                    comp.analyticsLoading = false;
+
+                    if (this.status < 200 || this.status >= 300) {
+                        comp.analyticsSummary = emptySummary;
+                        return;
+                    }
+
+                    try {
+                        var summary = JSON.parse(this.responseText);
+                        comp.analyticsSummary = {
+                            trackingConfigured: summary.trackingConfigured === true,
+                            trackingCode: summary.trackingCode || "",
+                            activeVisitors: Number(summary.activeVisitors || 0),
+                            pageViewsLast30Minutes: Number(summary.pageViewsLast30Minutes || 0),
+                            pageViewsToday: Number(summary.pageViewsToday || 0),
+                            topPages: Array.isArray(summary.topPages) ? summary.topPages : [],
+                            recentViews: Array.isArray(summary.recentViews) ? summary.recentViews : [],
+                            lastUpdated: Number(summary.lastUpdated || 0)
+                        };
+                    } catch (error) {
+                        comp.analyticsSummary = emptySummary;
+                    }
+                };
+                xmlhttp.onerror = function () {
+                    comp.analyticsLoading = false;
+                    comp.analyticsSummary = emptySummary;
+                };
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/analytics/summary", true);
                 xmlhttp.send();
             },
             getActiveUser() {
@@ -2488,7 +2700,8 @@
                         comp.siteSettings = {
                             siteTitle: "",
                             footerText: "",
-                            copyrightText: ""
+                            copyrightText: "",
+                            googleAnalyticsTrackingCode: ""
                         };
                     }
 
@@ -2935,8 +3148,10 @@
                     comp.siteSettings = {
                         siteTitle: response.siteTitle || "",
                         footerText: response.footerText || "",
-                        copyrightText: response.copyrightText || ""
+                        copyrightText: response.copyrightText || "",
+                        googleAnalyticsTrackingCode: response.googleAnalyticsTrackingCode || ""
                     };
+                    comp.getAnalyticsSummary();
                     alert("Settings saved!");
                 }
                 xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/settings", true);
@@ -3339,6 +3554,7 @@
             this.getDashboardPages();
             this.getUsers();
             this.getActiveUser();
+            this.getAnalyticsSummary();
         }
     }
 

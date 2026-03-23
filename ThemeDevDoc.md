@@ -47,7 +47,7 @@ If a template also needs editable content fields in the admin UI, `templates[].f
 
 ## Template Runtime
 
-Mirage renders a page template through `includeThemeFile()`. That function extracts a small set of variables into template scope, renders the file, then post-processes the HTML for form protection and menu assets.
+Mirage renders a page template through `includeThemeFile()`. That function extracts a small set of variables into template scope, renders the file, then post-processes the HTML for form protection, Mirage head integrations, and menu assets.
 
 Included partials such as `header.php`, `footer.php`, and `nav.php` share the same PHP scope as the main template file.
 
@@ -116,6 +116,14 @@ The current footer text from site settings.
 The current copyright text from site settings.
 
 These two values can contain `{{year}}` and `{{siteTitle}}` tokens. Mirage does not automatically expand those tokens in every template. If you want token replacement outside the stock footer, call `renderSiteTextTemplate()`.
+
+### `$googleAnalyticsTrackingCode`
+
+The normalized Google Analytics tracking code from site settings when one is configured.
+
+### `$mirageMetaTag`
+
+The Mirage head placeholder meta tag. Place this inside `<head>` if you want Mirage to inject native integrations such as Google Analytics for the site owner.
 
 ## Constants Available In Templates
 
@@ -341,6 +349,18 @@ echo htmlspecialchars(
     'UTF-8'
 );
 ```
+
+### `renderMirageMetaTag()`
+
+Returns the Mirage head placeholder meta tag for native integrations.
+
+Typical usage:
+
+```php
+<?php echo renderMirageMetaTag(); ?>
+```
+
+You can also echo the prebuilt `$mirageMetaTag` template variable instead.
 
 ## Template Content Values
 
@@ -731,10 +751,12 @@ The older documentation no longer matched the current runtime in a few important
 - `getPages()` now supports collection sort modes from config, including `custom`
 - Mirage now has documented menu helpers beyond `getMenuItems()`, especially `renderMenu()`
 - template scope includes `$footerText` and `$copyrightText`
+- template scope also includes `$googleAnalyticsTrackingCode` and `$mirageMetaTag`
 - `theme/config.json` collections can declare `sort` and `subpath`
 - forms are protected by automatic hidden-field injection, but still require a manual `math` field in the current implementation
 - `forms[].recipient` is currently legacy data and is not used to choose notification recipients
 - page option fields such as top-level `featuredImage` are separate from template content fields stored in `$page['content']`
+- native head integrations such as Google Analytics can be inserted through the Mirage meta tag instead of hardcoded snippets
 
 ## Recommended Theme Conventions
 
@@ -755,6 +777,7 @@ These are not enforced by Mirage, but they will keep themes easier to maintain:
 - `renderMenu()`
 - `getMedia()`
 - `renderSiteTextTemplate()`
+- `renderMirageMetaTag()`
 
 ### Most-used template variables
 
@@ -762,6 +785,7 @@ These are not enforced by Mirage, but they will keep themes easier to maintain:
 - `$siteTitle`
 - `$footerText`
 - `$copyrightText`
+- `$mirageMetaTag`
 
 ### Files that must stay in sync
 

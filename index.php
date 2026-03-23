@@ -80,6 +80,7 @@ $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration)
 $menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
 $formStore = new Store("formSubmissions", $databaseDirectory, $sleekDBConfiguration);
 $formAttemptStore = new Store("formAttempts", $databaseDirectory, $sleekDBConfiguration);
+$analyticsEventStore = new Store("analyticsEvents", $databaseDirectory, $sleekDBConfiguration);
 
 function test_input($data) {
     $data = trim($data);
@@ -1118,8 +1119,23 @@ function getDefaultSiteSettings()
     return [
         'siteTitle' => '',
         'footerText' => '',
-        'copyrightText' => '{{year}} {{siteTitle}} - All Rights Reserved.'
+        'copyrightText' => '{{year}} {{siteTitle}} - All Rights Reserved.',
+        'googleAnalyticsTrackingCode' => ''
     ];
+}
+
+function normalizeGoogleAnalyticsTrackingCode($value)
+{
+    $value = trim((string) $value);
+    if ($value === '') {
+        return '';
+    }
+
+    if (preg_match('/\b(G-[A-Z0-9]{4,}|UA-\d{4,10}-\d+)\b/i', $value, $matches) === 1) {
+        return strtoupper($matches[1]);
+    }
+
+    return '';
 }
 
 function normalizeSiteSettings($settings)
@@ -1130,7 +1146,10 @@ function normalizeSiteSettings($settings)
     return [
         'siteTitle' => array_key_exists('siteTitle', $settings) ? trim((string) $settings['siteTitle']) : $defaults['siteTitle'],
         'footerText' => array_key_exists('footerText', $settings) ? trim((string) $settings['footerText']) : $defaults['footerText'],
-        'copyrightText' => array_key_exists('copyrightText', $settings) ? trim((string) $settings['copyrightText']) : $defaults['copyrightText']
+        'copyrightText' => array_key_exists('copyrightText', $settings) ? trim((string) $settings['copyrightText']) : $defaults['copyrightText'],
+        'googleAnalyticsTrackingCode' => array_key_exists('googleAnalyticsTrackingCode', $settings)
+            ? normalizeGoogleAnalyticsTrackingCode($settings['googleAnalyticsTrackingCode'])
+            : $defaults['googleAnalyticsTrackingCode']
     ];
 }
 
@@ -1139,6 +1158,7 @@ function getCurrentSiteSettings()
     global $siteTitle;
     global $footerText;
     global $copyrightText;
+    global $googleAnalyticsTrackingCode;
 
     $settings = [];
     if (isset($siteTitle)) {
@@ -1153,6 +1173,10 @@ function getCurrentSiteSettings()
         $settings['copyrightText'] = $copyrightText;
     }
 
+    if (isset($googleAnalyticsTrackingCode)) {
+        $settings['googleAnalyticsTrackingCode'] = $googleAnalyticsTrackingCode;
+    }
+
     return normalizeSiteSettings($settings);
 }
 
@@ -1164,6 +1188,7 @@ function writeSiteConfigFile($settings)
     $configContents .= '$siteTitle = ' . var_export($settings['siteTitle'], true) . ";\n";
     $configContents .= '$footerText = ' . var_export($settings['footerText'], true) . ";\n";
     $configContents .= '$copyrightText = ' . var_export($settings['copyrightText'], true) . ";\n";
+    $configContents .= '$googleAnalyticsTrackingCode = ' . var_export($settings['googleAnalyticsTrackingCode'], true) . ";\n";
 
     return file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . 'config.php', $configContents, LOCK_EX) !== false;
 }
@@ -2387,8 +2412,282 @@ function injectSpamProtectionIntoForms($html)
     }, $html);
 }
 
-function injectMirageFrontendAssets($html)
+function getMirageMetaTagMarkup()
 {
+    return '<meta name="mirage-head" content="integrations">';
+}
+
+function renderMirageMetaTag()
+{
+    return getMirageMetaTagMarkup();
+}
+
+function htmlContainsGoogleAnalyticsSnippet($html)
+{
+    return stripos($html, 'googletagmanager.com/gtag/js') !== false
+        || stripos($html, 'google-analytics.com/analytics.js') !== false
+        || stripos($html, 'GoogleAnalyticsObject') !== false;
+}
+
+function buildGoogleAnalyticsHeadHtml($trackingCode)
+{
+    $trackingCode = normalizeGoogleAnalyticsTrackingCode($trackingCode);
+    if ($trackingCode === '') {
+        return '';
+    }
+
+    $encodedTrackingCode = json_encode($trackingCode, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    $escapedTrackingCode = htmlspecialchars($trackingCode, ENT_QUOTES, 'UTF-8');
+
+    return '<script async src="https://www.googletagmanager.com/gtag/js?id=' . $escapedTrackingCode . '"></script>' . "\n"
+        . '<script>'
+        . 'window.dataLayer=window.dataLayer||[];'
+        . 'function gtag(){dataLayer.push(arguments);}'
+        . 'gtag(\'js\', new Date());'
+        . 'gtag(\'config\', ' . $encodedTrackingCode . ');'
+        . '</script>';
+}
+
+function buildMirageHeadIntegrationsHtml($page = null)
+{
+    $siteSettings = getCurrentSiteSettings();
+    $snippets = [];
+
+    if ($siteSettings['googleAnalyticsTrackingCode'] !== '') {
+        $googleAnalyticsSnippet = buildGoogleAnalyticsHeadHtml($siteSettings['googleAnalyticsTrackingCode']);
+        if ($googleAnalyticsSnippet !== '') {
+            $snippets[] = $googleAnalyticsSnippet;
+        }
+    }
+
+    return implode("\n", $snippets);
+}
+
+function injectMirageHeadIntegrations($html, $page = null)
+{
+    $headIntegrations = buildMirageHeadIntegrationsHtml($page);
+    $placeholderPattern = '/<meta\b(?=[^>]*\bname\s*=\s*(["\'])mirage-head\1)(?=[^>]*\bcontent\s*=\s*(["\'])integrations\2)[^>]*\/?>/i';
+    $placeholderCount = 0;
+
+    $html = preg_replace($placeholderPattern, $headIntegrations, $html, 1, $placeholderCount);
+    if ($placeholderCount > 0) {
+        return $html;
+    }
+
+    if ($headIntegrations !== '' && !htmlContainsGoogleAnalyticsSnippet($html)) {
+        if (stripos($html, '</head>') !== false) {
+            $html = preg_replace('/<\/head>/i', $headIntegrations . "\n</head>", $html, 1);
+        } else {
+            $html = $headIntegrations . "\n" . $html;
+        }
+    }
+
+    return $html;
+}
+
+function isLikelyAnalyticsBotRequest()
+{
+    $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? trim((string) $_SERVER['HTTP_USER_AGENT']) : '';
+    if ($userAgent === '') {
+        return true;
+    }
+
+    return preg_match('/bot|spider|crawl|slurp|preview|facebookexternalhit|whatsapp|discordbot|telegrambot|linkedinbot|pingdom|uptimerobot/i', $userAgent) === 1;
+}
+
+function getAnalyticsVisitorId()
+{
+    $sessionId = session_id();
+    if (!is_string($sessionId) || $sessionId === '') {
+        return null;
+    }
+
+    return substr(hash('sha256', $sessionId), 0, 40);
+}
+
+function cleanupAnalyticsEvents()
+{
+    global $analyticsEventStore;
+
+    $cutoff = time() - (7 * 86400);
+
+    do {
+        $expiredEvents = $analyticsEventStore->findBy([
+            ['created', '<', $cutoff]
+        ], ['created' => 'asc'], 250);
+
+        foreach ($expiredEvents as $expiredEvent) {
+            if (isset($expiredEvent['_id'])) {
+                $analyticsEventStore->deleteById($expiredEvent['_id']);
+            }
+        }
+    } while (count($expiredEvents) === 250);
+}
+
+function maybeCleanupAnalyticsEvents()
+{
+    $lastCleanup = isset($_SESSION['mirageAnalyticsCleanupAt']) ? (int) $_SESSION['mirageAnalyticsCleanupAt'] : 0;
+    if ($lastCleanup > 0 && (time() - $lastCleanup) < 3600) {
+        return;
+    }
+
+    cleanupAnalyticsEvents();
+    $_SESSION['mirageAnalyticsCleanupAt'] = time();
+}
+
+function shouldRecordAnalyticsPageView($page)
+{
+    if (!is_array($page) || isLoggedIn()) {
+        return false;
+    }
+
+    $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($requestMethod !== 'GET') {
+        return false;
+    }
+
+    if (isLikelyAnalyticsBotRequest()) {
+        return false;
+    }
+
+    if (($page['isPublished'] ?? true) === false) {
+        return false;
+    }
+
+    return getPublicPagePath($page) !== null;
+}
+
+function recordAnalyticsPageView($page)
+{
+    if (!shouldRecordAnalyticsPageView($page)) {
+        return;
+    }
+
+    $visitorId = getAnalyticsVisitorId();
+    if ($visitorId === null) {
+        return;
+    }
+
+    global $analyticsEventStore;
+
+    maybeCleanupAnalyticsEvents();
+
+    $path = getPublicPagePath($page);
+    if ($path === null) {
+        return;
+    }
+
+    $recentEvents = $analyticsEventStore->findBy([
+        ['visitorId', '=', $visitorId],
+        'AND',
+        ['path', '=', $path]
+    ], ['created' => 'desc'], 1);
+
+    if (!empty($recentEvents) && isset($recentEvents[0]['created']) && (time() - (int) $recentEvents[0]['created']) < 10) {
+        return;
+    }
+
+    $siteSettings = getCurrentSiteSettings();
+    $title = trim((string) ($page['title'] ?? ''));
+    if ($title === '') {
+        $title = (string) ($siteSettings['siteTitle'] ?? '');
+    }
+
+    $analyticsEventStore->insert([
+        'visitorId' => $visitorId,
+        'path' => $path,
+        'title' => $title,
+        'pageId' => isset($page['_id']) ? (string) $page['_id'] : '',
+        'collection' => isset($page['collection']) ? (string) $page['collection'] : '',
+        'templateName' => isset($page['templateName']) ? (string) $page['templateName'] : '',
+        'created' => time()
+    ]);
+}
+
+function getAnalyticsSummary()
+{
+    global $analyticsEventStore;
+
+    maybeCleanupAnalyticsEvents();
+
+    $now = time();
+    $lastFiveMinutes = $analyticsEventStore->findBy([
+        ['created', '>=', $now - 300]
+    ], ['created' => 'desc']);
+    $lastThirtyMinutes = $analyticsEventStore->findBy([
+        ['created', '>=', $now - 1800]
+    ], ['created' => 'desc']);
+    $lastDay = $analyticsEventStore->findBy([
+        ['created', '>=', $now - 86400]
+    ], ['created' => 'desc']);
+    $today = $analyticsEventStore->findBy([
+        ['created', '>=', strtotime('today')]
+    ], ['created' => 'desc']);
+
+    $activeVisitors = [];
+    foreach ($lastFiveMinutes as $event) {
+        $visitorId = (string) ($event['visitorId'] ?? '');
+        if ($visitorId !== '') {
+            $activeVisitors[$visitorId] = true;
+        }
+    }
+
+    $topPages = [];
+    foreach ($lastDay as $event) {
+        $path = trim((string) ($event['path'] ?? ''));
+        if ($path === '') {
+            continue;
+        }
+
+        if (!isset($topPages[$path])) {
+            $topPages[$path] = [
+                'path' => $path,
+                'title' => trim((string) ($event['title'] ?? '')),
+                'views' => 0
+            ];
+        }
+
+        $topPages[$path]['views'] += 1;
+        if ($topPages[$path]['title'] === '' && !empty($event['title'])) {
+            $topPages[$path]['title'] = trim((string) $event['title']);
+        }
+    }
+
+    uasort($topPages, function ($left, $right) {
+        if ($right['views'] !== $left['views']) {
+            return $right['views'] - $left['views'];
+        }
+
+        return strcmp((string) $left['path'], (string) $right['path']);
+    });
+
+    $recentViews = [];
+    foreach (array_slice($lastThirtyMinutes, 0, 8) as $event) {
+        $recentViews[] = [
+            'path' => (string) ($event['path'] ?? ''),
+            'title' => (string) ($event['title'] ?? ''),
+            'created' => (int) ($event['created'] ?? 0)
+        ];
+    }
+
+    $siteSettings = getCurrentSiteSettings();
+
+    return [
+        'trackingConfigured' => $siteSettings['googleAnalyticsTrackingCode'] !== '',
+        'trackingCode' => $siteSettings['googleAnalyticsTrackingCode'],
+        'activeVisitors' => count($activeVisitors),
+        'pageViewsLast30Minutes' => count($lastThirtyMinutes),
+        'pageViewsToday' => count($today),
+        'topPages' => array_values(array_slice($topPages, 0, 5)),
+        'recentViews' => $recentViews,
+        'lastUpdated' => $now
+    ];
+}
+
+function injectMirageFrontendAssets($html, $page = null)
+{
+    $html = injectMirageHeadIntegrations($html, $page);
+
     if (strpos($html, 'data-mirage-menu') === false) {
         return $html;
     }
@@ -2434,6 +2733,16 @@ function includeThemeFile($filename, $data = [])
         $data['copyrightText'] = $siteSettings['copyrightText'];
     }
 
+    if (!array_key_exists('googleAnalyticsTrackingCode', $data)) {
+        $data['googleAnalyticsTrackingCode'] = $siteSettings['googleAnalyticsTrackingCode'];
+    }
+
+    if (!array_key_exists('mirageMetaTag', $data)) {
+        $data['mirageMetaTag'] = renderMirageMetaTag();
+    }
+
+    recordAnalyticsPageView($data['page']);
+
     extract($data, EXTR_SKIP);
 
     ob_start();
@@ -2441,7 +2750,7 @@ function includeThemeFile($filename, $data = [])
     $output = ob_get_clean();
 
     $output = injectSpamProtectionIntoForms($output);
-    echo injectMirageFrontendAssets($output);
+    echo injectMirageFrontendAssets($output, $data['page']);
 }
 
 function getRecentFormSubmission($formID, $ipAddress)
@@ -2554,6 +2863,7 @@ if (!file_exists("config.php")) {
     $siteTitle = $siteSettings['siteTitle'];
     $footerText = $siteSettings['footerText'];
     $copyrightText = $siteSettings['copyrightText'];
+    $googleAnalyticsTrackingCode = $siteSettings['googleAnalyticsTrackingCode'];
 
     define('THEMEPATH', BASEPATH . "/theme");
 
@@ -2653,6 +2963,18 @@ if (!file_exists("config.php")) {
         }
     });
 
+    Route::add('/api/analytics/summary', function () {
+        if (!isLoggedIn()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You must be logged in to view analytics.'
+            ], 401);
+            return;
+        }
+
+        sendJsonResponse(getAnalyticsSummary());
+    });
+
     Route::add('/api/settings', function () {
         if (!isLoggedIn()) {
             sendJsonResponse([
@@ -2704,10 +3026,19 @@ if (!file_exists("config.php")) {
         }
 
         $siteSettings = normalizeSiteSettings($data);
+        $rawGoogleAnalyticsTrackingCode = trim((string) ($data['googleAnalyticsTrackingCode'] ?? ''));
         if ($siteSettings['siteTitle'] === '') {
             sendJsonResponse([
                 'success' => false,
                 'message' => 'Site title is required.'
+            ], 400);
+            return;
+        }
+
+        if ($rawGoogleAnalyticsTrackingCode !== '' && $siteSettings['googleAnalyticsTrackingCode'] === '') {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Paste a Google Analytics measurement ID or full Google tag snippet.'
             ], 400);
             return;
         }
@@ -2723,10 +3054,12 @@ if (!file_exists("config.php")) {
         global $siteTitle;
         global $footerText;
         global $copyrightText;
+        global $googleAnalyticsTrackingCode;
 
         $siteTitle = $siteSettings['siteTitle'];
         $footerText = $siteSettings['footerText'];
         $copyrightText = $siteSettings['copyrightText'];
+        $googleAnalyticsTrackingCode = $siteSettings['googleAnalyticsTrackingCode'];
 
         sendJsonResponse($siteSettings);
     }, 'PUT');
