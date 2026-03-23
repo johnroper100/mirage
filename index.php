@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.2.6");
+define('MIRAGE_VERSION', "1.2.7");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -79,6 +79,7 @@ $userStore = new Store("users", $databaseDirectory, $sleekDBConfiguration);
 $mediaStore = new Store("mediaItems", $databaseDirectory, $sleekDBConfiguration);
 $menuStore = new Store("menuItems", $databaseDirectory, $sleekDBConfiguration);
 $formStore = new Store("formSubmissions", $databaseDirectory, $sleekDBConfiguration);
+$formAttemptStore = new Store("formAttempts", $databaseDirectory, $sleekDBConfiguration);
 
 function test_input($data) {
     $data = trim($data);
@@ -2126,17 +2127,234 @@ function buildFormSpamProtection($formID)
         !isset($spamProtection[$formID])
         || !isset($spamProtection[$formID]['token'])
         || !isset($spamProtection[$formID]['generatedAt'])
+        || !isset($spamProtection[$formID]['honeypotName'])
         || (time() - (int) $spamProtection[$formID]['generatedAt']) > 7200
     ) {
         $spamProtection[$formID] = [
             'token' => bin2hex(random_bytes(16)),
-            'generatedAt' => time()
+            'generatedAt' => time(),
+            'honeypotName' => '_mirage_hp_' . bin2hex(random_bytes(6))
         ];
     }
 
     $_SESSION['formSpamProtection'] = $spamProtection;
 
     return $spamProtection[$formID];
+}
+
+function normalizePostedFormValue($value)
+{
+    if (is_array($value) || is_object($value)) {
+        return '';
+    }
+
+    return trim((string) $value);
+}
+
+function isFormFieldRequired($field)
+{
+    return !array_key_exists('required', $field) || !empty($field['required']);
+}
+
+function getSubmittedFormFieldValues($form)
+{
+    $submittedFields = [];
+    $fields = isset($form['fields']) && is_array($form['fields']) ? $form['fields'] : [];
+
+    foreach ($fields as $field) {
+        $fieldID = trim((string) ($field['id'] ?? ''));
+        if ($fieldID === '') {
+            continue;
+        }
+
+        $submittedFields[$fieldID] = normalizePostedFormValue($_POST[$fieldID] ?? '');
+    }
+
+    return $submittedFields;
+}
+
+function countUrlsInText($text)
+{
+    $text = (string) $text;
+    if ($text === '') {
+        return 0;
+    }
+
+    $matches = [];
+    preg_match_all('~(?:https?://|www\.)\S+~i', $text, $matches);
+    return count($matches[0]);
+}
+
+function countUrlsInSubmittedFields($submittedFields)
+{
+    $linkCount = 0;
+    foreach ($submittedFields as $fieldValue) {
+        $linkCount += countUrlsInText((string) $fieldValue);
+    }
+
+    return $linkCount;
+}
+
+function validateSubmittedFormFields($form, $submittedFields)
+{
+    $fields = isset($form['fields']) && is_array($form['fields']) ? $form['fields'] : [];
+    foreach ($fields as $field) {
+        $fieldID = trim((string) ($field['id'] ?? ''));
+        if ($fieldID === '') {
+            continue;
+        }
+
+        $fieldType = strtolower(trim((string) ($field['type'] ?? 'text')));
+        $fieldValue = (string) ($submittedFields[$fieldID] ?? '');
+
+        if (isFormFieldRequired($field) && $fieldValue === '') {
+            return 'missing_required_field';
+        }
+
+        if ($fieldType === 'email' && $fieldValue !== '' && !isValidEmailAddress(normalizeEmailAddress($fieldValue))) {
+            return 'invalid_email';
+        }
+
+        if (strlen($fieldValue) > 4000) {
+            return 'field_too_long';
+        }
+    }
+
+    if (countUrlsInSubmittedFields($submittedFields) > 2) {
+        return 'too_many_links';
+    }
+
+    return null;
+}
+
+function normalizeFingerprintValue($value)
+{
+    $value = strtolower(trim((string) $value));
+    return preg_replace('/\s+/', ' ', $value);
+}
+
+function buildFormSubmissionFingerprint($formID, $submittedFields)
+{
+    ksort($submittedFields);
+
+    $segments = [(string) $formID];
+    foreach ($submittedFields as $fieldID => $fieldValue) {
+        $segments[] = (string) $fieldID . '=' . normalizeFingerprintValue($fieldValue);
+    }
+
+    return hash('sha256', implode('|', $segments));
+}
+
+function findRecentFormSubmissionByFingerprint($formID, $fingerprint)
+{
+    global $formStore;
+
+    $submissions = $formStore->findBy([
+        ["form", "=", $formID],
+        ["fingerprint", "=", $fingerprint]
+    ], ["created" => "desc"], 1);
+
+    if (!is_array($submissions) || count($submissions) === 0) {
+        return null;
+    }
+
+    return $submissions[0];
+}
+
+function getRecentFormAttempts($formID, $ipAddress, $limit = 25)
+{
+    global $formAttemptStore;
+
+    try {
+        $attempts = $formAttemptStore->findBy([
+            ["form", "=", $formID],
+            ["ipAddress", "=", $ipAddress]
+        ], ["created" => "desc"], $limit);
+    } catch (\Throwable $exception) {
+        return [];
+    }
+
+    return is_array($attempts) ? $attempts : [];
+}
+
+function hasExceededFormAttemptLimit($formID, $ipAddress)
+{
+    $attempts = getRecentFormAttempts($formID, $ipAddress);
+    if (count($attempts) === 0) {
+        return false;
+    }
+
+    $now = time();
+    $attemptsInQuarterHour = 0;
+    $attemptsInDay = 0;
+
+    foreach ($attempts as $attempt) {
+        $createdAt = (int) ($attempt['created'] ?? 0);
+        if ($createdAt >= ($now - 900)) {
+            $attemptsInQuarterHour++;
+        }
+
+        if ($createdAt >= ($now - 86400)) {
+            $attemptsInDay++;
+        }
+    }
+
+    return $attemptsInQuarterHour >= 5 || $attemptsInDay >= 12;
+}
+
+function recordFormAttempt($formID, $outcome, $reason, $submittedFields = [])
+{
+    global $formAttemptStore;
+
+    $submittedFields = is_array($submittedFields) ? $submittedFields : [];
+    $emailAddress = isset($submittedFields['email']) ? normalizeEmailAddress($submittedFields['email']) : '';
+
+    try {
+        $formAttemptStore->insert([
+            'form' => (string) $formID,
+            'outcome' => substr((string) $outcome, 0, 32),
+            'reason' => substr((string) $reason, 0, 64),
+            'email' => substr($emailAddress, 0, 254),
+            'fingerprint' => buildFormSubmissionFingerprint($formID, $submittedFields),
+            'created' => time(),
+            'ipAddress' => getClientIpAddress(),
+            'userAgent' => isset($_SERVER['HTTP_USER_AGENT']) ? substr((string) $_SERVER['HTTP_USER_AGENT'], 0, 500) : ''
+        ]);
+    } catch (\Throwable $exception) {
+        return;
+    }
+}
+
+function isSameOriginFormRequest()
+{
+    $expectedHost = strtolower(getNormalizedRequestHost());
+    $candidateUrls = [];
+
+    if (!empty($_SERVER['HTTP_ORIGIN'])) {
+        $candidateUrls[] = (string) $_SERVER['HTTP_ORIGIN'];
+    }
+
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+        $candidateUrls[] = (string) $_SERVER['HTTP_REFERER'];
+    }
+
+    if (count($candidateUrls) === 0) {
+        return true;
+    }
+
+    foreach ($candidateUrls as $candidateUrl) {
+        $parsedUrl = parse_url($candidateUrl);
+        if (!is_array($parsedUrl) || empty($parsedUrl['host'])) {
+            return false;
+        }
+
+        $candidateHost = strtolower($parsedUrl['host'] . (isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : ''));
+        if (!hash_equals($expectedHost, $candidateHost)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function extractFormIdFromAction($action)
@@ -2160,7 +2378,7 @@ function injectSpamProtectionIntoForms($html)
         $protection = buildFormSpamProtection($formID);
         $injectedFields = '<div aria-hidden="true" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">'
             . '<label>Leave this field empty'
-            . '<input type="text" name="_mirage_website" tabindex="-1" autocomplete="off">'
+            . '<input type="text" name="' . htmlspecialchars($protection['honeypotName'], ENT_QUOTES, 'UTF-8') . '" tabindex="-1" autocomplete="new-password">'
             . '</label>'
             . '</div>'
             . '<input type="hidden" name="_mirage_form_token" value="' . htmlspecialchars($protection['token'], ENT_QUOTES, 'UTF-8') . '">';
@@ -2247,18 +2465,29 @@ function isSpamSubmission($formID)
     $spamProtection = getSpamProtectionSession();
     $storedProtection = isset($spamProtection[$formID]) ? $spamProtection[$formID] : null;
     $submittedToken = isset($_POST['_mirage_form_token']) ? trim($_POST['_mirage_form_token']) : '';
-    $honeypotValue = isset($_POST['_mirage_website']) ? trim($_POST['_mirage_website']) : '';
+    if (
+        $storedProtection == null
+        || !isset($storedProtection['token'])
+        || !isset($storedProtection['generatedAt'])
+        || !isset($storedProtection['honeypotName'])
+        || $submittedToken === ''
+        || !hash_equals($storedProtection['token'], $submittedToken)
+    ) {
+        return true;
+    }
 
+    $honeypotName = (string) $storedProtection['honeypotName'];
+    if ($honeypotName === '' || !array_key_exists($honeypotName, $_POST)) {
+        return true;
+    }
+
+    $honeypotValue = normalizePostedFormValue($_POST[$honeypotName] ?? '');
     if ($honeypotValue !== '') {
         return true;
     }
 
-    if ($storedProtection == null || $submittedToken === '' || !hash_equals($storedProtection['token'], $submittedToken)) {
-        return true;
-    }
-
     $secondsSinceRendered = time() - $storedProtection['generatedAt'];
-    if ($secondsSinceRendered < 2 || $secondsSinceRendered > 7200) {
+    if ($secondsSinceRendered < 3 || $secondsSinceRendered > 7200) {
         return true;
     }
 
@@ -3212,10 +3441,37 @@ if (!file_exists("config.php")) {
 
     Route::add('/form/(.*)', function ($formID) {
         global $formStore, $userStore;
-        $forms = json_decode(file_get_contents("./theme/config.json"), true)["forms"];
+        $themeConfig = json_decode(file_get_contents("./theme/config.json"), true);
+        $forms = isset($themeConfig["forms"]) && is_array($themeConfig["forms"]) ? $themeConfig["forms"] : [];
         foreach ($forms as $form) {
             if ($form["id"] == $formID) {
-                if (isSpamSubmission($formID) || test_input($_POST["math"]) != "5") {
+                $submittedFields = getSubmittedFormFieldValues($form);
+                $rejectionReason = null;
+
+                if (hasExceededFormAttemptLimit($formID, getClientIpAddress())) {
+                    $rejectionReason = 'attempt_rate_limit';
+                } elseif (!isSameOriginFormRequest()) {
+                    $rejectionReason = 'cross_origin';
+                } elseif (isSpamSubmission($formID)) {
+                    $rejectionReason = 'spam_protection';
+                } else {
+                    $rejectionReason = validateSubmittedFormFields($form, $submittedFields);
+                }
+
+                $fingerprint = buildFormSubmissionFingerprint($formID, $submittedFields);
+                if ($rejectionReason === null) {
+                    $recentMatchingSubmission = findRecentFormSubmissionByFingerprint($formID, $fingerprint);
+                    if (
+                        $recentMatchingSubmission != null
+                        && isset($recentMatchingSubmission['created'])
+                        && (time() - (int) $recentMatchingSubmission['created']) < 86400
+                    ) {
+                        $rejectionReason = 'duplicate_submission';
+                    }
+                }
+
+                if ($rejectionReason !== null) {
+                    recordFormAttempt($formID, 'rejected', $rejectionReason, $submittedFields);
                     unset($_SESSION['formSpamProtection'][$formID]);
                     header('Location: ' . appendQueryParam(getFormReferer(), 'error', '1'));
                     return;
@@ -3224,18 +3480,27 @@ if (!file_exists("config.php")) {
                     $submission["form"] = $formID;
                     $submission["formName"] = $form["name"];
                     $submission["fields"] = [];
+                    $submission["fingerprint"] = $fingerprint;
                     $submission["created"] = time();
                     $submission["ipAddress"] = getClientIpAddress();
                     $submission["userAgent"] = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 500) : '';
                     foreach ($form["fields"] as $field) {
+                        $fieldID = (string) ($field["id"] ?? '');
+                        $fieldType = strtolower((string) ($field["type"] ?? 'text'));
+                        $fieldValue = isset($submittedFields[$fieldID]) ? $submittedFields[$fieldID] : '';
+                        if ($fieldType === 'email') {
+                            $fieldValue = normalizeEmailAddress($fieldValue);
+                        }
+
                         $submission["fields"][] = [
-                            "id" => $field["id"],
+                            "id" => $fieldID,
                             "name" => $field["name"],
                             "type" => $field["type"],
-                            "value" => test_input($_POST[$field["id"]] ?? '')
+                            "value" => test_input($fieldValue)
                         ];
                     }
                     $submission = $formStore->insert($submission);
+                    recordFormAttempt($formID, 'accepted', 'accepted', $submittedFields);
 
 
                     $subject = $form["name"] . " Form Submission From Your Website";

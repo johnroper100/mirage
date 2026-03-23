@@ -379,23 +379,44 @@
                     <div class="col-12 mb-3" v-if="formSubmissions.length == 0">
                         <div class="alert alert-light border shadow-sm mb-0">No form submissions yet.</div>
                     </div>
-                    <div class="col-12 col-md-6 mb-3" v-for="submission in formSubmissions">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center gap-2">
-                                <div class="form-check mb-0">
-                                    <input class="form-check-input" type="checkbox"
-                                        :id="'submissionSelect' + submission._id" v-model="selectedFormSubmissionIDs"
-                                        :value="submission._id">
-                                    <label class="form-check-label" :for="'submissionSelect' + submission._id">
-                                        {{submission.formName}} Form Submission
-                                    </label>
-                                </div>
-                                <button class="btn btn-sm btn-danger" @click="deleteFormSubmission(submission._id)">Delete</button>
+                    <div class="col-12 mb-4" v-for="group in formSubmissionGroups" :key="'submissionGroup' + group.key">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
+                            :class="{'border-bottom pb-2': hasMultipleSubmissionForms}">
+                            <div>
+                                <h5 class="mb-1">{{group.label}}</h5>
+                                <p class="text-muted mb-0">{{group.submissions.length}} submission{{group.submissions.length == 1 ? '' : 's'}}</p>
                             </div>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item" v-for="field in submission.fields"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
-                                <li class="list-group-item"><b>Submitted:</b> {{getDate(submission.created)}}</li>
-                            </ul>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary" @click="selectFormSubmissionGroup(group)"
+                                    :disabled="isFormSubmissionGroupFullySelected(group)">
+                                    Select Form
+                                </button>
+                                <button class="btn btn-outline-secondary" @click="clearFormSubmissionGroupSelection(group)"
+                                    :disabled="getFormSubmissionGroupSelectionCount(group) == 0">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 col-md-6 mb-3" v-for="submission in group.submissions" :key="submission._id">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                                        <div class="form-check mb-0">
+                                            <input class="form-check-input" type="checkbox"
+                                                :id="'submissionSelect' + submission._id" v-model="selectedFormSubmissionIDs"
+                                                :value="submission._id">
+                                            <label class="form-check-label" :for="'submissionSelect' + submission._id">
+                                                {{group.label}} Form Submission
+                                            </label>
+                                        </div>
+                                        <button class="btn btn-sm btn-danger" @click="deleteFormSubmission(submission._id)">Delete</button>
+                                    </div>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item" v-for="field in submission.fields" :key="submission._id + '-' + field.id"><b>{{field.name}}</b>: <a :href="'mailto:' + field.value" v-if="field.type == 'email'">{{field.value}}</a> <span v-else>{{field.value}}</span></li>
+                                        <li class="list-group-item"><b>Submitted:</b> {{getDate(submission.created)}}</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1186,6 +1207,34 @@
             totalMediaPages() {
                 return Math.max(1, Math.ceil(this.filteredMediaItems.length / this.mediaPageSize));
             },
+            formSubmissionGroups() {
+                var groups = [];
+                var groupedSubmissions = {};
+                var comp = this;
+
+                (Array.isArray(this.formSubmissions) ? this.formSubmissions : []).forEach(function (submission) {
+                    var groupKey = comp.getFormSubmissionGroupKey(submission);
+                    if (groupedSubmissions[groupKey] == null) {
+                        groupedSubmissions[groupKey] = {
+                            key: groupKey,
+                            label: comp.getFormSubmissionGroupLabel(submission),
+                            submissions: []
+                        };
+                        groups.push(groupedSubmissions[groupKey]);
+                    }
+
+                    groupedSubmissions[groupKey].submissions.push(submission);
+                });
+
+                groups.sort(function (left, right) {
+                    return String(left.label || '').localeCompare(String(right.label || ''));
+                });
+
+                return groups;
+            },
+            hasMultipleSubmissionForms() {
+                return this.formSubmissionGroups.length > 1;
+            },
             effectiveMediaPage() {
                 return Math.min(Math.max(Number(this.mediaPage || 1), 1), this.totalMediaPages);
             },
@@ -1251,6 +1300,96 @@
         methods: {
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
+            },
+            getFormSubmissionGroupKey(submission) {
+                if (submission == null || typeof submission !== 'object') {
+                    return 'unknown-form';
+                }
+
+                var formID = typeof submission.form === 'string' ? submission.form.trim() : '';
+                if (formID !== '') {
+                    return 'form:' + formID;
+                }
+
+                var formName = typeof submission.formName === 'string' ? submission.formName.trim() : '';
+                if (formName !== '') {
+                    return 'name:' + formName.toLowerCase();
+                }
+
+                return 'unknown-form';
+            },
+            getFormSubmissionGroupLabel(submission) {
+                if (submission != null && typeof submission.formName === 'string' && submission.formName.trim() !== '') {
+                    return submission.formName.trim();
+                }
+
+                if (submission != null && typeof submission.form === 'string' && submission.form.trim() !== '') {
+                    return submission.form.trim();
+                }
+
+                return 'Unknown Form';
+            },
+            getFormSubmissionSelectionLookup() {
+                var lookup = {};
+
+                this.selectedFormSubmissionIDs.forEach(function (selectedID) {
+                    lookup[String(selectedID)] = true;
+                });
+
+                return lookup;
+            },
+            getFormSubmissionGroupSelectionCount(group) {
+                if (group == null || !Array.isArray(group.submissions) || group.submissions.length === 0) {
+                    return 0;
+                }
+
+                var selectedLookup = this.getFormSubmissionSelectionLookup();
+                return group.submissions.reduce(function (selectedCount, submission) {
+                    if (selectedLookup[String(submission._id)] === true) {
+                        return selectedCount + 1;
+                    }
+
+                    return selectedCount;
+                }, 0);
+            },
+            isFormSubmissionGroupFullySelected(group) {
+                if (group == null || !Array.isArray(group.submissions) || group.submissions.length === 0) {
+                    return false;
+                }
+
+                return this.getFormSubmissionGroupSelectionCount(group) === group.submissions.length;
+            },
+            selectFormSubmissionGroup(group) {
+                if (group == null || !Array.isArray(group.submissions) || group.submissions.length === 0) {
+                    return;
+                }
+
+                var selectedLookup = this.getFormSubmissionSelectionLookup();
+                var nextSelection = this.selectedFormSubmissionIDs.slice();
+
+                group.submissions.forEach(function (submission) {
+                    var submissionID = String(submission._id);
+                    if (selectedLookup[submissionID] !== true) {
+                        nextSelection.push(submission._id);
+                        selectedLookup[submissionID] = true;
+                    }
+                });
+
+                this.selectedFormSubmissionIDs = nextSelection;
+            },
+            clearFormSubmissionGroupSelection(group) {
+                if (group == null || !Array.isArray(group.submissions) || group.submissions.length === 0) {
+                    return;
+                }
+
+                var removeLookup = {};
+                group.submissions.forEach(function (submission) {
+                    removeLookup[String(submission._id)] = true;
+                });
+
+                this.selectedFormSubmissionIDs = this.selectedFormSubmissionIDs.filter(function (selectedID) {
+                    return removeLookup[String(selectedID)] !== true;
+                });
             },
             formatBytes(bytes) {
                 var numericBytes = Number(bytes || 0);
