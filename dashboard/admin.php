@@ -1,5 +1,120 @@
 <?php include 'header.php'; ?>
 <style>
+    .mirage-dashboard-hero {
+        border: 1px solid #dbe4ec;
+        background: linear-gradient(135deg, #ffffff 0%, #eef5ff 52%, #eefbf3 100%);
+    }
+
+    .mirage-dashboard-kicker {
+        display: inline-block;
+        margin-bottom: 0.8rem;
+        color: #1971c2;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .mirage-dashboard-glance {
+        display: grid;
+        gap: 0.75rem;
+        min-width: 15rem;
+    }
+
+    .mirage-dashboard-glance-item,
+    .mirage-dashboard-quick-row,
+    .mirage-dashboard-list-item,
+    .mirage-dashboard-health-item {
+        border: 1px solid #dbe4ec;
+        border-radius: 0.85rem;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 0.9rem 1rem;
+    }
+
+    .mirage-dashboard-glance-item strong {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 1.25rem;
+        line-height: 1.1;
+    }
+
+    .mirage-dashboard-stat-card {
+        border: 1px solid #dbe4ec;
+        background: #ffffff;
+    }
+
+    .mirage-dashboard-stat-icon {
+        width: 2.9rem;
+        height: 2.9rem;
+        border-radius: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #eef2f6;
+        color: #343a40;
+        font-size: 1.15rem;
+    }
+
+    .mirage-dashboard-stat-value {
+        display: block;
+        font-size: 1.8rem;
+        line-height: 1;
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .mirage-dashboard-label {
+        display: block;
+        color: #6c757d;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .mirage-dashboard-quick-list,
+    .mirage-dashboard-list,
+    .mirage-dashboard-health-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .mirage-dashboard-quick-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.9rem;
+    }
+
+    .mirage-dashboard-collection-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.75rem;
+        margin-top: 0.35rem;
+        color: #6c757d;
+        font-size: 0.86rem;
+    }
+
+    .mirage-dashboard-path {
+        color: #6c757d;
+        font-size: 0.88rem;
+        word-break: break-word;
+    }
+
+    .mirage-dashboard-health-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .mirage-dashboard-empty {
+        border: 1px dashed #ced4da;
+        border-radius: 0.85rem;
+        background: #f8fafc;
+        padding: 1rem;
+    }
+
     .mirage-media-stat {
         border: 1px solid #d6dce2;
         border-radius: 0.75rem;
@@ -50,6 +165,16 @@
     }
 
     @media (max-width: 767px) {
+        .mirage-dashboard-quick-row,
+        .mirage-dashboard-health-item {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .mirage-dashboard-glance {
+            min-width: 0;
+        }
+
         .mirage-media-card-image,
         .mirage-media-file-placeholder {
             height: 7.5rem;
@@ -61,7 +186,7 @@
     <div class="bg-dark text-light" id="sidebar-wrapper">
         <div class="sidebar-heading bg-secondary text-light text-center text-uppercase shadow-sm">Mirage Admin</div>
         <div class="list-group list-group-flush mt-2">
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('general')"
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="openGeneralDashboard()"
                 :class="{'active text-light': viewPage == 'general'}"><i class="fa-solid fa-gauge-simple me-1"></i>
                 General</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="getPages(collection)"
@@ -150,39 +275,238 @@
         <!-- Page content-->
         <div class="container-fluid pt-3 pb-3 ps-4 pe-4">
             <div v-if="viewPage == 'general'">
-                <div class="row">
-                    <div class="col-12 col-lg-3 mb-3">
-                        <div class="card shadow-sm">
+                <div class="row g-3">
+                    <div class="col-12 col-xl-8">
+                        <div class="card shadow-sm h-100 mirage-dashboard-hero">
                             <div class="card-body">
-                                <h3>Welcome to Mirage!</h3>
-                                <p class="mb-0">Here is some quick information about your site:</p>
+                                <div class="d-flex flex-column flex-lg-row justify-content-between gap-4 h-100">
+                                    <div>
+                                        <span class="mirage-dashboard-kicker">Overview</span>
+                                        <h2 class="mb-2">{{generalSiteTitle}}</h2>
+                                        <p class="text-secondary mb-3">Signed in as <strong>{{activeUser.name || 'User'}}</strong> ({{getAccountTypeLabel(activeUser.accountType)}}). Use this dashboard to jump back into content, review what needs attention, and keep the site moving.</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <a href="<?php echo ORIGBASEPATH; ?>" class="btn btn-primary" target="_blank"><i class="fa-solid fa-up-right-from-square me-1"></i> View Site</a>
+                                            <button type="button" class="btn btn-outline-secondary" @click="refreshGeneralDashboard" :disabled="dashboardPagesLoading"><i class="fa-solid fa-rotate-right me-1"></i> <span v-if="!dashboardPagesLoading">Refresh</span><span v-else>Refreshing...</span></button>
+                                            <button type="button" class="btn btn-outline-secondary" @click="setPage('media')"><i class="fa-solid fa-folder-tree me-1"></i> Media</button>
+                                            <button type="button" class="btn btn-outline-secondary" @click="setPage('forms')" v-if="canAccessMenus()"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</button>
+                                            <button type="button" class="btn btn-outline-secondary" @click="setPage('settings'); getSiteSettings();" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</button>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-glance">
+                                        <div class="mirage-dashboard-glance-item">
+                                            <small class="mirage-dashboard-label">Collections</small>
+                                            <strong>{{generalCollectionCount}}</strong>
+                                            <div class="small text-secondary">{{generalTemplateCount}} templates, {{generalMenuCount}} menus</div>
+                                        </div>
+                                        <div class="mirage-dashboard-glance-item">
+                                            <small class="mirage-dashboard-label">Content Status</small>
+                                            <strong>{{generalPublishedCount}}</strong>
+                                            <div class="small text-secondary">{{generalDraftCount}} draft<span v-if="generalDraftCount !== 1">s</span> waiting</div>
+                                        </div>
+                                        <div class="mirage-dashboard-glance-item">
+                                            <small class="mirage-dashboard-label">Media Storage</small>
+                                            <strong>{{formatBytes(mediaLibraryStats.totalStorageBytes)}}</strong>
+                                            <div class="small text-secondary">{{mediaLibraryStats.attention}} item<span v-if="mediaLibraryStats.attention !== 1">s</span> need attention</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-4 col-lg-3 mb-3">
-                        <div class="card bg-primary text-light shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fa-solid fa-file-lines fa-2xl mb-3"></i>
-                                <h4><i>Pages</i></h4>
-                                <h3 class="mb-1">{{counts.pages}}</h3>
+                    <div class="col-12 col-xl-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h5 class="mb-1">Quick Start</h5>
+                                        <p class="small text-secondary mb-0">Open a collection or start a new page.</p>
+                                    </div>
+                                    <span class="badge text-bg-light border" v-if="dashboardPagesLoading">Loading</span>
+                                </div>
+                                <div class="mirage-dashboard-quick-list" v-if="generalCollectionSummaries.length > 0">
+                                    <div class="mirage-dashboard-quick-row" v-for="summary in generalCollectionSummaries" :key="'collection-summary-' + summary.collection.id">
+                                        <div>
+                                            <div class="fw-semibold">{{summary.collection.name}}</div>
+                                            <div class="mirage-dashboard-collection-meta">
+                                                <span>{{summary.total}} page<span v-if="summary.total !== 1">s</span></span>
+                                                <span>{{summary.drafts}} draft<span v-if="summary.drafts !== 1">s</span></span>
+                                            </div>
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary" @click="getPages(summary.collection)">Open</button>
+                                            <button type="button" class="btn btn-success" @click="quickAddPage(summary.collection)">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mirage-dashboard-empty text-secondary small" v-else>
+                                    No collections are configured in the active theme yet.
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-4 col-lg-3 mb-3">
-                        <div class="card bg-success text-light shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fa-solid fa-users fa-2xl mb-3"></i>
-                                <h4><i>Users</i></h4>
-                                <h3 class="mb-1">{{counts.users}}</h3>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card shadow-sm h-100 mirage-dashboard-stat-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="mirage-dashboard-stat-icon">
+                                        <i class="fa-solid fa-file-lines"></i>
+                                    </div>
+                                    <div>
+                                        <small class="mirage-dashboard-label">Pages</small>
+                                        <span class="mirage-dashboard-stat-value">{{counts.pages || dashboardPages.length}}</span>
+                                        <div class="small text-secondary">{{generalPublishedCount}} live, {{generalDraftCount}} draft<span v-if="generalDraftCount !== 1">s</span></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-4 col-lg-3 mb-3">
-                        <div class="card bg-danger text-light shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fa-solid fa-photo-film-music fa-2xl mb-3"></i>
-                                <h4><i>Media Files</i></h4>
-                                <h3 class="mb-1">{{counts.media}}</h3>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card shadow-sm h-100 mirage-dashboard-stat-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="mirage-dashboard-stat-icon">
+                                        <i class="fa-solid fa-pen-ruler"></i>
+                                    </div>
+                                    <div>
+                                        <small class="mirage-dashboard-label">Collections</small>
+                                        <span class="mirage-dashboard-stat-value">{{generalCollectionCount}}</span>
+                                        <div class="small text-secondary">{{generalTemplateCount}} templates available</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card shadow-sm h-100 mirage-dashboard-stat-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="mirage-dashboard-stat-icon">
+                                        <i class="fa-solid fa-photo-film-music"></i>
+                                    </div>
+                                    <div>
+                                        <small class="mirage-dashboard-label">Media</small>
+                                        <span class="mirage-dashboard-stat-value">{{counts.media || mediaLibraryStats.total}}</span>
+                                        <div class="small text-secondary">{{formatBytes(mediaLibraryStats.totalStorageBytes)}} stored</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="card shadow-sm h-100 mirage-dashboard-stat-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="mirage-dashboard-stat-icon">
+                                        <i class="fa-solid fa-users"></i>
+                                    </div>
+                                    <div>
+                                        <small class="mirage-dashboard-label">Team</small>
+                                        <span class="mirage-dashboard-stat-value">{{generalUserCounts.total || counts.users || 0}}</span>
+                                        <div class="small text-secondary">{{generalUserCounts.admins}} admin<span v-if="generalUserCounts.admins !== 1">s</span>, {{generalUserCounts.editors}} editor<span v-if="generalUserCounts.editors !== 1">s</span>, {{generalUserCounts.authors}} author<span v-if="generalUserCounts.authors !== 1">s</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-xl-7">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h5 class="mb-1">Recently Updated</h5>
+                                        <p class="small text-secondary mb-0">Latest changes across all collections.</p>
+                                    </div>
+                                    <span class="badge text-bg-light border" v-if="dashboardPagesLoading">Refreshing</span>
+                                </div>
+                                <div class="mirage-dashboard-empty text-secondary small" v-if="dashboardPagesLoading && generalRecentPages.length === 0">
+                                    Loading recent content...
+                                </div>
+                                <div class="mirage-dashboard-empty text-secondary small" v-else-if="generalRecentPages.length === 0">
+                                    No pages have been created yet. Start with a collection on the right.
+                                </div>
+                                <div class="mirage-dashboard-list" v-else>
+                                    <div class="mirage-dashboard-list-item" v-for="page in generalRecentPages" :key="'recent-page-' + page._id">
+                                        <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                            <div>
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                    <strong>{{page.title || 'Untitled Page'}}</strong>
+                                                    <span class="badge" :class="page.isPublished === false ? 'text-bg-warning' : 'text-bg-success'">{{page.isPublished === false ? 'Draft' : 'Live'}}</span>
+                                                    <span class="badge text-bg-light border">{{getCollectionName(page.collection)}}</span>
+                                                </div>
+                                                <div class="mirage-dashboard-path">
+                                                    {{page.templateName || 'Template'}}
+                                                    <span v-if="getPageDisplayPath(page)"> - {{getPageDisplayPath(page)}}</span>
+                                                </div>
+                                                <div class="small text-secondary mt-1">Updated {{getDate(page.edited)}}</div>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <a class="btn btn-sm btn-outline-secondary" :href="getPageViewPath(page)" target="_blank" v-if="getPageViewPath(page)"><i class="fa-solid fa-up-right-from-square me-1"></i> View</a>
+                                                <button type="button" class="btn btn-sm btn-primary" @click="editPage(page._id, false)" v-if="canEditPageRecord(page)"><i class="fa-solid fa-pen-to-square me-1"></i> Edit</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-5">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h5 class="mb-1">Site Health</h5>
+                                    <p class="small text-secondary mb-0">High-signal checks without leaving the dashboard.</p>
+                                </div>
+                                <div class="mirage-dashboard-health-list">
+                                    <div class="mirage-dashboard-health-item">
+                                        <div>
+                                            <div class="fw-semibold">Draft pages</div>
+                                            <div class="small text-secondary">Unpublished content waiting for review or release.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="generalDraftCount > 0 ? 'text-bg-warning' : 'text-bg-success'">{{generalDraftCount}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-health-item">
+                                        <div>
+                                            <div class="fw-semibold">Media attention</div>
+                                            <div class="small text-secondary">Files missing previews or originals in storage.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="mediaLibraryStats.attention > 0 ? 'text-bg-warning' : 'text-bg-success'">{{mediaLibraryStats.attention}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-health-item" v-if="canAccessMenus()">
+                                        <div>
+                                            <div class="fw-semibold">Form inbox</div>
+                                            <div class="small text-secondary">Form submissions currently in the dashboard.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="formSubmissions.length > 0 ? 'text-bg-primary' : 'text-bg-secondary'">{{formSubmissions.length}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-health-item" v-if="canAccessMenus()">
+                                        <div>
+                                            <div class="fw-semibold">Navigation coverage</div>
+                                            <div class="small text-secondary">{{generalMenuItemCount}} item<span v-if="generalMenuItemCount !== 1">s</span> across {{generalMenuCount}} menu<span v-if="generalMenuCount !== 1">s</span>.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="generalMenuItemCount > 0 ? 'text-bg-success' : 'text-bg-secondary'">{{generalMenuItemCount}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mirage-dashboard-health-item" v-if="canAccessSettings()">
+                                        <div>
+                                            <div class="fw-semibold">Site settings</div>
+                                            <div class="small text-secondary">Title {{(siteSettings.siteTitle || '').trim() !== '' ? 'configured' : 'needs setup'}}, footer {{(siteSettings.footerText || '').trim() !== '' ? 'configured' : 'empty'}}.</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge" :class="(siteSettings.siteTitle || '').trim() !== '' ? 'text-bg-success' : 'text-bg-warning'">{{(siteSettings.siteTitle || '').trim() !== '' ? 'Ready' : 'Review'}}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -855,6 +1179,7 @@
     const MAX_UPLOAD_FILE_LABEL = <?php echo json_encode(formatBytes(getUploadFileLimitBytes())); ?>;
     const MAX_UPLOAD_TOTAL_LABEL = <?php echo json_encode(formatBytes(getPostMaxSizeBytes())); ?>;
     const MEDIA_UPLOAD_ACCEPTED_EXTENSIONS = <?php echo json_encode(array_values(getAcceptedUploadExtensions())); ?>;
+    const MIRAGE_DEFAULT_SITE_TITLE = <?php echo json_encode($siteTitle ?? ''); ?>;
     const MIRAGE_EDITOR_CONTENT_STYLE = `
         body {
             padding: 1rem;
@@ -1122,6 +1447,8 @@
                 activeCollection: {},
                 activeTheme: {},
                 pages: [],
+                dashboardPages: [],
+                dashboardPagesLoading: false,
                 counts: {},
                 siteSettings: {
                     siteTitle: "",
@@ -1200,6 +1527,104 @@
                 });
 
                 return stats;
+            },
+            userList() {
+                return Array.isArray(this.users) ? this.users : Object.values(this.users || {});
+            },
+            generalSiteTitle() {
+                var configuredTitle = typeof this.siteSettings.siteTitle === 'string' ? this.siteSettings.siteTitle.trim() : '';
+                if (configuredTitle !== '') {
+                    return configuredTitle;
+                }
+
+                var fallbackTitle = typeof MIRAGE_DEFAULT_SITE_TITLE === 'string' ? MIRAGE_DEFAULT_SITE_TITLE.trim() : '';
+                return fallbackTitle !== '' ? fallbackTitle : 'Your site';
+            },
+            generalCollectionCount() {
+                return Array.isArray(this.activeTheme.collections) ? this.activeTheme.collections.length : 0;
+            },
+            generalTemplateCount() {
+                return Array.isArray(this.activeTheme.templates) ? this.activeTheme.templates.length : 0;
+            },
+            generalMenuCount() {
+                return Array.isArray(this.activeTheme.menus) ? this.activeTheme.menus.length : 0;
+            },
+            generalMenuItemCount() {
+                var total = 0;
+
+                Object.keys(this.menuItems || {}).forEach((menuID) => {
+                    if (Array.isArray(this.menuItems[menuID])) {
+                        total += this.menuItems[menuID].length;
+                    }
+                });
+
+                return total;
+            },
+            generalPublishedCount() {
+                return (Array.isArray(this.dashboardPages) ? this.dashboardPages : []).reduce(function (count, page) {
+                    return count + (page.isPublished === false ? 0 : 1);
+                }, 0);
+            },
+            generalDraftCount() {
+                return (Array.isArray(this.dashboardPages) ? this.dashboardPages : []).reduce(function (count, page) {
+                    return count + (page.isPublished === false ? 1 : 0);
+                }, 0);
+            },
+            generalRecentPages() {
+                return (Array.isArray(this.dashboardPages) ? this.dashboardPages.slice() : [])
+                    .sort(function (left, right) {
+                        return Number(right.edited || 0) - Number(left.edited || 0);
+                    })
+                    .slice(0, 6);
+            },
+            generalCollectionSummaries() {
+                var collections = Array.isArray(this.activeTheme.collections) ? this.activeTheme.collections : [];
+                var pages = Array.isArray(this.dashboardPages) ? this.dashboardPages : [];
+
+                return collections
+                    .map(function (collection) {
+                        var matchingPages = pages.filter(function (page) {
+                            return String(page.collection || '') === String(collection.id || '');
+                        });
+
+                        return {
+                            collection: collection,
+                            total: matchingPages.length,
+                            drafts: matchingPages.reduce(function (count, page) {
+                                return count + (page.isPublished === false ? 1 : 0);
+                            }, 0),
+                            published: matchingPages.reduce(function (count, page) {
+                                return count + (page.isPublished === false ? 0 : 1);
+                            }, 0)
+                        };
+                    })
+                    .sort(function (left, right) {
+                        if (right.total !== left.total) {
+                            return right.total - left.total;
+                        }
+
+                        return String(left.collection.name || '').localeCompare(String(right.collection.name || ''));
+                    });
+            },
+            generalUserCounts() {
+                return this.userList.reduce(function (counts, user) {
+                    counts.total += 1;
+
+                    if (Number(user.accountType) === 0) {
+                        counts.admins += 1;
+                    } else if (Number(user.accountType) === 1) {
+                        counts.editors += 1;
+                    } else {
+                        counts.authors += 1;
+                    }
+
+                    return counts;
+                }, {
+                    total: 0,
+                    admins: 0,
+                    editors: 0,
+                    authors: 0
+                });
             },
             filteredMediaItems() {
                 return this.filterAndSortMediaItems(this.mediaItems, this.mediaSearch, this.mediaFilter, this.mediaSort);
@@ -1300,6 +1725,17 @@
         methods: {
             getActiveAccountType() {
                 return Number(this.activeUser && this.activeUser.accountType);
+            },
+            getAccountTypeLabel(accountType) {
+                if (Number(accountType) === 0) {
+                    return 'Administrator';
+                }
+
+                if (Number(accountType) === 1) {
+                    return 'Editor';
+                }
+
+                return 'Author';
             },
             canAccessMenus() {
                 return this.getActiveAccountType() !== 2;
@@ -1702,6 +2138,28 @@
                 }
 
                 return true;
+            },
+            openGeneralDashboard() {
+                if (!this.setPage('general')) {
+                    return;
+                }
+
+                this.refreshGeneralDashboard();
+            },
+            refreshGeneralDashboard() {
+                this.getCounts();
+                this.getDashboardPages();
+                this.getUsers();
+                this.getMedia();
+
+                if (this.canAccessMenus()) {
+                    this.getFormSubmissions();
+                    this.getMenus();
+                }
+
+                if (this.canAccessSettings()) {
+                    this.getSiteSettings();
+                }
             },
             getTheme() {
                 var comp = this;
@@ -2287,6 +2745,32 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages", true);
                 xmlhttp.send();
             },
+            getDashboardPages() {
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                comp.dashboardPagesLoading = true;
+                xmlhttp.onload = function () {
+                    comp.dashboardPagesLoading = false;
+
+                    if (this.status < 200 || this.status >= 300) {
+                        comp.dashboardPages = [];
+                        return;
+                    }
+
+                    try {
+                        var pages = JSON.parse(this.responseText);
+                        comp.dashboardPages = Array.isArray(pages) ? pages : Object.values(pages || {});
+                    } catch (error) {
+                        comp.dashboardPages = [];
+                    }
+                }
+                xmlhttp.onerror = function () {
+                    comp.dashboardPagesLoading = false;
+                    comp.dashboardPages = [];
+                };
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages", true);
+                xmlhttp.send();
+            },
             editPage(pageID, update) {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -2753,6 +3237,44 @@
                 var mediaItem = this.getMediaItemById(itemID);
                 return mediaItem != null ? (mediaItem.displayName || mediaItem.file || null) : null;
             },
+            getCollectionById(collectionID) {
+                if (!Array.isArray(this.activeTheme.collections)) {
+                    return null;
+                }
+
+                return this.activeTheme.collections.find(function (collection) {
+                    return String(collection.id || '') === String(collectionID || '');
+                }) || null;
+            },
+            getCollectionName(collectionID) {
+                var collection = this.getCollectionById(collectionID);
+                if (collection != null && typeof collection.name === 'string' && collection.name.trim() !== '') {
+                    return collection.name;
+                }
+
+                return 'Unknown Collection';
+            },
+            getPageDisplayPath(page) {
+                if (page == null || page.isPathless === true) {
+                    return '';
+                }
+
+                var path = typeof page.path === 'string' ? page.path.trim().replace(/^\/+/, '') : '';
+                if (path === '') {
+                    return '';
+                }
+
+                var collection = this.getCollectionById(page.collection);
+                var subpath = collection != null && typeof collection.subpath === 'string'
+                    ? collection.subpath.trim().replace(/^\/+|\/+$/g, '')
+                    : '';
+
+                return '/' + (subpath !== '' ? subpath + '/' : '') + path;
+            },
+            getPageViewPath(page) {
+                var displayPath = this.getPageDisplayPath(page);
+                return displayPath !== '' ? ('<?php echo BASEPATH; ?>' + displayPath) : null;
+            },
             viewPath(path) {
                 if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
                     return '<?php echo BASEPATH; ?>/' + this.activeCollection.subpath + "/" + path;
@@ -2800,12 +3322,21 @@
                 };
                 this.setSelectMediaConstraint('image');
                 selectFileModal.show();
+            },
+            quickAddPage(collection) {
+                if (collection == null || !this.canLeaveCurrentView()) {
+                    return;
+                }
+
+                this.activeCollection = collection;
+                this.addPage();
             }
         },
         mounted() {
             this.getTheme();
             this.getMedia();
             this.getCounts();
+            this.getDashboardPages();
             this.getUsers();
             this.getActiveUser();
         }
