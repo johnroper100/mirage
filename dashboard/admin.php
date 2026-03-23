@@ -69,7 +69,7 @@
                 v-for="collection in activeTheme.collections"><i class="fa-solid me-1" :class="collection.icon"></i>
                 {{collection.name}}</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
-                :class="{'active text-light': viewPage == 'menus'}" v-if="activeUser.accountType != 2"><i class="fa-solid fa-chart-bar me-1"></i>
+                :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessMenus()"><i class="fa-solid fa-chart-bar me-1"></i>
                 Menus</span>
             <!--<span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('comments')" :class="{'active text-light': viewPage == 'comments'}"><i class="fa-solid fa-comments me-1"></i> Comments</span>-->
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('forms')" :class="{'active text-light': viewPage == 'forms'}" v-if="activeUser.accountType != 2"><i class="fa-solid fa-envelope-open-text me-1"></i> Form Submissions</span>
@@ -79,7 +79,7 @@
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings'); getSiteSettings();"
-                :class="{'active text-light': viewPage == 'settings'}" v-if="activeUser.accountType == 0"><i class="fa-solid fa-gears me-1"></i> Settings</span>
+                :class="{'active text-light': viewPage == 'settings'}" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</span>
             <form action="<?php echo BASEPATH ?>/logout" method="POST" class="m-0">
                 <?php echo getCsrfTokenFieldHtml(); ?>
                 <button type="submit" class="btn btn-link w-100 text-start p-2 ps-3 sidebarItem mt-2 text-decoration-none text-secondary"><i class="fa-solid fa-right-from-bracket me-1"></i> Log Out</button>
@@ -99,12 +99,12 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'pages'">{{activeCollection.name}}</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'menus'">Menus</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'menus' && canAccessMenus()">Menus</h4>
                 <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>-->
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Form Submissions</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'users'">Users</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'settings'">Settings</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'settings' && canAccessSettings()">Settings</h4>
                 <button class="btn btn-dark navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
@@ -124,7 +124,7 @@
                             Remove</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
-                        <button class="btn btn-success" v-if="viewPage == 'menus'" @click="saveMenus"><i
+                        <button class="btn btn-success" v-if="viewPage == 'menus' && canAccessMenus()" @click="saveMenus"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <div class="btn-group me-md-2 mb-1 mb-md-0" v-if="viewPage == 'forms'">
                             <button class="btn btn-outline-secondary" @click="selectAllFormSubmissions" :disabled="formSubmissions.length == 0"><i
@@ -141,7 +141,7 @@
                         <button class="btn btn-success" v-if="viewPage == 'users'" @click="addUser"
                             v-if="activeUser.accountType != 2"><i class="fa-solid fa-user-plus me-1"></i> Add
                             User</button>
-                        <button class="btn btn-success" v-if="viewPage == 'settings'" @click="saveSiteSettings"><i
+                        <button class="btn btn-success" v-if="viewPage == 'settings' && canAccessSettings()" @click="saveSiteSettings"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                     </div>
                 </div>
@@ -305,7 +305,7 @@
                     </div>
                 </div>
             </div>
-            <div v-if="viewPage == 'menus'">
+            <div v-if="viewPage == 'menus' && canAccessMenus()">
                 <div class="card mb-3" v-for="menu in activeTheme.menus">
                     <div class="card-header">
                         {{menu.name}}
@@ -583,7 +583,7 @@
                     </table>
                 </div>
             </div>
-            <div v-if="viewPage == 'settings'">
+            <div v-if="viewPage == 'settings' && canAccessSettings()">
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <div class="mb-3">
@@ -1298,6 +1298,35 @@
             }
         },
         methods: {
+            getActiveAccountType() {
+                return Number(this.activeUser && this.activeUser.accountType);
+            },
+            canAccessMenus() {
+                return this.getActiveAccountType() !== 2;
+            },
+            canAccessSettings() {
+                return this.getActiveAccountType() === 0;
+            },
+            canAccessView(page) {
+                if (page === 'menus' || page === 'forms') {
+                    return this.getActiveAccountType() !== 2;
+                }
+
+                if (page === 'settings') {
+                    return this.canAccessSettings();
+                }
+
+                return true;
+            },
+            ensureAuthorizedView() {
+                if (this.canAccessView(this.viewPage)) {
+                    return;
+                }
+
+                this.viewPage = 'general';
+                this.pageOrderDirty = false;
+                this.pageOrderSaving = false;
+            },
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
             },
@@ -1661,6 +1690,11 @@
                     return false;
                 }
 
+                if (!this.canAccessView(page)) {
+                    this.ensureAuthorizedView();
+                    return false;
+                }
+
                 this.viewPage = page;
                 if (page !== 'pages') {
                     this.pageOrderDirty = false;
@@ -1747,6 +1781,11 @@
                 });
             },
             getMenus() {
+                if (!this.canAccessMenus()) {
+                    this.menuItems = {};
+                    return;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
@@ -1954,6 +1993,15 @@
                 xmlhttp.send();
             },
             getSiteSettings() {
+                if (!this.canAccessSettings()) {
+                    this.siteSettings = {
+                        siteTitle: "",
+                        footerText: "",
+                        copyrightText: ""
+                    };
+                    return;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
@@ -1994,6 +2042,8 @@
                         comp.selectedFormSubmissionIDs = [];
                         comp.menuItems = {};
                     }
+
+                    comp.ensureAuthorizedView();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users/active", true);
                 xmlhttp.send();
@@ -2340,6 +2390,10 @@
                 xmlhttp.send();
             },
             saveMenus() {
+                if (!this.canAccessMenus()) {
+                    return;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
@@ -2369,6 +2423,10 @@
                 xmlhttp.send(JSON.stringify(allMenuItems));
             },
             saveSiteSettings() {
+                if (!this.canAccessSettings()) {
+                    return;
+                }
+
                 if ((this.siteSettings.siteTitle || '').trim() === '') {
                     alert("Site title is required.");
                     return;
