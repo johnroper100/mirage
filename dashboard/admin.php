@@ -282,7 +282,11 @@
                         <div class="tab-pane fade p-3" id="options" role="tabpanel" aria-labelledby="options-tab">
                             <div class="mb-3" v-if="editingPathless == false">
                                 <label class="form-label">Page Path:</label>
-                                <input v-model="editingPath" type="text" class="form-control" placeholder="/">
+                                <div class="input-group">
+                                    <span class="input-group-text" v-if="editingPathPrefix">{{editingPathPrefix}}</span>
+                                    <input v-model="editingPath" type="text" class="form-control"
+                                        :placeholder="editingPathPrefix ? 'page-url' : '/'">
+                                </div>
                             </div>
                             <div class="form-check form-switch mb-3" v-if="activeUser.accountType != 2">
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"
@@ -1208,6 +1212,13 @@
                     ? this.selectMediaItemType
                     : this.selectMediaAccepts;
                 return this.filterAndSortMediaItems(this.mediaItems, this.selectFileSearch, pickerFilter, 'newest');
+            },
+            editingPathPrefix() {
+                var subpath = this.activeCollection && typeof this.activeCollection.subpath === 'string'
+                    ? this.activeCollection.subpath.trim().replace(/^\/+|\/+$/g, '')
+                    : '';
+
+                return subpath !== '' ? subpath + '/' : '';
             },
             hasActiveMediaFilters() {
                 return this.mediaSearch.trim() !== ''
