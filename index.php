@@ -20,7 +20,7 @@ if (!isset($_SESSION['sessionStartedAt'])) {
     $_SESSION['sessionStartedAt'] = time();
 }
 
-define('MIRAGE_VERSION', "1.2.0");
+define('MIRAGE_VERSION', "1.2.5");
 
 # Define the site root (used in the backend and frontend)
 define('ORIGBASEPATH', dirname($_SERVER['PHP_SELF']));
@@ -431,6 +431,78 @@ function getTemplateDefinitionPath($templateID)
     return $path;
 }
 
+function normalizeMediaFieldAccepts($accepts, $legacySubtype = null)
+{
+    $normalizedAccepts = strtolower(trim((string) $accepts));
+    if ($normalizedAccepts === '') {
+        $normalizedAccepts = strtolower(trim((string) $legacySubtype));
+    }
+
+    if (!in_array($normalizedAccepts, ['image', 'file', 'both'], true)) {
+        return 'both';
+    }
+
+    return $normalizedAccepts;
+}
+
+function normalizeTemplateFieldDefinition($field)
+{
+    if (!is_array($field)) {
+        return $field;
+    }
+
+    if (($field['type'] ?? '') === 'media') {
+        $field['accepts'] = normalizeMediaFieldAccepts($field['accepts'] ?? '', $field['subtype'] ?? '');
+        if (!isset($field['subtype']) && $field['accepts'] !== 'both') {
+            $field['subtype'] = $field['accepts'];
+        }
+    }
+
+    if (($field['type'] ?? '') === 'list' && isset($field['fields']) && is_array($field['fields'])) {
+        foreach ($field['fields'] as $index => $subField) {
+            $field['fields'][$index] = normalizeTemplateFieldDefinition($subField);
+        }
+    }
+
+    return $field;
+}
+
+function normalizeTemplateDefinition($templateDefinition)
+{
+    if (!is_array($templateDefinition)) {
+        return null;
+    }
+
+    if (isset($templateDefinition['sections']) && is_array($templateDefinition['sections'])) {
+        foreach ($templateDefinition['sections'] as $sectionIndex => $section) {
+            if (!is_array($section) || !isset($section['fields']) || !is_array($section['fields'])) {
+                continue;
+            }
+
+            foreach ($section['fields'] as $fieldIndex => $field) {
+                $templateDefinition['sections'][$sectionIndex]['fields'][$fieldIndex] = normalizeTemplateFieldDefinition($field);
+            }
+        }
+    }
+
+    return $templateDefinition;
+}
+
+function loadTemplateDefinition($templateID)
+{
+    $templatePath = getTemplateDefinitionPath($templateID);
+    if ($templatePath === null || !file_exists($templatePath)) {
+        return null;
+    }
+
+    $decodedTemplate = json_decode(file_get_contents($templatePath), true);
+    if (!is_array($decodedTemplate)) {
+        return null;
+    }
+
+    return normalizeTemplateDefinition($decodedTemplate);
+}
+
 function getThemeTemplatePhpPath($templateID)
 {
     if (getTemplateConfigById($templateID) === null) {
@@ -493,6 +565,17 @@ function getAllowedUploadTypes()
     ];
 }
 
+function getAcceptedUploadExtensions($imageOnly = false)
+{
+    $extensions = array_keys(getAllowedUploadTypes());
+
+    if ($imageOnly) {
+        $extensions = array_values(array_intersect($extensions, ['jpg', 'jpeg', 'png', 'gif', 'webp']));
+    }
+
+    return array_values($extensions);
+}
+
 function isAllowedUploadedFile($temporaryFile, $originalFilename, $imageOnly = false)
 {
     $extension = strtolower((string) pathinfo((string) $originalFilename, PATHINFO_EXTENSION));
@@ -528,9 +611,24 @@ function getStoredUploadFilename($originalFilename)
     return $baseName . '-' . bin2hex(random_bytes(8)) . '.' . $extension;
 }
 
+function normalizeOriginalUploadFilename($originalFilename)
+{
+    $originalFilename = trim((string) $originalFilename);
+    if ($originalFilename === '') {
+        return '';
+    }
+
+    return basename(str_replace('\\', '/', $originalFilename));
+}
+
+function getUploadsDirectoryPath()
+{
+    return __DIR__ . '/uploads';
+}
+
 function ensureUploadsDirectoryExists()
 {
-    $uploadsDirectory = __DIR__ . '/uploads';
+    $uploadsDirectory = getUploadsDirectoryPath();
     if (!is_dir($uploadsDirectory)) {
         mkdir($uploadsDirectory, 0755, true);
     }
@@ -538,20 +636,77 @@ function ensureUploadsDirectoryExists()
     return $uploadsDirectory;
 }
 
-function getUploadStoragePath($storedFilename)
+function normalizeStoredUploadFilename($storedFilename)
 {
     $storedFilename = trim((string) $storedFilename);
     if ($storedFilename === '' || $storedFilename !== basename($storedFilename)) {
         return null;
     }
 
-    return ensureUploadsDirectoryExists() . '/' . $storedFilename;
+    return $storedFilename;
+}
+
+function getUploadStoragePath($storedFilename, $ensureExists = false)
+{
+    $storedFilename = normalizeStoredUploadFilename($storedFilename);
+    if ($storedFilename === null) {
+        return null;
+    }
+
+    $uploadsDirectory = $ensureExists ? ensureUploadsDirectoryExists() : getUploadsDirectoryPath();
+    return $uploadsDirectory . '/' . $storedFilename;
+}
+
+function getStoredUploadPublicUrl($storedFilename)
+{
+    $storedFilename = normalizeStoredUploadFilename($storedFilename);
+    if ($storedFilename === null) {
+        return null;
+    }
+
+    return BASEPATH . '/uploads/' . rawurlencode($storedFilename);
+}
+
+function getStoredUploadMetadata($storedFilename)
+{
+    $storagePath = getUploadStoragePath($storedFilename);
+    $exists = $storagePath !== null && is_file($storagePath);
+
+    $metadata = [
+        'exists' => $exists,
+        'size' => 0,
+        'mimeType' => '',
+        'width' => null,
+        'height' => null,
+    ];
+
+    if (!$exists) {
+        return $metadata;
+    }
+
+    $fileSize = @filesize($storagePath);
+    if ($fileSize !== false) {
+        $metadata['size'] = (int) $fileSize;
+    }
+
+    $mimeType = getUploadedFileMimeType($storagePath);
+    if ($mimeType !== '') {
+        $metadata['mimeType'] = $mimeType;
+    }
+
+    $imageSize = @getimagesize($storagePath);
+    if (is_array($imageSize)) {
+        $metadata['width'] = isset($imageSize[0]) ? (int) $imageSize[0] : null;
+        $metadata['height'] = isset($imageSize[1]) ? (int) $imageSize[1] : null;
+    }
+
+    return $metadata;
 }
 
 function moveUploadedFileToStorage($temporaryFile, $originalFilename)
 {
     $storedFilename = getStoredUploadFilename($originalFilename);
-    $storagePath = getUploadStoragePath($storedFilename);
+    $storagePath = getUploadStoragePath($storedFilename, true);
     if ($storagePath === null) {
         return null;
     }
@@ -571,6 +726,180 @@ function deleteStoredUploadFile($storedFilename)
     }
 
     return unlink($storagePath);
+}
+
+function createImagePreviewForStoredUpload($storedFilename)
+{
+    $storedFilename = normalizeStoredUploadFilename($storedFilename);
+    $storagePath = getUploadStoragePath($storedFilename);
+    if ($storedFilename === null || $storagePath === null || !is_file($storagePath)) {
+        return null;
+    }
+
+    $imageSize = @getimagesize($storagePath);
+    if (!is_array($imageSize) || empty($imageSize[0]) || empty($imageSize[1])) {
+        return null;
+    }
+
+    $sourceWidth = (int) $imageSize[0];
+    if ($sourceWidth > 0 && $sourceWidth <= 500) {
+        return $storedFilename;
+    }
+
+    $previewFilename = 'min_' . $storedFilename;
+    $previewPath = getUploadStoragePath($previewFilename, true);
+    if ($previewPath === null) {
+        return null;
+    }
+
+    try {
+        $image = new ImageResize($storagePath);
+        if ($sourceWidth > 500) {
+            $image->resizeToWidth(500);
+        }
+        $image->save($previewPath);
+    } catch (\Throwable $exception) {
+        deleteStoredUploadFile($previewFilename);
+        return null;
+    }
+
+    return $previewFilename;
+}
+
+function buildMediaItemRecordFromStoredUpload($storedFilename, $originalFilename)
+{
+    $storedFilename = normalizeStoredUploadFilename($storedFilename);
+    if ($storedFilename === null) {
+        return null;
+    }
+
+    $timestamp = time();
+    $currentUserId = getCurrentUserId();
+    $extension = strtolower((string) pathinfo($storedFilename, PATHINFO_EXTENSION));
+    $mediaItem = [
+        'file' => $storedFilename,
+        'fileSmall' => $storedFilename,
+        'originalName' => normalizeOriginalUploadFilename($originalFilename),
+        'caption' => '',
+        'altText' => '',
+        'extension' => $extension,
+        'editedUser' => $currentUserId,
+        'edited' => $timestamp,
+        'createdUser' => $currentUserId,
+        'created' => $timestamp,
+        'type' => in_array($extension, ['png', 'jpg', 'gif', 'jpeg', 'webp'], true) ? 'image' : 'file',
+    ];
+
+    if ($mediaItem['type'] === 'image') {
+        $previewFilename = createImagePreviewForStoredUpload($storedFilename);
+        if ($previewFilename === null) {
+            return null;
+        }
+
+        $mediaItem['fileSmall'] = $previewFilename;
+    }
+
+    return $mediaItem;
+}
+
+function deleteMediaStorageFiles($mediaItem)
+{
+    if (!is_array($mediaItem)) {
+        return false;
+    }
+
+    $filesToDelete = [];
+    $previewFilename = normalizeStoredUploadFilename($mediaItem['fileSmall'] ?? '');
+    $originalFilename = normalizeStoredUploadFilename($mediaItem['file'] ?? '');
+
+    if (($mediaItem['type'] ?? '') === 'image' && $previewFilename !== null && $previewFilename !== $originalFilename) {
+        $filesToDelete[] = $previewFilename;
+    }
+
+    if ($originalFilename !== null) {
+        $filesToDelete[] = $originalFilename;
+    }
+
+    foreach ($filesToDelete as $storedFilename) {
+        if (!deleteStoredUploadFile($storedFilename)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function prepareMediaItemForResponse($mediaItem)
+{
+    if (!is_array($mediaItem)) {
+        return null;
+    }
+
+    $preparedItem = $mediaItem;
+    $preparedItem['file'] = (string) ($preparedItem['file'] ?? '');
+    $preparedItem['fileSmall'] = (string) ($preparedItem['fileSmall'] ?? $preparedItem['file']);
+    $preparedItem['originalName'] = normalizeOriginalUploadFilename($preparedItem['originalName'] ?? '');
+    $preparedItem['caption'] = trim((string) ($preparedItem['caption'] ?? ''));
+    $preparedItem['altText'] = trim((string) ($preparedItem['altText'] ?? ''));
+    $preparedItem['extension'] = strtolower((string) ($preparedItem['extension'] ?? pathinfo($preparedItem['file'], PATHINFO_EXTENSION)));
+
+    if (($preparedItem['type'] ?? '') !== 'image' && ($preparedItem['type'] ?? '') !== 'file') {
+        $preparedItem['type'] = in_array($preparedItem['extension'], ['png', 'jpg', 'gif', 'jpeg', 'webp'], true) ? 'image' : 'file';
+    }
+
+    $fileMetadata = getStoredUploadMetadata($preparedItem['file']);
+    $previewFilename = $preparedItem['fileSmall'] !== '' ? $preparedItem['fileSmall'] : $preparedItem['file'];
+    $previewMetadata = $previewFilename === $preparedItem['file']
+        ? $fileMetadata
+        : getStoredUploadMetadata($previewFilename);
+
+    $storageIssues = [];
+    if (!$fileMetadata['exists']) {
+        $storageIssues[] = 'Original file missing';
+    }
+
+    if (
+        $preparedItem['type'] === 'image'
+        && $previewFilename !== $preparedItem['file']
+        && !$previewMetadata['exists']
+    ) {
+        $storageIssues[] = 'Preview image missing';
+    }
+
+    $preparedItem['displayName'] = $preparedItem['originalName'] !== '' ? $preparedItem['originalName'] : $preparedItem['file'];
+    $preparedItem['fileExists'] = $fileMetadata['exists'];
+    $preparedItem['previewExists'] = $previewMetadata['exists'];
+    $preparedItem['storageStatus'] = !$fileMetadata['exists']
+        ? 'missing'
+        : (count($storageIssues) > 0 ? 'degraded' : 'ready');
+    $preparedItem['storageIssues'] = $storageIssues;
+    $preparedItem['fileUrl'] = $fileMetadata['exists'] ? getStoredUploadPublicUrl($preparedItem['file']) : null;
+    $preparedItem['previewUrl'] = $previewMetadata['exists']
+        ? getStoredUploadPublicUrl($previewFilename)
+        : ($fileMetadata['exists'] ? getStoredUploadPublicUrl($preparedItem['file']) : null);
+    $preparedItem['fileSize'] = $fileMetadata['size'];
+    $preparedItem['previewSize'] = $previewMetadata['size'];
+    $preparedItem['mimeType'] = $fileMetadata['mimeType'] !== '' ? $fileMetadata['mimeType'] : $previewMetadata['mimeType'];
+    $preparedItem['width'] = $fileMetadata['width'];
+    $preparedItem['height'] = $fileMetadata['height'];
+    $preparedItem['totalStorageBytes'] = $fileMetadata['size']
+        + ($previewFilename !== $preparedItem['file'] ? $previewMetadata['size'] : 0);
+
+    return $preparedItem;
+}
+
+function prepareMediaItemsForResponse($mediaItems)
+{
+    $preparedItems = [];
+
+    foreach ($mediaItems as $mediaItem) {
+        $preparedItem = prepareMediaItemForResponse($mediaItem);
+        if ($preparedItem !== null) {
+            $preparedItems[] = $preparedItem;
+        }
+    }
+
+    return $preparedItems;
 }
 
 function getFullBasepathRaw()
@@ -914,6 +1243,63 @@ function normalizeOptionalMediaReference($value)
     return is_scalar($value) ? $value : null;
 }
 
+function isMediaItemAllowedForAccepts($mediaItem, $accepts)
+{
+    if (!is_array($mediaItem)) {
+        return false;
+    }
+
+    $normalizedAccepts = normalizeMediaFieldAccepts($accepts);
+    $mediaType = strtolower(trim((string) ($mediaItem['type'] ?? '')));
+
+    if (!in_array($mediaType, ['image', 'file'], true)) {
+        return false;
+    }
+
+    return $normalizedAccepts === 'both' || $mediaType === $normalizedAccepts;
+}
+
+function isValidFieldValue($field)
+{
+    if (!is_array($field)) {
+        return false;
+    }
+
+    $fieldType = (string) ($field['type'] ?? '');
+    if ($fieldType === 'media') {
+        $mediaId = normalizeOptionalMediaReference($field['value'] ?? null);
+        if ($mediaId === null) {
+            return true;
+        }
+
+        return isMediaItemAllowedForAccepts(
+            getMedia($mediaId),
+            normalizeMediaFieldAccepts($field['accepts'] ?? '', $field['subtype'] ?? '')
+        );
+    }
+
+    if ($fieldType === 'list') {
+        $fieldValue = $field['value'] ?? [];
+        if (!is_array($fieldValue)) {
+            return false;
+        }
+
+        foreach ($fieldValue as $subFields) {
+            if (!is_array($subFields)) {
+                return false;
+            }
+
+            foreach ($subFields as $subField) {
+                if (!isValidFieldValue($subField)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 # Generate page field
 function generateField($field)
 {
@@ -964,6 +1350,11 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
         return null;
     }
 
+    $templateDefinition = loadTemplateDefinition($templateName);
+    if ($templateDefinition === null) {
+        return null;
+    }
+
     $path = sanitizeStoredPathSegment($data["path"] ?? '');
     $collectionSubpath = sanitizeStoredPathSegment($data["collectionSubpath"] ?? '');
     if ($path === null || $collectionSubpath === null) {
@@ -987,6 +1378,9 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
 
         foreach ($section["fields"] as $field) {
             if (isset($field['value'])) {
+                if (!isValidFieldValue($field)) {
+                    return null;
+                }
                 $page["content"][$field['id']] = generateField($field);
             }
         }
@@ -2003,13 +2397,13 @@ if (!file_exists("config.php")) {
 
     Route::add('/api/templates/(.*)', function ($who) {
         if (isset($_SESSION['loggedin'])) {
-            $templatePath = getTemplateDefinitionPath($who);
-            if ($templatePath === null) {
+            $templateDefinition = loadTemplateDefinition($who);
+            if ($templateDefinition === null) {
                 getErrorPage(404);
                 return;
             }
 
-            echo file_get_contents($templatePath);
+            sendJsonResponse($templateDefinition);
         } else {
             getErrorPage(401);
         }
@@ -2535,11 +2929,13 @@ if (!file_exists("config.php")) {
     Route::add('/api/media', function () {
         if (isset($_SESSION['loggedin'])) {
             global $mediaStore;
-            $allMedia = $mediaStore->findAll();
-            $myJSON = json_encode($allMedia);
-            echo $myJSON;
+            $allMedia = $mediaStore->findAll(["edited" => "desc"]);
+            sendJsonResponse(prepareMediaItemsForResponse($allMedia));
         } else {
-            getErrorPage(401);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You do not have permission to view media.',
+            ], 401);
         }
     });
 
@@ -2598,44 +2994,30 @@ if (!file_exists("config.php")) {
                         'message' => 'The server could not save the uploaded file. Please try again.',
                     ], 500);
                     return;
-                } else {
-                    $page = [];
-                    $page['file'] = $storedFilename;
-                    $page['fileSmall'] = $page['file'];
-                    $page["caption"] = "";
-                    $page["altText"] = "";
-                    $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
-
-                    $page["editedUser"] = getCurrentUserId();
-                    $page["edited"] = time();
-                    $page["createdUser"] = $page["editedUser"];
-                    $page["created"] = $page["edited"];
-
-                    if (in_array(strtolower($page['extension']), ['png', 'jpg', 'gif', 'jpeg', 'webp'], true)) {
-                        $page['type'] = "image";
-                    } else {
-                        $page['type'] = "file";
-                    }
-
-                    if ($page["type"] == "image") {
-                        try {
-                            $image = new ImageResize(getUploadStoragePath($page['file']));
-                            $image->resizeToWidth(500);
-                            $page['fileSmall'] = "min_" . $page['file'];
-                            $image->save(getUploadStoragePath($page['fileSmall']));
-                        } catch (\Throwable $exception) {
-                            deleteStoredUploadFile($page['file']);
-                            sendJsonResponse([
-                                'success' => false,
-                                'message' => getInvalidUploadTypeMessage(true),
-                            ], 400);
-                            return;
-                        }
-                    }
-
-                    $page = $mediaStore->insert($page);
-                    $uploadedMedia[] = $page;
                 }
+
+                $page = buildMediaItemRecordFromStoredUpload($storedFilename, $originalFilename);
+                if ($page === null) {
+                    deleteStoredUploadFile($storedFilename);
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => getInvalidUploadTypeMessage(true),
+                    ], 400);
+                    return;
+                }
+
+                try {
+                    $page = $mediaStore->insert($page);
+                } catch (\Throwable $exception) {
+                    deleteMediaStorageFiles($page);
+                    sendJsonResponse([
+                        'success' => false,
+                        'message' => 'The media library could not save the uploaded file record. Please try again.',
+                    ], 500);
+                    return;
+                }
+
+                $uploadedMedia[] = prepareMediaItemForResponse($page);
             }
 
             sendJsonResponse([
@@ -2702,39 +3084,34 @@ if (!file_exists("config.php")) {
                     'message' => 'The server could not save the uploaded file. Please try again.',
                 ], 500);
                 return;
-            } else {
-                $page = [];
-                $page['file'] = $storedFilename;
-                $page['fileSmall'] = "min_" . $page['file'];
-                $page["caption"] = "";
-                $page["altText"] = "";
-                $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
-                $page['type'] = "image";
-
-                $page["editedUser"] = getCurrentUserId();
-                $page["edited"] = time();
-                $page["createdUser"] = $page["editedUser"];
-                $page["created"] = $page["edited"];
-
-                try {
-                    $image = new ImageResize(getUploadStoragePath($page['file']));
-                    $image->resizeToWidth(500);
-                    $image->save(getUploadStoragePath($page['fileSmall']));
-                } catch (\Throwable $exception) {
-                    deleteStoredUploadFile($page['file']);
-                    sendJsonResponse([
-                        'success' => false,
-                        'message' => getInvalidUploadTypeMessage(true),
-                    ], 400);
-                    return;
-                }
-
-                $page = $mediaStore->insert($page);
-                sendJsonResponse([
-                    'success' => true,
-                    'file' => BASEPATH . '/uploads/' . rawurlencode($page['file']),
-                ]);
             }
+
+            $page = buildMediaItemRecordFromStoredUpload($storedFilename, $originalFilename);
+            if ($page === null || ($page['type'] ?? '') !== 'image') {
+                deleteStoredUploadFile($storedFilename);
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => getInvalidUploadTypeMessage(true),
+                ], 400);
+                return;
+            }
+
+            try {
+                $page = $mediaStore->insert($page);
+            } catch (\Throwable $exception) {
+                deleteMediaStorageFiles($page);
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The media library could not save the uploaded file record. Please try again.',
+                ], 500);
+                return;
+            }
+
+            $page = prepareMediaItemForResponse($page);
+            sendJsonResponse([
+                'success' => true,
+                'file' => $page['fileUrl'],
+            ]);
         } else {
             sendJsonResponse([
                 'success' => false,
@@ -2753,25 +3130,32 @@ if (!file_exists("config.php")) {
 
             $existingMedia = $mediaStore->findById($who);
             if ($existingMedia == null || !canEditMediaItem($existingMedia)) {
-                getErrorPage(401);
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'You do not have permission to edit this media item.',
+                ], 401);
                 return;
             }
 
             $json = file_get_contents('php://input');
             $data = json_decode($json, true);
             $mediaItem = [
-                'caption' => (string) ($data["caption"] ?? ''),
-                'altText' => (string) ($data["altText"] ?? ''),
+                'caption' => trim((string) ($data["caption"] ?? '')),
+                'altText' => trim((string) ($data["altText"] ?? '')),
                 'editedUser' => getCurrentUserId(),
                 'edited' => time()
             ];
 
             $mediaStore->updateById($who, $mediaItem);
             sendJsonResponse([
-                'success' => true
+                'success' => true,
+                'item' => prepareMediaItemForResponse($mediaStore->findById($who)),
             ]);
         } else {
-            getErrorPage(401);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You do not have permission to edit media.',
+            ], 401);
         }
     }, 'PUT');
 
@@ -2785,25 +3169,31 @@ if (!file_exists("config.php")) {
 
             $selectedMedia = $mediaStore->findById($who);
             if ($selectedMedia == null || !canEditMediaItem($selectedMedia)) {
-                getErrorPage(401);
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'You do not have permission to delete this media item.',
+                ], 401);
+                return;
+            }
+
+            if (!deleteMediaStorageFiles($selectedMedia)) {
+                sendJsonResponse([
+                    'success' => false,
+                    'message' => 'The media files could not be deleted from storage.',
+                ], 500);
                 return;
             }
 
             $mediaStore->deleteById($who);
-            if (!deleteStoredUploadFile($selectedMedia['file'])) {
-                getErrorPage(500);
-                return;
-            }
-            if ($selectedMedia['type'] == "image" && $selectedMedia['fileSmall'] !== $selectedMedia['file']) {
-                if (!deleteStoredUploadFile($selectedMedia['fileSmall'])) {
-                    getErrorPage(500);
-                    return;
-                }
-            }
 
             sendJsonResponse([
                 'success' => true
             ]);
+        } else {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You do not have permission to delete media.',
+            ], 401);
         }
     }, 'DELETE');
 

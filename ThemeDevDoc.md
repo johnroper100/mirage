@@ -678,8 +678,13 @@ Stored value:
 
 Additional key:
 
+- `accepts`
+  `image`, `file`, or `both`
+
+Legacy compatibility:
+
 - `subtype`
-  `image` or `file`
+  Older themes can still use `image` or `file`. Mirage will treat this as the matching `accepts` value.
 
 Stored value:
 
@@ -707,7 +712,7 @@ Example:
     {
       "name": "Image",
       "type": "media",
-      "subtype": "image",
+      "accepts": "image",
       "id": "image"
     },
     {

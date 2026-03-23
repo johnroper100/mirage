@@ -1,4 +1,61 @@
 <?php include 'header.php'; ?>
+<style>
+    .mirage-media-stat {
+        border: 1px solid #d6dce2;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        padding: 0.85rem 0.9rem;
+        text-align: center;
+    }
+
+    .mirage-media-stat small {
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #5f6b76;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .mirage-media-stat strong {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 1.35rem;
+        line-height: 1.1;
+    }
+
+    .mirage-media-stat--warning {
+        border-color: #f0ad4e;
+        background: #fff7e6;
+    }
+
+    .mirage-media-card-image {
+        height: 9.5rem;
+        object-fit: cover;
+        background: #eef2f6;
+    }
+
+    .mirage-media-file-placeholder {
+        height: 9.5rem;
+        background: linear-gradient(135deg, #eef2f6 0%, #dde5ed 100%);
+    }
+
+    .mirage-media-file-placeholder img {
+        width: 4.5rem;
+        opacity: 0.65;
+        cursor: default;
+    }
+
+    .mirage-media-option--disabled {
+        opacity: 0.65;
+    }
+
+    @media (max-width: 767px) {
+        .mirage-media-card-image,
+        .mirage-media-file-placeholder {
+            height: 7.5rem;
+        }
+    }
+</style>
 <div class="d-flex" id="app">
     <!-- Sidebar-->
     <div class="bg-dark text-light" id="sidebar-wrapper">
@@ -340,22 +397,136 @@
                 </div>
             </div>
             <div v-if="viewPage == 'media'">
-                <div class="row" style="overflow-y: auto; max-height: 45rem;">
-                    <div class="col-12" v-if="mediaItems.length == 0">No media items uploaded. Use the <i>Upload
-                            Media</i> button to add some to your site.</div>
-                    <div v-for="item in mediaItems" class="col-6 col-md-4 col-lg-2 mb-3 p-2 ">
-                        <div class="mediaItem shadow-sm">
-                            <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.fileSmall" alt=""
-                                class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;"
-                                v-if="item.type == 'image'">
-                            <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
-                                class="mb-1 d-block w-100" style="height: 10rem; object-fit: cover;" v-else>
-                            <small class="p-2 d-block" style="word-wrap: break-word;">{{item.file}}</small>
-                            <button class="btn btn-sm btn-primary mb-2 ms-2"
-                                @click="editMediaItem(item)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Edit</button>
-                            <button class="btn btn-sm btn-danger mb-2 ms-2"
-                                @click="deleteMediaFile(item._id)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Remove</button>
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-xl-8">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-12 col-md-5">
+                                        <label class="form-label mb-1">Search Media</label>
+                                        <input v-model="mediaSearch" type="search" class="form-control"
+                                            placeholder="Filename, caption, alt text">
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label mb-1">Filter</label>
+                                        <select v-model="mediaFilter" class="form-select">
+                                            <option value="all">All Items</option>
+                                            <option value="image">Images</option>
+                                            <option value="file">Files</option>
+                                            <option value="attention">Needs Attention</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label mb-1">Sort</label>
+                                        <select v-model="mediaSort" class="form-select">
+                                            <option value="newest">Newest</option>
+                                            <option value="oldest">Oldest</option>
+                                            <option value="name">Name</option>
+                                            <option value="largest">Largest</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-2 d-grid">
+                                        <button type="button" class="btn btn-outline-secondary"
+                                            @click="resetMediaFilters" :disabled="!hasActiveMediaFilters">Clear</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="col-12 col-xl-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h6 class="mb-3">Library Summary</h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="mirage-media-stat">
+                                            <small>Total</small>
+                                            <strong>{{mediaLibraryStats.total}}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mirage-media-stat">
+                                            <small>Images</small>
+                                            <strong>{{mediaLibraryStats.images}}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mirage-media-stat">
+                                            <small>Files</small>
+                                            <strong>{{mediaLibraryStats.files}}</strong>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mirage-media-stat" :class="{'mirage-media-stat--warning': mediaLibraryStats.attention > 0}">
+                                            <small>Needs Attention</small>
+                                            <strong>{{mediaLibraryStats.attention}}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="small text-secondary mb-0 mt-3">Estimated storage used: {{formatBytes(mediaLibraryStats.totalStorageBytes)}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning shadow-sm" v-if="mediaLibraryStats.attention > 0">
+                    {{mediaLibraryStats.attention}} media item<span v-if="mediaLibraryStats.attention !== 1">s</span> need storage attention. Filter by <strong>Needs Attention</strong> to review missing originals or previews.
+                </div>
+                <div class="alert alert-danger shadow-sm" v-if="mediaError">{{mediaError}}</div>
+                <div class="alert alert-light border shadow-sm" v-if="mediaLoading">Loading media library...</div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3" v-if="!mediaLoading && filteredMediaItems.length > 0">
+                    <p class="small text-secondary mb-0">Showing {{mediaPageStart}}-{{mediaPageEnd}} of {{filteredMediaItems.length}} matching items</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="goToMediaPage(effectiveMediaPage - 1)" :disabled="effectiveMediaPage <= 1">Previous</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary disabled">Page {{effectiveMediaPage}} of {{totalMediaPages}}</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="goToMediaPage(effectiveMediaPage + 1)" :disabled="effectiveMediaPage >= totalMediaPages">Next</button>
+                    </div>
+                </div>
+                <div class="row" v-if="!mediaLoading">
+                    <div class="col-12" v-if="mediaLibraryStats.total === 0">No media items uploaded. Use the <i>Upload
+                            Media</i> button to add some to your site.</div>
+                    <div class="col-12" v-else-if="filteredMediaItems.length === 0">No media items match the current search or filter.</div>
+                    <div v-for="item in paginatedMediaItems" class="col-6 col-md-4 col-lg-3 col-xl-2 mb-3">
+                        <div class="mediaItem shadow-sm h-100">
+                            <img :src="item.previewUrl" :alt="item.altText || item.displayName"
+                                class="mb-0 d-block w-100 mirage-media-card-image"
+                                v-if="item.type == 'image' && item.previewUrl">
+                            <div class="mirage-media-file-placeholder d-flex align-items-center justify-content-center"
+                                v-else>
+                                <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
+                                    class="img-fluid">
+                            </div>
+                            <div class="p-3">
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <span class="badge text-bg-primary text-uppercase">{{item.type}}</span>
+                                    <span class="badge"
+                                        :class="getMediaStatusBadgeClass(item)">{{getMediaStatusLabel(item)}}</span>
+                                </div>
+                                <p class="mb-1 fw-semibold" style="word-break: break-word;">{{item.displayName}}</p>
+                                <p class="small text-secondary mb-1" v-if="item.caption">Caption: {{item.caption}}</p>
+                                <p class="small text-secondary mb-1" v-if="item.altText">Alt: {{item.altText}}</p>
+                                <p class="small text-secondary mb-2">{{getMediaMetaSummary(item)}}</p>
+                                <p class="small text-warning mb-2" v-if="item.storageIssues && item.storageIssues.length > 0">{{item.storageIssues.join(', ')}}</p>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        @click="copyMediaUrl(item)" :disabled="!item.fileUrl">Copy URL</button>
+                                    <a class="btn btn-sm btn-outline-secondary" :href="item.fileUrl" target="_blank"
+                                        rel="noopener" v-if="item.fileUrl">Open</a>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button class="btn btn-sm btn-primary"
+                                        @click="editMediaItem(item)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Edit</button>
+                                    <button class="btn btn-sm btn-danger"
+                                        @click="deleteMediaFile(item._id)" v-if="activeUser.accountType != 2 || activeUser._id == item.createdUser || activeUser._id == item.editedUser">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2" v-if="!mediaLoading && filteredMediaItems.length > mediaPageSize">
+                    <p class="small text-secondary mb-0">Page {{effectiveMediaPage}} of {{totalMediaPages}}</p>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="goToMediaPage(effectiveMediaPage - 1)" :disabled="effectiveMediaPage <= 1">Previous</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="goToMediaPage(effectiveMediaPage + 1)" :disabled="effectiveMediaPage >= totalMediaPages">Next</button>
                     </div>
                 </div>
             </div>
@@ -517,13 +688,28 @@
                         <div class="modal-body">
                             <button class="btn btn-success w-100 mb-3" @click="openUploadMediaModal"><i
                                     class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
+                            <div class="row g-2 mb-3">
+                                <div class="col-12 col-md-8">
+                                    <input v-model="selectFileSearch" type="search" class="form-control"
+                                        placeholder="Search available files">
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <select v-model="selectMediaItemType" class="form-select" :disabled="selectMediaAccepts !== 'both'">
+                                        <option value="all" v-if="selectMediaAccepts === 'both'">All Media</option>
+                                        <option value="image" v-if="selectMediaAccepts === 'both' || selectMediaAccepts === 'image'">Images</option>
+                                        <option value="file" v-if="selectMediaAccepts === 'both' || selectMediaAccepts === 'file'">Files</option>
+                                    </select>
+                                    <div class="form-text" v-if="selectMediaAccepts !== 'both'">This picker accepts {{selectMediaAccepts === 'image' ? 'images' : 'files'}} only.</div>
+                                </div>
+                            </div>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
                                 <div class="col-6 col-md-3 col-xl-2 overflow-auto mb-3" v-for="item in listMediaItems" :key="'media-' + item._id" @click="selectFileItem(item._id)">
-                                    <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.fileSmall" alt=""
+                                    <div :class="{'mirage-media-option--disabled': !canSelectMediaItem(item)}">
+                                    <img :src="item.previewUrl" :alt="item.altText || item.displayName"
                                         class="img-fluid me-3 mb-2 mediaItem shadow mirage-media-grid-item"
-                                        style="width: 100%; height: 6rem; object-fit: cover;" v-if="item.type == 'image'">
+                                        style="width: 100%; height: 6rem; object-fit: cover;" v-if="item.type == 'image' && item.previewUrl">
                                     <div v-if="item.type == 'image'">
-                                        <p class="mb-1"><strong>{{item.file}}</strong></p>
+                                        <p class="mb-1"><strong>{{item.displayName}}</strong></p>
                                         <p class="mirage-media-caption mb-1" v-if="item.altText">Alt: {{item.altText}}</p>
                                         <p class="mirage-media-caption mb-0" v-if="item.caption">Caption: {{item.caption}}</p>
                                     </div>
@@ -531,10 +717,13 @@
                                         <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
                                             class="img-fluid me-3 mb-2 mediaItem shadow mirage-media-grid-item"
                                             style="width: 100%; height: 6rem; object-fit: cover;">
-                                        <p class="mb-1"><strong>{{item.file}}</strong></p>
+                                        <p class="mb-1"><strong>{{item.displayName}}</strong></p>
                                         <p class="mirage-media-caption mb-0" v-if="item.caption">{{item.caption}}</p>
                                     </div>
+                                    <p class="mirage-media-caption text-warning mb-0" v-if="item.storageStatus !== 'ready'">{{getMediaStatusLabel(item)}}</p>
+                                    </div>
                                 </div>
+                                <div class="col-12" v-if="listMediaItems.length === 0">No media items match this picker view.</div>
                             </div>
                         </div>
                     </div>
@@ -549,6 +738,20 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
+                            <div class="mb-3" v-if="editingMediaItem.file">
+                                <img :src="editingMediaItem.previewUrl" :alt="editingMediaItem.altText || editingMediaItem.displayName"
+                                    class="img-fluid img-thumbnail d-block mb-3"
+                                    style="max-height: 14rem; object-fit: contain;" v-if="editingMediaItem.type === 'image' && editingMediaItem.previewUrl">
+                                <div class="small text-secondary">
+                                    <div><strong>Name:</strong> {{editingMediaItem.displayName || editingMediaItem.file}}</div>
+                                    <div v-if="editingMediaItem.originalName && editingMediaItem.originalName !== editingMediaItem.file"><strong>Stored as:</strong> {{editingMediaItem.file}}</div>
+                                    <div><strong>Type:</strong> {{editingMediaItem.type}}</div>
+                                    <div v-if="editingMediaItem.mimeType"><strong>MIME:</strong> {{editingMediaItem.mimeType}}</div>
+                                    <div><strong>Storage:</strong> {{formatBytes(editingMediaItem.totalStorageBytes || editingMediaItem.fileSize || 0)}}</div>
+                                    <div v-if="editingMediaItem.width && editingMediaItem.height"><strong>Dimensions:</strong> {{editingMediaItem.width}} x {{editingMediaItem.height}}</div>
+                                    <div class="text-warning" v-if="editingMediaItem.storageIssues && editingMediaItem.storageIssues.length > 0"><strong>Status:</strong> {{editingMediaItem.storageIssues.join(', ')}}</div>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label">Caption:</label>
                                 <input v-model="editingMediaItem.caption" type="text" class="form-control"
@@ -579,19 +782,32 @@
                             <div class="mb-3">
                                 <label for="formFile" class="form-label">Select File(s):</label>
                                 <input class="form-control" type="file" id="uploadMediaFiles" name="uploadMediaFiles[]"
-                                    multiple>
+                                    accept="<?php echo htmlspecialchars('.' . implode(',.', getAcceptedUploadExtensions()), ENT_QUOTES, 'UTF-8'); ?>"
+                                    multiple @change="syncUploadSelection">
                                 <small class="text-muted d-block mt-2">
                                     Max file size: <?php echo htmlspecialchars(formatBytes(getUploadFileLimitBytes()), ENT_QUOTES, 'UTF-8'); ?>.
                                     <?php if (getPostMaxSizeBytes() > 0 && getPostMaxSizeBytes() !== getUploadFileLimitBytes()) { ?>
                                         Total upload limit: <?php echo htmlspecialchars(formatBytes(getPostMaxSizeBytes()), ENT_QUOTES, 'UTF-8'); ?>.
                                     <?php } ?>
+                                    Accepted types: <?php echo htmlspecialchars(strtoupper(implode(', ', getAcceptedUploadExtensions())), ENT_QUOTES, 'UTF-8'); ?>.
                                 </small>
+                            </div>
+                            <div class="border rounded p-3 bg-light" v-if="pendingUploadFiles.length > 0">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Ready To Upload</strong>
+                                    <small class="text-secondary">{{pendingUploadFiles.length}} file<span v-if="pendingUploadFiles.length !== 1">s</span> - {{formatBytes(uploadSelectionTotalBytes)}}</small>
+                                </div>
+                                <div class="small" style="max-height: 12rem; overflow-y: auto;">
+                                    <div class="d-flex justify-content-between align-items-center py-1" v-for="file in pendingUploadFiles" :key="file.name + '-' + file.size">
+                                        <span style="word-break: break-word;">{{file.name}}</span>
+                                        <span class="text-secondary ms-3">{{formatBytes(file.size)}}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary" @click="uploadMediaFiles">Upload
-                                File(s)</button>
+                            <button type="button" class="btn btn-primary" @click="uploadMediaFiles" :disabled="mediaUploading"><span v-if="!mediaUploading">Upload File(s)</span><span v-else>Uploading...</span></button>
                         </div>
                     </div>
                 </div>
@@ -613,6 +829,7 @@
     const MAX_UPLOAD_TOTAL_BYTES = <?php echo (int) getPostMaxSizeBytes(); ?>;
     const MAX_UPLOAD_FILE_LABEL = <?php echo json_encode(formatBytes(getUploadFileLimitBytes())); ?>;
     const MAX_UPLOAD_TOTAL_LABEL = <?php echo json_encode(formatBytes(getPostMaxSizeBytes())); ?>;
+    const MEDIA_UPLOAD_ACCEPTED_EXTENSIONS = <?php echo json_encode(array_values(getAcceptedUploadExtensions())); ?>;
     const MIRAGE_EDITOR_CONTENT_STYLE = `
         body {
             padding: 1rem;
@@ -771,7 +988,7 @@
     }
 
     function buildEditorImageHtml(mediaItem) {
-        var src = escapeHtml(buildMediaFileUrl(mediaItem.file || ''));
+        var src = escapeHtml(String(mediaItem.fileUrl || buildMediaFileUrl(mediaItem.file || '')));
         var altText = escapeHtml((mediaItem.altText || mediaItem.caption || '').trim());
         var mediaId = escapeHtml(String(mediaItem._id || ''));
 
@@ -865,6 +1082,12 @@
                 editorMediaTarget = null;
             }
         });
+
+        uploadMediaModalElement.addEventListener('hidden.bs.modal', function () {
+            if (window.mirageAdminApp != null && typeof window.mirageAdminApp.clearUploadSelection === 'function') {
+                window.mirageAdminApp.clearUploadSelection();
+            }
+        });
     });
 
     const App = {
@@ -885,7 +1108,18 @@
                 },
                 users: {},
                 menuItems: {},
-                mediaItems: {},
+                mediaItems: [],
+                mediaLoading: false,
+                mediaError: "",
+                mediaSearch: "",
+                mediaFilter: "all",
+                mediaSort: "newest",
+                mediaPage: 1,
+                mediaPageSize: 24,
+                selectFileSearch: "",
+                selectMediaAccepts: "image",
+                pendingUploadFiles: [],
+                mediaUploading: false,
                 formSubmissions: [],
                 selectedFormSubmissionIDs: [],
                 editingTemplate: {},
@@ -916,12 +1150,74 @@
             }
         },
         computed: {
+            mediaLibraryStats() {
+                var stats = {
+                    total: 0,
+                    images: 0,
+                    files: 0,
+                    attention: 0,
+                    totalStorageBytes: 0
+                };
+
+                this.mediaItems.forEach(function (item) {
+                    stats.total += 1;
+                    if (item.type === 'image') {
+                        stats.images += 1;
+                    } else {
+                        stats.files += 1;
+                    }
+
+                    if (item.storageStatus !== 'ready') {
+                        stats.attention += 1;
+                    }
+
+                    stats.totalStorageBytes += Number(item.totalStorageBytes || 0);
+                });
+
+                return stats;
+            },
+            filteredMediaItems() {
+                return this.filterAndSortMediaItems(this.mediaItems, this.mediaSearch, this.mediaFilter, this.mediaSort);
+            },
+            totalMediaPages() {
+                return Math.max(1, Math.ceil(this.filteredMediaItems.length / this.mediaPageSize));
+            },
+            effectiveMediaPage() {
+                return Math.min(Math.max(Number(this.mediaPage || 1), 1), this.totalMediaPages);
+            },
+            paginatedMediaItems() {
+                var start = (this.effectiveMediaPage - 1) * this.mediaPageSize;
+                return this.filteredMediaItems.slice(start, start + this.mediaPageSize);
+            },
+            mediaPageStart() {
+                if (this.filteredMediaItems.length === 0) {
+                    return 0;
+                }
+
+                return ((this.effectiveMediaPage - 1) * this.mediaPageSize) + 1;
+            },
+            mediaPageEnd() {
+                if (this.filteredMediaItems.length === 0) {
+                    return 0;
+                }
+
+                return Math.min(this.filteredMediaItems.length, this.effectiveMediaPage * this.mediaPageSize);
+            },
             listMediaItems() {
-                return Object.values(this.mediaItems)
-                    .filter((obj) => obj.type == this.selectMediaItemType)
-                    .sort(function (left, right) {
-                        return Number(right.edited || right.created || 0) - Number(left.edited || left.created || 0);
-                    });
+                var pickerFilter = this.selectMediaAccepts === 'both'
+                    ? this.selectMediaItemType
+                    : this.selectMediaAccepts;
+                return this.filterAndSortMediaItems(this.mediaItems, this.selectFileSearch, pickerFilter, 'newest');
+            },
+            hasActiveMediaFilters() {
+                return this.mediaSearch.trim() !== ''
+                    || this.mediaFilter !== 'all'
+                    || this.mediaSort !== 'newest';
+            },
+            uploadSelectionTotalBytes() {
+                return this.pendingUploadFiles.reduce(function (totalBytes, file) {
+                    return totalBytes + Number(file.size || 0);
+                }, 0);
             },
             isAddPageDisabled() {
                 var allowedTemplates = Array.isArray(this.activeCollection.allowed_templates) ? this.activeCollection.allowed_templates : [];
@@ -930,9 +1226,228 @@
                 return title === '' || (this.editingTemplateName === '' && allowedTemplates.length > 1);
             }
         },
+        watch: {
+            mediaSearch() {
+                this.mediaPage = 1;
+            },
+            mediaFilter() {
+                this.mediaPage = 1;
+            },
+            mediaSort() {
+                this.mediaPage = 1;
+            }
+        },
         methods: {
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
+            },
+            formatBytes(bytes) {
+                var numericBytes = Number(bytes || 0);
+                if (!isFinite(numericBytes) || numericBytes <= 0) {
+                    return '0 B';
+                }
+
+                var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                var power = Math.min(Math.floor(Math.log(numericBytes) / Math.log(1024)), units.length - 1);
+                var value = numericBytes / Math.pow(1024, power);
+                var precision = value >= 10 || power === 0 ? 0 : 1;
+
+                return String(Number(value.toFixed(precision))) + ' ' + units[power];
+            },
+            normalizeMediaSearchText(value) {
+                return String(value || '').trim().toLowerCase();
+            },
+            filterAndSortMediaItems(items, searchQuery, filterMode, sortMode) {
+                var query = this.normalizeMediaSearchText(searchQuery);
+                var filteredItems = (Array.isArray(items) ? items : []).filter(function (item) {
+                    if (!item) {
+                        return false;
+                    }
+
+                    if (filterMode === 'attention' && item.storageStatus === 'ready') {
+                        return false;
+                    }
+
+                    if ((filterMode === 'image' || filterMode === 'file') && item.type !== filterMode) {
+                        return false;
+                    }
+
+                    if (query === '') {
+                        return true;
+                    }
+
+                    var searchText = [
+                        item.displayName,
+                        item.originalName,
+                        item.file,
+                        item.caption,
+                        item.altText,
+                        item.mimeType
+                    ].join(' ').toLowerCase();
+
+                    return searchText.indexOf(query) !== -1;
+                });
+
+                filteredItems.sort(function (left, right) {
+                    if (sortMode === 'oldest') {
+                        return Number(left.edited || left.created || 0) - Number(right.edited || right.created || 0);
+                    }
+
+                    if (sortMode === 'name') {
+                        return String(left.displayName || left.file || '').localeCompare(String(right.displayName || right.file || ''));
+                    }
+
+                    if (sortMode === 'largest') {
+                        return Number(right.totalStorageBytes || right.fileSize || 0) - Number(left.totalStorageBytes || left.fileSize || 0);
+                    }
+
+                    return Number(right.edited || right.created || 0) - Number(left.edited || left.created || 0);
+                });
+
+                return filteredItems;
+            },
+            resetMediaFilters() {
+                this.mediaSearch = "";
+                this.mediaFilter = "all";
+                this.mediaSort = "newest";
+                this.mediaPage = 1;
+            },
+            goToMediaPage(page) {
+                this.mediaPage = Math.min(Math.max(Number(page || 1), 1), this.totalMediaPages);
+            },
+            getMediaStatusLabel(item) {
+                if (item == null || item.storageStatus === 'ready') {
+                    return 'Ready';
+                }
+
+                if (item.storageStatus === 'missing') {
+                    return 'Original Missing';
+                }
+
+                if (item.storageStatus === 'degraded') {
+                    return 'Preview Missing';
+                }
+
+                return 'Needs Attention';
+            },
+            getMediaStatusBadgeClass(item) {
+                if (item == null || item.storageStatus === 'ready') {
+                    return 'text-bg-success';
+                }
+
+                if (item.storageStatus === 'missing') {
+                    return 'text-bg-danger';
+                }
+
+                return 'text-bg-warning';
+            },
+            getMediaMetaSummary(item) {
+                if (item == null) {
+                    return '';
+                }
+
+                var details = [];
+                if (item.width && item.height) {
+                    details.push(String(item.width) + ' x ' + String(item.height));
+                }
+
+                details.push(this.formatBytes(item.fileSize || item.totalStorageBytes || 0));
+                details.push('Updated ' + this.getDate(item.edited || item.created));
+
+                return details.join(' - ');
+            },
+            normalizeMediaAccepts(value) {
+                var normalized = String(value || '').trim().toLowerCase();
+                if (!normalized) {
+                    return 'both';
+                }
+
+                if (normalized !== 'image' && normalized !== 'file' && normalized !== 'both') {
+                    return 'both';
+                }
+
+                return normalized;
+            },
+            setSelectMediaConstraint(accepts) {
+                this.selectMediaAccepts = this.normalizeMediaAccepts(accepts);
+                this.selectMediaItemType = this.selectMediaAccepts === 'both' ? 'all' : this.selectMediaAccepts;
+            },
+            isMediaItemAllowedForAccepts(item, accepts) {
+                if (item == null || item.type == null) {
+                    return false;
+                }
+
+                var normalizedAccepts = this.normalizeMediaAccepts(accepts);
+                return normalizedAccepts === 'both' || item.type === normalizedAccepts;
+            },
+            resolveMediaUrl(url) {
+                var normalizedUrl = String(url || '').trim();
+                if (normalizedUrl === '') {
+                    return '';
+                }
+
+                try {
+                    return new URL(normalizedUrl, window.location.origin).href;
+                } catch (error) {
+                    return normalizedUrl;
+                }
+            },
+            fallbackCopyText(text) {
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.setAttribute('readonly', 'readonly');
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            },
+            copyMediaUrl(item) {
+                var mediaUrl = this.resolveMediaUrl(item != null ? item.fileUrl : '');
+                if (mediaUrl === '') {
+                    return;
+                }
+
+                var comp = this;
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(mediaUrl)
+                        .then(function () {
+                            alert('Media URL copied.');
+                        })
+                        .catch(function () {
+                            comp.fallbackCopyText(mediaUrl);
+                            alert('Media URL copied.');
+                        });
+                    return;
+                }
+
+                this.fallbackCopyText(mediaUrl);
+                alert('Media URL copied.');
+            },
+            canSelectMediaItem(item) {
+                return item != null
+                    && item.fileExists !== false
+                    && this.isMediaItemAllowedForAccepts(item, this.selectMediaAccepts);
+            },
+            syncUploadSelection() {
+                var fileInput = document.getElementById('uploadMediaFiles');
+                var files = fileInput != null && fileInput.files ? Array.from(fileInput.files) : [];
+                this.pendingUploadFiles = files.map(function (file) {
+                    return {
+                        name: file.name,
+                        size: file.size
+                    };
+                });
+            },
+            clearUploadSelection() {
+                var fileInput = document.getElementById('uploadMediaFiles');
+                if (fileInput != null) {
+                    fileInput.value = "";
+                }
+
+                this.pendingUploadFiles = [];
+                this.mediaUploading = false;
             },
             applySiteSettingTokens(text) {
                 var siteTitle = typeof this.siteSettings.siteTitle === 'string' ? this.siteSettings.siteTitle.trim() : '';
@@ -1016,9 +1531,29 @@
             getMedia() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
+                comp.mediaLoading = true;
+                comp.mediaError = "";
                 xmlhttp.onload = function () {
-                    comp.mediaItems = JSON.parse(this.responseText);
+                    comp.mediaLoading = false;
+                    if (this.status < 200 || this.status >= 300) {
+                        comp.mediaItems = [];
+                        comp.mediaError = comp.getRequestErrorMessage(this, "The media library could not be loaded.");
+                        return;
+                    }
+
+                    try {
+                        var items = JSON.parse(this.responseText);
+                        comp.mediaItems = Array.isArray(items) ? items : [];
+                    } catch (error) {
+                        comp.mediaItems = [];
+                        comp.mediaError = "The media library response could not be read.";
+                    }
                 }
+                xmlhttp.onerror = function () {
+                    comp.mediaLoading = false;
+                    comp.mediaItems = [];
+                    comp.mediaError = "The media library could not be loaded.";
+                };
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/media", true);
                 xmlhttp.send();
             },
@@ -1750,7 +2285,7 @@
                     return null;
                 }
 
-                return Object.values(this.mediaItems).find(function (item) {
+                return this.mediaItems.find(function (item) {
                     return item._id == itemID;
                 }) || null;
             },
@@ -1758,12 +2293,12 @@
                 return buildMediaFileUrl(filename);
             },
             getMediaPreviewUrl(itemID) {
-                var mediaPath = this.getMediaFilePath(itemID);
-                return mediaPath != null ? this.buildMediaFileUrl(mediaPath) : null;
+                var mediaItem = this.getMediaItemById(itemID);
+                return mediaItem != null ? (mediaItem.previewUrl || mediaItem.fileUrl || null) : null;
             },
             insertEditorImageFromMedia(itemID) {
                 var mediaItem = this.getMediaItemById(itemID);
-                if (mediaItem == null || mediaItem.type !== 'image' || editorMediaTarget == null) {
+                if (mediaItem == null || mediaItem.type !== 'image' || !mediaItem.fileUrl || editorMediaTarget == null) {
                     return false;
                 }
 
@@ -1780,7 +2315,7 @@
 
                     var selectedNode = editor.selection.getNode();
                     if (editorMediaTarget.replaceImage && selectedNode != null && selectedNode.nodeName === 'IMG') {
-                        editor.dom.setAttrib(selectedNode, 'src', this.buildMediaFileUrl(mediaItem.file));
+                        editor.dom.setAttrib(selectedNode, 'src', mediaItem.fileUrl);
                         editor.dom.setAttrib(selectedNode, 'alt', mediaItem.altText || mediaItem.caption || '');
                         editor.dom.setAttrib(selectedNode, 'data-media-id', String(mediaItem._id));
                         editor.nodeChanged();
@@ -1827,11 +2362,18 @@
             },
             clearSelectFileTarget() {
                 this.selectFileTarget = null;
-                this.selectMediaItemType = "image";
+                this.setSelectMediaConstraint('image');
+                this.selectFileSearch = "";
                 editorMediaTarget = null;
             },
             selectFileItem(id) {
                 var comp = this;
+                var mediaItem = comp.getMediaItemById(id);
+                if (!comp.canSelectMediaItem(mediaItem)) {
+                    alert("The selected file is not available in storage.");
+                    return;
+                }
+
                 if (comp.selectFileTarget != null && comp.selectFileTarget.type == "featuredImage") {
                     comp.editingFeaturedImage = id;
                     selectFileModal.hide();
@@ -1868,7 +2410,7 @@
                 this.selectFileTarget = {
                     type: "editorMedia"
                 };
-                this.selectMediaItemType = "image";
+                this.setSelectMediaConstraint('image');
                 selectFileModal.show();
             },
             openUploadMediaModal() {
@@ -1884,6 +2426,12 @@
                 for (var i = 0; i < files.length; i++) {
                     totalBytes += files[i].size;
 
+                    var extension = String(files[i].name || '').split('.').pop().toLowerCase();
+                    if (MEDIA_UPLOAD_ACCEPTED_EXTENSIONS.length > 0 && MEDIA_UPLOAD_ACCEPTED_EXTENSIONS.indexOf(extension) === -1) {
+                        alert('"' + files[i].name + '" is not a supported file type.');
+                        return false;
+                    }
+
                     if (MAX_UPLOAD_FILE_BYTES > 0 && files[i].size > MAX_UPLOAD_FILE_BYTES) {
                         alert('"' + files[i].name + '" is too large to upload. The maximum allowed size is ' + MAX_UPLOAD_FILE_LABEL + '.');
                         return false;
@@ -1897,7 +2445,7 @@
 
                 return true;
             },
-            getUploadErrorMessage(xmlhttp) {
+            getRequestErrorMessage(xmlhttp, fallbackMessage = "Request failed. Please try again.") {
                 try {
                     var response = JSON.parse(xmlhttp.responseText);
                     if (response.message) {
@@ -1906,7 +2454,7 @@
                 } catch (error) {
                 }
 
-                return "Upload failed. Please try again.";
+                return fallbackMessage;
             },
             uploadMediaFiles() {
                 var comp = this;
@@ -1917,6 +2465,7 @@
                     return;
                 }
 
+                comp.mediaUploading = true;
                 var formData = new FormData();
                 for (var x = 0; x < files.length; x++) {
                     formData.append("uploadMediaFiles[]", files[x]);
@@ -1924,16 +2473,18 @@
 
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
+                    comp.mediaUploading = false;
                     if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
-                        fileInput.value = "";
+                        comp.clearUploadSelection();
                         uploadMediaModal.hide();
                         comp.getMedia();
                         comp.getCounts();
                     } else {
-                        alert(comp.getUploadErrorMessage(xmlhttp));
+                        alert(comp.getRequestErrorMessage(xmlhttp, "Upload failed. Please try again."));
                     }
                 }
                 xmlhttp.onerror = function () {
+                    comp.mediaUploading = false;
                     alert("Upload failed. Please try again.");
                 };
                 xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/media");
@@ -1944,32 +2495,43 @@
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
-                        comp.getMedia();
-                        comp.getCounts();
+                        if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+                            comp.getMedia();
+                            comp.getCounts();
+                        } else {
+                            alert(comp.getRequestErrorMessage(xmlhttp, "The media item could not be deleted."));
+                        }
                     }
+                    xmlhttp.onerror = function () {
+                        alert("The media item could not be deleted.");
+                    };
                     xmlhttp.open("DELETE", "<?php echo BASEPATH ?>/api/media/" + itemID, true);
                     xmlhttp.send();
                 }
             },
             editMediaItem(item) {
-                this.editingMediaItem = {
-                    "type": item.type,
-                    "file": item.file,
-                    "fileSmall": item.fileSmall,
-                    "caption": item.caption,
-                    "altText": item.altText || "",
-                    "editingID": item._id
-                };
+                this.editingMediaItem = Object.assign({}, item, {
+                    caption: item.caption || "",
+                    altText: item.altText || "",
+                    editingID: item._id
+                });
                 editMediaModal.show();
             },
             saveMediaItem() {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
-                    editMediaModal.hide();
-                    comp.getMedia();
-                    comp.getCounts();
+                    if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+                        editMediaModal.hide();
+                        comp.getMedia();
+                        comp.getCounts();
+                    } else {
+                        alert(comp.getRequestErrorMessage(xmlhttp, "The media item could not be saved."));
+                    }
                 }
+                xmlhttp.onerror = function () {
+                    alert("The media item could not be saved.");
+                };
                 xmlhttp.open("PUT", "<?php echo BASEPATH ?>/api/media/" + comp.editingMediaItem.editingID, true);
                 xmlhttp.setRequestHeader('Content-Type', 'application/json');
                 xmlhttp.send(JSON.stringify(comp.editingMediaItem));
@@ -1981,7 +2543,7 @@
                 }
 
                 var mediaItem = this.getMediaItemById(itemID);
-                return mediaItem != null ? mediaItem.fileSmall : null;
+                return mediaItem != null ? (mediaItem.displayName || mediaItem.file || null) : null;
             },
             viewPath(path) {
                 if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
@@ -2028,7 +2590,7 @@
                 this.selectFileTarget = {
                     type: "featuredImage"
                 };
-                this.selectMediaItemType = "image";
+                this.setSelectMediaConstraint('image');
                 selectFileModal.show();
             }
         },
@@ -2342,12 +2904,37 @@
             buildListPath(fieldID, index) {
                 return this.path.concat([fieldID, index]);
             },
-            selectMediaItem(fieldPath, type) {
+            getMediaFieldAccepts(field) {
+                return this.$root.normalizeMediaAccepts(field != null ? (field.accepts || field.subtype || 'both') : 'both');
+            },
+            getMediaFieldAcceptsLabel(field) {
+                var accepts = this.getMediaFieldAccepts(field);
+                if (accepts === 'image') {
+                    return 'Images only';
+                }
+                if (accepts === 'file') {
+                    return 'Files only';
+                }
+
+                return 'Images or files';
+            },
+            getSelectedMediaItem(id) {
+                return this.$root.getMediaItemById(id);
+            },
+            isSelectedMediaImage(id) {
+                var mediaItem = this.getSelectedMediaItem(id);
+                return mediaItem != null && mediaItem.type === 'image';
+            },
+            isSelectedMediaFile(id) {
+                var mediaItem = this.getSelectedMediaItem(id);
+                return mediaItem != null && mediaItem.type === 'file';
+            },
+            selectMediaItem(fieldPath, accepts) {
                 this.$root.selectFileTarget = {
                     type: "templateField",
                     path: fieldPath
                 };
-                this.$root.selectMediaItemType = type;
+                this.$root.setSelectMediaConstraint(accepts);
                 selectFileModal.show();
             },
             addListItem(field) {
@@ -2394,12 +2981,13 @@
                 </select>
                 <textarea v-if="field.type == 'textarea'" v-model="field.value" class="form-control" :placeholder="field.placeholder"></textarea>
                 <mirage-editor v-if="field.type == 'richtext'" v-model="field.value" :placeholder="field.placeholder || ''"></mirage-editor>
-                <img v-bind:src="getMediaPreviewUrl(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && getMediaPreviewUrl(field.value) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                <div v-if="field.type == 'media' && field.subtype == 'file' && getMediaFilePath(field.value) != null">
+                <small class="text-muted d-block mb-2" v-if="field.type == 'media'">{{getMediaFieldAcceptsLabel(field)}}</small>
+                <img v-bind:src="getMediaPreviewUrl(field.value)" v-if="field.type == 'media' && isSelectedMediaImage(field.value) && getMediaPreviewUrl(field.value) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                <div v-if="field.type == 'media' && isSelectedMediaFile(field.value) && getMediaFilePath(field.value) != null">
                     <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                     <p>{{getMediaFilePath(field.value)}}</p>
                 </div>
-                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(buildFieldPath(field.id), field.subtype)"><span v-if="!hasMediaSelection(field.value)">Select</span><span v-else>Replace</span> Item</button>
+                <button class="btn btn-sm btn-primary me-2" v-if="field.type == 'media'" @click="selectMediaItem(buildFieldPath(field.id), getMediaFieldAccepts(field))"><span v-if="!hasMediaSelection(field.value)">Select</span><span v-else>Replace</span> Item</button>
                 <button class="btn btn-sm btn-danger" v-if="field.type == 'media' && hasMediaSelection(field.value)" @click="field.value = null">Remove Item</button>
                 <div v-if="field.type == 'list'" class="ps-3">
                     <div v-for="(listItem, i) in field.value" class="mb-3 bg-secondary text-light p-2 pb-1" :key="field.id + '-' + i">
