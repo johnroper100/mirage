@@ -20,11 +20,6 @@ body {
     background-color: #f1f3f5 !important;
 }
 
-.trumbowyg-editor {
-    background-color: #f1f3f5 !important;
-    color: #212529 !important;
-}
-
 .btn-dark {
     color: #f8f9fa;
     background-color: #212529;
@@ -124,4 +119,66 @@ body.mirage-sidenav-toggled #app #sidebar-wrapper {
 
 .mediaItem:hover {
     cursor: pointer;
+}
+
+.mirage-editor-shell {
+    border: 1px solid #ced4da;
+    background-color: #fff;
+}
+
+.mirage-editor-shell.is-loading {
+    min-height: 14rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(135deg, rgba(25, 113, 194, 0.06), rgba(47, 158, 68, 0.08)),
+        #f8f9fa;
+}
+
+.mirage-editor-status {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.mirage-editor-textarea {
+    min-height: 18rem;
+    border: 0;
+    resize: vertical;
+    background-color: #fff;
+}
+
+.tox.tox-tinymce {
+    border: 0 !important;
+    border-radius: 0 !important;
+}
+
+.tox .tox-statusbar {
+    border-top: 1px solid #dee2e6 !important;
+}
+
+.tox .tox-toolbar,
+.tox .tox-toolbar__primary,
+.tox .tox-editor-header {
+    background: #f8f9fa !important;
+}
+
+.mirage-editor-help {
+    color: #6c757d;
+    font-size: 0.82rem;
+}
+
+.mirage-media-grid-item {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mirage-media-grid-item:hover {
+    transform: translateY(-2px);
+}
+
+.mirage-media-caption {
+    font-size: 0.75rem;
+    color: #495057;
+    word-break: break-word;
 }

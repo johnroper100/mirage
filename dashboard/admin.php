@@ -207,12 +207,12 @@
                                 <div class="accordion-item mb-2" v-for="(section, index) in editingTemplate.sections">
                                     <h2 class="accordion-header" :id="'heading'+index">
                                         <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                            v-bind:data-bs-target="'#collapse'+index" aria-expanded="false"
+                                            v-bind:data-bs-target="'#collapse'+index" aria-expanded="true"
                                             v-bind:aria-controls="'#collapse'+index">
                                             {{section.name}}
                                         </button>
                                     </h2>
-                                    <div :id="'collapse'+index" class="accordion-collapse collapse"
+                                    <div :id="'collapse'+index" class="accordion-collapse collapse show"
                                         aria-labelledby="'heading'+index">
                                         <div class="accordion-body">
                                             <templateinput :field="field" :key="field.id" v-for="field in section.fields">
@@ -518,15 +518,21 @@
                             <button class="btn btn-success w-100 mb-3" @click="openUploadMediaModal"><i
                                     class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Media</button>
                             <div class="row" style="overflow-y: auto; overflow-x: hidden; max-height: 35rem;">
-                                <div class="col-4 col-md-2 overflow-auto" v-for="item in listMediaItems" @click="selectFileItem(item._id)">
+                                <div class="col-6 col-md-3 col-xl-2 overflow-auto mb-3" v-for="item in listMediaItems" :key="'media-' + item._id" @click="selectFileItem(item._id)">
                                     <img v-bind:src="'<?php echo BASEPATH; ?>/uploads/'+item.fileSmall" alt=""
-                                        class="img-fluid me-3 mb-3 mediaItem shadow"
+                                        class="img-fluid me-3 mb-2 mediaItem shadow mirage-media-grid-item"
                                         style="width: 100%; height: 6rem; object-fit: cover;" v-if="item.type == 'image'">
+                                    <div v-if="item.type == 'image'">
+                                        <p class="mb-1"><strong>{{item.file}}</strong></p>
+                                        <p class="mirage-media-caption mb-1" v-if="item.altText">Alt: {{item.altText}}</p>
+                                        <p class="mirage-media-caption mb-0" v-if="item.caption">Caption: {{item.caption}}</p>
+                                    </div>
                                     <div v-else>
                                         <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" alt=""
-                                            class="img-fluid me-3 mb-3 mediaItem shadow"
+                                            class="img-fluid me-3 mb-2 mediaItem shadow mirage-media-grid-item"
                                             style="width: 100%; height: 6rem; object-fit: cover;">
-                                        <p>{{item.file}}</p>
+                                        <p class="mb-1"><strong>{{item.file}}</strong></p>
+                                        <p class="mirage-media-caption mb-0" v-if="item.caption">{{item.caption}}</p>
                                     </div>
                                 </div>
                             </div>
@@ -547,6 +553,11 @@
                                 <label class="form-label">Caption:</label>
                                 <input v-model="editingMediaItem.caption" type="text" class="form-control"
                                     placeholder="Caption for this item">
+                            </div>
+                            <div class="mb-0" v-if="editingMediaItem.type === 'image'">
+                                <label class="form-label">Alt Text:</label>
+                                <input v-model="editingMediaItem.altText" type="text" class="form-control"
+                                    placeholder="Describe the image for accessibility">
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -595,12 +606,85 @@
     var selectFileModal;
     var uploadMediaModal;
     var editMediaModal;
-    var richtextMediaTarget = null;
+    var editorMediaTarget = null;
+    const MIRAGE_BASEPATH = <?php echo json_encode(BASEPATH); ?>;
     const MIRAGE_CSRF_TOKEN = document.querySelector('meta[name="mirage-csrf-token"]')?.getAttribute('content') || '';
     const MAX_UPLOAD_FILE_BYTES = <?php echo (int) getUploadFileLimitBytes(); ?>;
     const MAX_UPLOAD_TOTAL_BYTES = <?php echo (int) getPostMaxSizeBytes(); ?>;
     const MAX_UPLOAD_FILE_LABEL = <?php echo json_encode(formatBytes(getUploadFileLimitBytes())); ?>;
     const MAX_UPLOAD_TOTAL_LABEL = <?php echo json_encode(formatBytes(getPostMaxSizeBytes())); ?>;
+    const MIRAGE_EDITOR_CONTENT_STYLE = `
+        body {
+            padding: 1rem;
+            color: #212529;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            cursor: move;
+        }
+
+        .mirage-content-button {
+            display: inline-block;
+            padding: 0.8rem 1.4rem;
+            border: 1px solid #7ed321;
+            background: #7ed321;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+            text-transform: uppercase;
+        }
+
+        .mirage-content-button--secondary {
+            background: transparent;
+            color: #7ed321;
+        }
+
+        .mirage-columns {
+            display: grid;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .mirage-columns--2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mirage-columns--3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .mirage-column {
+            min-height: 2rem;
+        }
+
+        .mirage-embed {
+            margin: 1.5rem 0;
+        }
+
+        .mirage-embed iframe {
+            width: 100%;
+            min-height: 22rem;
+            border: 0;
+        }
+
+        @media (max-width: 767px) {
+            .mirage-columns--2,
+            .mirage-columns--3 {
+                grid-template-columns: 1fr;
+            }
+
+            .mirage-embed iframe {
+                min-height: 14rem;
+            }
+        }
+    `;
 
     const originalXhrOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function(method) {
@@ -662,6 +746,83 @@
         });
     }
 
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function normalizeEditorHtml(value) {
+        var html = String(value == null ? '' : value).trim();
+        var collapsed = html
+            .replace(/&nbsp;/gi, '')
+            .replace(/<br[^>]*>/gi, '')
+            .replace(/\s+/g, '')
+            .toLowerCase();
+
+        return collapsed === '' || collapsed === '<p></p>' ? '' : html;
+    }
+
+    function buildMediaFileUrl(filename) {
+        return MIRAGE_BASEPATH + '/uploads/' + encodeURIComponent(String(filename || ''));
+    }
+
+    function buildEditorImageHtml(mediaItem) {
+        var src = escapeHtml(buildMediaFileUrl(mediaItem.file || ''));
+        var altText = escapeHtml((mediaItem.altText || mediaItem.caption || '').trim());
+        var mediaId = escapeHtml(String(mediaItem._id || ''));
+
+        return '<img src="' + src + '" alt="' + altText + '" data-media-id="' + mediaId + '" class="img-responsive">';
+    }
+
+    function buildButtonHtml(data) {
+        var classes = ['mirage-content-button'];
+        if (data.variant === 'secondary') {
+            classes.push('mirage-content-button--secondary');
+        }
+
+        var href = escapeHtml((data.href || '').trim() || '#');
+        var label = escapeHtml((data.text || '').trim() || 'Button');
+        var attributes = [
+            'href="' + href + '"',
+            'class="' + classes.join(' ') + '"'
+        ];
+
+        if (data.newTab) {
+            attributes.push('target="_blank"');
+            attributes.push('rel="noopener noreferrer"');
+        }
+
+        return '<a ' + attributes.join(' ') + '>' + label + '</a>';
+    }
+
+    function buildColumnsHtml(columnCount) {
+        var count = Number(columnCount) === 3 ? 3 : 2;
+        var columns = [];
+
+        for (var index = 0; index < count; index++) {
+            columns.push('<div class="mirage-column"><p>Column ' + (index + 1) + ' content</p></div>');
+        }
+
+        return '<div class="mirage-columns mirage-columns--' + count + '">' + columns.join('') + '</div><p></p>';
+    }
+
+    function buildEmbedHtml(rawHtml) {
+        var html = String(rawHtml || '').trim();
+        if (html === '') {
+            return '';
+        }
+
+        if (/<iframe[\s>]/i.test(html) && !/<div[^>]+class="[^"]*mirage-embed/i.test(html)) {
+            return '<div class="mirage-embed">' + html + '</div>';
+        }
+
+        return html;
+    }
+
     window.addEventListener('DOMContentLoaded', event => {
         const addPageModalElement = document.getElementById('addPageModal');
         const addUserModalElement = document.getElementById('addUserModal');
@@ -701,7 +862,7 @@
             if (window.mirageAdminApp != null && typeof window.mirageAdminApp.clearSelectFileTarget === 'function') {
                 window.mirageAdminApp.clearSelectFileTarget();
             } else {
-                richtextMediaTarget = null;
+                editorMediaTarget = null;
             }
         });
     });
@@ -746,13 +907,21 @@
                     "accountType": "",
                     "editingMode": 0,
                 },
-                editingMediaItem: {},
+                editingMediaItem: {
+                    type: "image",
+                    caption: "",
+                    altText: ""
+                },
                 selectMediaItemType: "image"
             }
         },
         computed: {
             listMediaItems() {
-                return Object.values(this.mediaItems).filter((obj) => obj.type == this.selectMediaItemType);
+                return Object.values(this.mediaItems)
+                    .filter((obj) => obj.type == this.selectMediaItemType)
+                    .sort(function (left, right) {
+                        return Number(right.edited || right.created || 0) - Number(left.edited || left.created || 0);
+                    });
             },
             isAddPageDisabled() {
                 var allowedTemplates = Array.isArray(this.activeCollection.allowed_templates) ? this.activeCollection.allowed_templates : [];
@@ -1585,86 +1754,44 @@
                     return item._id == itemID;
                 }) || null;
             },
-            resolveRichtextMediaTarget(target) {
-                if (target != null && target.$ta != null && target.$ta.length > 0) {
-                    return target.$ta;
-                }
-
-                var $target = null;
-                if (target != null) {
-                    if (target.jquery != null) {
-                        $target = target;
-                    } else if (target.currentTarget != null) {
-                        $target = $(target.currentTarget);
-                    } else {
-                        $target = $(target);
-                    }
-                }
-
-                if ($target != null && $target.length > 0) {
-                    var $targetBox = $target.closest('.trumbowyg-box');
-                    if ($targetBox.length > 0) {
-                        var $targetTextarea = $targetBox.find('textarea').first();
-                        if ($targetTextarea.length > 0) {
-                            return $targetTextarea;
-                        }
-                    }
-                }
-
-                var $activeBox = $(document.activeElement).closest('.trumbowyg-box');
-                if ($activeBox.length > 0) {
-                    var $activeTextarea = $activeBox.find('textarea').first();
-                    if ($activeTextarea.length > 0) {
-                        return $activeTextarea;
-                    }
-                }
-
-                return null;
-            },
             buildMediaFileUrl(filename) {
-                return '<?php echo BASEPATH; ?>/uploads/' + encodeURIComponent(filename);
+                return buildMediaFileUrl(filename);
             },
             getMediaPreviewUrl(itemID) {
                 var mediaPath = this.getMediaFilePath(itemID);
                 return mediaPath != null ? this.buildMediaFileUrl(mediaPath) : null;
             },
-            insertRichtextImageFromMedia(itemID) {
+            insertEditorImageFromMedia(itemID) {
                 var mediaItem = this.getMediaItemById(itemID);
-                if (mediaItem == null || mediaItem.type !== 'image' || richtextMediaTarget == null || richtextMediaTarget.length === 0) {
+                if (mediaItem == null || mediaItem.type !== 'image' || editorMediaTarget == null) {
                     return false;
                 }
 
                 try {
-                    richtextMediaTarget.trumbowyg('restoreRange');
-                    var range = richtextMediaTarget.trumbowyg('getRange');
-                    var $editor = richtextMediaTarget.closest('.trumbowyg-box').find('.trumbowyg-editor').first();
-                    if (range == null || $editor.length === 0) {
+                    var editor = typeof tinymce !== 'undefined' ? tinymce.get(editorMediaTarget.editorId) : null;
+                    if (editor == null) {
                         return false;
                     }
 
-                    var imageNode = document.createElement('img');
-                    imageNode.src = this.buildMediaFileUrl(mediaItem.file);
-                    if (mediaItem.caption !== '') {
-                        imageNode.alt = mediaItem.caption;
+                    editor.focus();
+                    if (editorMediaTarget.bookmark != null) {
+                        editor.selection.moveToBookmark(editorMediaTarget.bookmark);
                     }
 
-                    range.deleteContents();
-                    range.insertNode(imageNode);
-                    range.setStartAfter(imageNode);
-                    range.setEndAfter(imageNode);
-
-                    var selection = window.getSelection();
-                    if (selection != null) {
-                        selection.removeAllRanges();
-                        selection.addRange(range);
+                    var selectedNode = editor.selection.getNode();
+                    if (editorMediaTarget.replaceImage && selectedNode != null && selectedNode.nodeName === 'IMG') {
+                        editor.dom.setAttrib(selectedNode, 'src', this.buildMediaFileUrl(mediaItem.file));
+                        editor.dom.setAttrib(selectedNode, 'alt', mediaItem.altText || mediaItem.caption || '');
+                        editor.dom.setAttrib(selectedNode, 'data-media-id', String(mediaItem._id));
+                        editor.nodeChanged();
+                    } else {
+                        editor.insertContent(buildEditorImageHtml(mediaItem));
                     }
 
-                    richtextMediaTarget.trumbowyg('html', $editor.html());
-                    richtextMediaTarget.trumbowyg('saveRange');
-                    richtextMediaTarget.trigger('tbwchange');
+                    editor.undoManager.add();
                     return true;
                 } catch (error) {
-                    console.error('Unable to insert media library image into rich text editor.', error);
+                    console.error('Unable to insert media library image into the editor.', error);
                     return false;
                 }
             },
@@ -1701,7 +1828,7 @@
             clearSelectFileTarget() {
                 this.selectFileTarget = null;
                 this.selectMediaItemType = "image";
-                richtextMediaTarget = null;
+                editorMediaTarget = null;
             },
             selectFileItem(id) {
                 var comp = this;
@@ -1717,8 +1844,8 @@
                     comp.clearSelectFileTarget();
                     return;
                 }
-                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "richtextImage") {
-                    if (!comp.insertRichtextImageFromMedia(id)) {
+                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "editorMedia") {
+                    if (!comp.insertEditorImageFromMedia(id)) {
                         alert("The selected image could not be inserted.");
                     }
                     selectFileModal.hide();
@@ -1727,17 +1854,19 @@
                 }
                 comp.clearSelectFileTarget();
             },
-            openRichtextMediaPicker(editor) {
-                var $target = this.resolveRichtextMediaTarget(editor);
-                if ($target == null) {
+            openEditorMediaPicker(editor) {
+                if (editor == null) {
                     alert("The editor selection could not be located.");
                     return;
                 }
 
-                $target.trumbowyg('saveRange');
-                richtextMediaTarget = $target;
+                editorMediaTarget = {
+                    editorId: editor.id,
+                    bookmark: editor.selection.getBookmark(2, true),
+                    replaceImage: editor.selection.getNode() != null && editor.selection.getNode().nodeName === 'IMG'
+                };
                 this.selectFileTarget = {
-                    type: "richtextImage"
+                    type: "editorMedia"
                 };
                 this.selectMediaItemType = "image";
                 selectFileModal.show();
@@ -1824,9 +1953,11 @@
             },
             editMediaItem(item) {
                 this.editingMediaItem = {
+                    "type": item.type,
                     "file": item.file,
                     "fileSmall": item.fileSmall,
                     "caption": item.caption,
+                    "altText": item.altText || "",
                     "editingID": item._id
                 };
                 editMediaModal.show();
@@ -1912,7 +2043,281 @@
 
     const app = Vue.createApp(App);
 
-    app.component('Trumbowyg', VueTrumbowyg.default);
+    app.component('mirage-editor', {
+        props: {
+            modelValue: {
+                type: String,
+                default: ''
+            },
+            placeholder: {
+                type: String,
+                default: ''
+            }
+        },
+        emits: ['update:modelValue'],
+        data() {
+            return {
+                editorId: 'mirage-editor-' + Math.random().toString(36).slice(2, 10),
+                editor: null,
+                isLoading: true,
+                useTextareaFallback: false,
+                syncingFromEditor: false,
+                syncingFromProps: false
+            };
+        },
+        mounted() {
+            if (typeof tinymce === 'undefined') {
+                this.useTextareaFallback = true;
+                this.isLoading = false;
+                return;
+            }
+
+            this.initEditor();
+        },
+        beforeUnmount() {
+            if (this.editor != null) {
+                this.editor.remove();
+                this.editor = null;
+            }
+        },
+        watch: {
+            modelValue(newValue) {
+                if (this.useTextareaFallback || this.editor == null || this.syncingFromEditor || this.syncingFromProps) {
+                    return;
+                }
+
+                var incoming = normalizeEditorHtml(newValue);
+                var current = normalizeEditorHtml(this.editor.getContent({ format: 'html' }));
+                if (incoming === current) {
+                    return;
+                }
+
+                this.syncingFromProps = true;
+                this.editor.setContent(incoming);
+                this.syncingFromProps = false;
+            }
+        },
+        methods: {
+            initEditor() {
+                var comp = this;
+
+                tinymce.init({
+                    selector: '#' + this.editorId,
+                    promotion: false,
+                    branding: false,
+                    menubar: false,
+                    browser_spellcheck: true,
+                    contextmenu: 'link image table',
+                    plugins: 'advlist autolink autoresize charmap code fullscreen image link lists media searchreplace table visualblocks wordcount',
+                    toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | mirageMedia mirageButton mirageColumns mirageHtml | removeformat code fullscreen',
+                    toolbar_mode: 'sliding',
+                    min_height: 420,
+                    autoresize_bottom_margin: 24,
+                    resize: true,
+                    object_resizing: true,
+                    image_uploadtab: false,
+                    image_title: true,
+                    image_caption: true,
+                    link_default_protocol: 'https',
+                    link_assume_external_targets: 'https',
+                    convert_urls: false,
+                    relative_urls: false,
+                    remove_script_host: false,
+                    extended_valid_elements: 'iframe[src|title|width|height|allow|allowfullscreen|frameborder|style|class|referrerpolicy],div[class|style|id|data-*],section[class|style|id|data-*],span[class|style|id|data-*],a[href|target|rel|class|style|id|data-*],img[src|alt|width|height|class|style|data-media-id],button[type|class|style],svg[*],path[*]',
+                    content_style: MIRAGE_EDITOR_CONTENT_STYLE,
+                    body_class: 'mirage-body-content',
+                    setup(editor) {
+                        comp.editor = editor;
+
+                        editor.ui.registry.addButton('mirageMedia', {
+                            icon: 'image',
+                            tooltip: 'Insert image from media library',
+                            onAction() {
+                                comp.$root.openEditorMediaPicker(editor);
+                            }
+                        });
+
+                        editor.ui.registry.addButton('mirageButton', {
+                            text: 'Button',
+                            tooltip: 'Insert styled button link',
+                            onAction() {
+                                comp.openButtonDialog(editor);
+                            }
+                        });
+
+                        editor.ui.registry.addMenuButton('mirageColumns', {
+                            text: 'Columns',
+                            fetch(callback) {
+                                callback([
+                                    {
+                                        type: 'menuitem',
+                                        text: '2 columns',
+                                        onAction() {
+                                            editor.insertContent(buildColumnsHtml(2));
+                                        }
+                                    },
+                                    {
+                                        type: 'menuitem',
+                                        text: '3 columns',
+                                        onAction() {
+                                            editor.insertContent(buildColumnsHtml(3));
+                                        }
+                                    }
+                                ]);
+                            }
+                        });
+
+                        editor.ui.registry.addButton('mirageHtml', {
+                            text: 'HTML',
+                            tooltip: 'Insert custom HTML',
+                            onAction() {
+                                comp.openHtmlDialog(editor);
+                            }
+                        });
+
+                        editor.on('init', function () {
+                            editor.setContent(normalizeEditorHtml(comp.modelValue));
+                            comp.isLoading = false;
+                        });
+
+                        editor.on('change input undo redo', function () {
+                            comp.emitEditorValue();
+                        });
+                    }
+                }).catch(function (error) {
+                    console.error('Unable to initialize the HTML editor.', error);
+                    comp.useTextareaFallback = true;
+                    comp.isLoading = false;
+                });
+            },
+            emitEditorValue() {
+                if (this.editor == null || this.syncingFromProps) {
+                    return;
+                }
+
+                this.syncingFromEditor = true;
+                this.$emit('update:modelValue', normalizeEditorHtml(this.editor.getContent({ format: 'html' })));
+
+                var comp = this;
+                window.setTimeout(function () {
+                    comp.syncingFromEditor = false;
+                }, 0);
+            },
+            onTextareaInput(event) {
+                this.$emit('update:modelValue', event.target.value);
+            },
+            openButtonDialog(editor) {
+                editor.windowManager.open({
+                    title: 'Insert button',
+                    body: {
+                        type: 'panel',
+                        items: [
+                            {
+                                type: 'input',
+                                name: 'text',
+                                label: 'Button text'
+                            },
+                            {
+                                type: 'input',
+                                name: 'href',
+                                label: 'Link URL'
+                            },
+                            {
+                                type: 'selectbox',
+                                name: 'variant',
+                                label: 'Style',
+                                items: [
+                                    { text: 'Primary', value: 'primary' },
+                                    { text: 'Secondary', value: 'secondary' }
+                                ]
+                            },
+                            {
+                                type: 'checkbox',
+                                name: 'newTab',
+                                label: 'Open in new tab'
+                            }
+                        ]
+                    },
+                    initialData: {
+                        text: '',
+                        href: '',
+                        variant: 'primary',
+                        newTab: false
+                    },
+                    buttons: [
+                        {
+                            type: 'cancel',
+                            text: 'Cancel'
+                        },
+                        {
+                            type: 'submit',
+                            text: 'Insert',
+                            primary: true
+                        }
+                    ],
+                    onSubmit(api) {
+                        var data = api.getData();
+                        if (String(data.href || '').trim() === '') {
+                            window.alert('A link URL is required.');
+                            return;
+                        }
+
+                        editor.insertContent(buildButtonHtml(data));
+                        api.close();
+                    }
+                });
+            },
+            openHtmlDialog(editor) {
+                editor.windowManager.open({
+                    title: 'Insert custom HTML',
+                    body: {
+                        type: 'panel',
+                        items: [
+                            {
+                                type: 'textarea',
+                                name: 'html',
+                                label: 'HTML snippet'
+                            }
+                        ]
+                    },
+                    initialData: {
+                        html: ''
+                    },
+                    buttons: [
+                        {
+                            type: 'cancel',
+                            text: 'Cancel'
+                        },
+                        {
+                            type: 'submit',
+                            text: 'Insert',
+                            primary: true
+                        }
+                    ],
+                    onSubmit(api) {
+                        var data = api.getData();
+                        var html = buildEmbedHtml(data.html);
+                        if (html === '') {
+                            window.alert('Add some HTML to insert.');
+                            return;
+                        }
+
+                        editor.insertContent(html);
+                        api.close();
+                    }
+                });
+            }
+        },
+        template: `
+            <div>
+                <div class="mirage-editor-shell" :class="{ 'is-loading': isLoading && !useTextareaFallback }">
+                    <textarea :id="editorId" ref="textarea" class="form-control mirage-editor-textarea" :placeholder="placeholder" :value="modelValue" @input="onTextareaInput"></textarea>
+                    <div v-if="isLoading && !useTextareaFallback" class="mirage-editor-status">Loading editor...</div>
+                </div>
+                <div class="mirage-editor-help mt-2">Supports text, links, lists, buttons, media-library images, raw HTML/YouTube embeds, and 2 or 3 responsive columns.</div>
+            </div>
+        `
+    });
 
     app.component('templateinput', {
         props: {
@@ -1928,46 +2333,9 @@
             if (this.field.type == 'page') {
                 this.$root.getAllPages();
             }
-            return {
-                richtextOptions: null
-            }
-        },
-        created() {
-            this.richtextOptions = this.buildRichtextOptions();
+            return {};
         },
         methods: {
-            buildRichtextOptions() {
-                var comp = this;
-                return {
-                    svgPath: '<?php echo BASEPATH ?>/assets/img/icons.svg',
-                    btnsDef: {
-                        mediaLibrary: {
-                            ico: 'insertImage',
-                            title: 'Insert image from media library',
-                            fn: function() {
-                                comp.$root.openRichtextMediaPicker(this);
-                            }
-                        }
-                    },
-                    btns: [
-                        ['historyUndo', 'historyRedo'],
-                        ['formatting'],
-                        ['strong', 'em', 'del'],
-                        ['superscript', 'subscript'],
-                        ['link'],
-                        ['mediaLibrary'],
-                        ['outdent', 'indent'],
-                        ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
-                        ['unorderedList', 'orderedList'],
-                        ['horizontalRule'],
-                        ['removeformat'],
-                        ['viewHTML', 'fullscreen']
-                    ],
-                    imageWidthModalEdit: true,
-                    removeformatPasted: true,
-                    autogrow: true
-                };
-            },
             buildFieldPath(fieldID) {
                 return this.path.concat(fieldID);
             },
@@ -2012,10 +2380,10 @@
             }
         },
         template: `
-            <div class="mb-3" >
+            <div class="mb-3">
                 <label class="form-label d-block">{{field.name}}:</label>
                 <input v-if="field.type == 'text'" v-model="field.value" type="text" class="form-control" :placeholder="field.placeholder">
-                <input v-if="field.type == 'link'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder">
+                <input v-if="field.type == 'link'" v-model="field.value" type="url" class="form-control" :placeholder="field.placeholder">
                 <select v-if="field.type == 'select'" v-model="field.value" class="form-select" :aria-label="field.name">
                     <option value="">None</option>
                     <option :value="option.value" v-for="option in field.options">{{option.name}}</option>
@@ -2024,8 +2392,8 @@
                     <option value="">None</option>
                     <option :value="option._id" v-for="option in filter_collection(this.$root.pages, field.collection)">{{option.title}}</option>
                 </select>
-                <textarea v-if="field.type == 'textarea'" v-model="field.value" type="link" class="form-control" :placeholder="field.placeholder"></textarea>
-                <trumbowyg v-if="field.type == 'richtext' && richtextOptions != null" v-model="field.value" :config="richtextOptions"></trumbowyg>
+                <textarea v-if="field.type == 'textarea'" v-model="field.value" class="form-control" :placeholder="field.placeholder"></textarea>
+                <mirage-editor v-if="field.type == 'richtext'" v-model="field.value" :placeholder="field.placeholder || ''"></mirage-editor>
                 <img v-bind:src="getMediaPreviewUrl(field.value)" v-if="field.type == 'media' && field.subtype == 'image' && getMediaPreviewUrl(field.value) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
                 <div v-if="field.type == 'media' && field.subtype == 'file' && getMediaFilePath(field.value) != null">
                     <img src="<?php echo BASEPATH; ?>/assets/img/fileUnknown.png" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
@@ -2041,7 +2409,7 @@
                     <button class="btn btn-sm btn-success w-100" @click="addListItem(field)">Add Item</button>
                 </div>
             </div>
-            `
+        `
     });
 
     window.mirageAdminApp = app.mount('#app');

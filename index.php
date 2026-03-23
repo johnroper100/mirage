@@ -918,6 +918,10 @@ function normalizeOptionalMediaReference($value)
 function generateField($field)
 {
     if ($field['type'] != 'list') {
+        if (($field['type'] ?? '') === 'richtext') {
+            return (string) ($field['value'] ?? '');
+        }
+
         if (($field['type'] ?? '') === 'media') {
             return normalizeOptionalMediaReference($field['value'] ?? null);
         }
@@ -2599,6 +2603,7 @@ if (!file_exists("config.php")) {
                     $page['file'] = $storedFilename;
                     $page['fileSmall'] = $page['file'];
                     $page["caption"] = "";
+                    $page["altText"] = "";
                     $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
 
                     $page["editedUser"] = getCurrentUserId();
@@ -2702,6 +2707,7 @@ if (!file_exists("config.php")) {
                 $page['file'] = $storedFilename;
                 $page['fileSmall'] = "min_" . $page['file'];
                 $page["caption"] = "";
+                $page["altText"] = "";
                 $page['extension'] = pathinfo($page['file'], PATHINFO_EXTENSION);
                 $page['type'] = "image";
 
@@ -2755,6 +2761,7 @@ if (!file_exists("config.php")) {
             $data = json_decode($json, true);
             $mediaItem = [
                 'caption' => (string) ($data["caption"] ?? ''),
+                'altText' => (string) ($data["altText"] ?? ''),
                 'editedUser' => getCurrentUserId(),
                 'edited' => time()
             ];
