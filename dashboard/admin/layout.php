@@ -19,7 +19,7 @@
                 Media</span>
             <hr>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
-                :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessMenus()"><i class="fa-solid fa-chart-bar me-1"></i>
+                :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessView('menus')"><i class="fa-solid fa-chart-bar me-1"></i>
                 Menus</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
@@ -45,7 +45,7 @@
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'pages'">{{activeCollection.name}}</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 0">Add Page</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'editPage' && editingMode == 1">Edit Page</h4>
-                <h4 class="mb-0 ms-2" v-if="viewPage == 'menus' && canAccessMenus()">Menus</h4>
+                <h4 class="mb-0 ms-2" v-if="viewPage == 'menus' && canAccessView('menus')">Menus</h4>
                 <!--<h4 class="mb-0 ms-2" v-if="viewPage == 'comments'">Comments</h4>-->
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'forms'">Form Submissions</h4>
                 <h4 class="mb-0 ms-2" v-if="viewPage == 'media'">Media</h4>
@@ -70,7 +70,7 @@
                             Remove</button>
                         <button class="btn btn-success" v-if="viewPage == 'editPage'" @click="savePage"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
-                        <button class="btn btn-success" v-if="viewPage == 'menus' && canAccessMenus()" @click="saveMenus"><i
+                        <button class="btn btn-success" v-if="viewPage == 'menus' && canAccessView('menus')" @click="saveMenus"><i
                                 class="fa-solid fa-floppy-disk me-1"></i> Save</button>
                         <div class="btn-group me-md-2 mb-1 mb-md-0" v-if="viewPage == 'forms'">
                             <button class="btn btn-outline-secondary" @click="selectAllFormSubmissions" :disabled="formSubmissions.length == 0"><i
@@ -556,7 +556,7 @@
                     </div>
                 </div>
             </div>
-            <div v-if="viewPage == 'menus' && canAccessMenus()">
+            <div v-if="viewPage == 'menus' && canAccessView('menus')">
                 <div class="card mb-3" v-for="menu in activeTheme.menus">
                     <div class="card-header">
                         {{menu.name}}

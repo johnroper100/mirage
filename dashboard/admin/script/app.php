@@ -312,7 +312,11 @@
                 return this.getActiveAccountType() === 0;
             },
             canAccessView(page) {
-                if (page === 'menus' || page === 'forms') {
+                if (page === 'menus') {
+                    return this.getActiveAccountType() !== 2 && this.generalMenuCount > 0;
+                }
+
+                if (page === 'forms') {
                     return this.getActiveAccountType() !== 2;
                 }
 
@@ -758,6 +762,7 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeTheme = JSON.parse(this.responseText);
+                    comp.ensureAuthorizedView();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
                 xmlhttp.send();
