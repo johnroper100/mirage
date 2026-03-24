@@ -980,6 +980,90 @@ function getMetaPageUrl($page)
     return rtrim(getFullBasepathRaw(), '/') . $path;
 }
 
+function getPagePasswordHash($page)
+{
+    if (!is_array($page) || !isset($page['passwordHash']) || !is_string($page['passwordHash'])) {
+        return '';
+    }
+
+    return $page['passwordHash'];
+}
+
+function isPagePasswordProtected($page)
+{
+    return getPagePasswordHash($page) !== '';
+}
+
+function getPageProtectionFingerprint($page)
+{
+    $pageId = isset($page['_id']) ? (string) $page['_id'] : '';
+    $passwordHash = getPagePasswordHash($page);
+    if ($pageId === '' || $passwordHash === '') {
+        return '';
+    }
+
+    return hash('sha256', $pageId . '|' . $passwordHash);
+}
+
+function isPageUnlockedForCurrentVisitor($page)
+{
+    if (!isPagePasswordProtected($page)) {
+        return true;
+    }
+
+    $pageId = isset($page['_id']) ? (string) $page['_id'] : '';
+    $fingerprint = getPageProtectionFingerprint($page);
+    if ($pageId === '' || $fingerprint === '') {
+        return false;
+    }
+
+    $unlockedPages = $_SESSION['mirageUnlockedPages'] ?? [];
+    $storedFingerprint = is_array($unlockedPages) && isset($unlockedPages[$pageId])
+        ? (string) $unlockedPages[$pageId]
+        : '';
+
+    return $storedFingerprint !== '' && hash_equals($storedFingerprint, $fingerprint);
+}
+
+function unlockPageForCurrentVisitor($page)
+{
+    $pageId = isset($page['_id']) ? (string) $page['_id'] : '';
+    $fingerprint = getPageProtectionFingerprint($page);
+    if ($pageId === '' || $fingerprint === '') {
+        return false;
+    }
+
+    if (!isset($_SESSION['mirageUnlockedPages']) || !is_array($_SESSION['mirageUnlockedPages'])) {
+        $_SESSION['mirageUnlockedPages'] = [];
+    }
+
+    $_SESSION['mirageUnlockedPages'][$pageId] = $fingerprint;
+
+    return true;
+}
+
+function preparePageForResponse($page)
+{
+    if (!is_array($page)) {
+        return $page;
+    }
+
+    $preparedPage = $page;
+    $preparedPage['isPasswordProtected'] = isPagePasswordProtected($page);
+    unset($preparedPage['passwordHash']);
+
+    return $preparedPage;
+}
+
+function preparePagesForResponse($pages)
+{
+    if (!is_array($pages)) {
+        return [];
+    }
+
+    return array_map('preparePageForResponse', $pages);
+}
+
 function getPageLastModifiedW3C($page)
 {
     if (!is_array($page)) {
@@ -1006,6 +1090,10 @@ function getSitemapEntries()
     $seenUrls = [];
 
     foreach ($pages as $page) {
+        if (isPagePasswordProtected($page)) {
+            continue;
+        }
+
         $url = getPublicPageUrl($page);
         if ($url === null || isset($seenUrls[$url])) {
             continue;
@@ -1511,6 +1599,9 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
         return null;
     }
 
+    $shouldPasswordProtectPage = !empty($data["isPasswordProtected"]);
+    $requestedPagePassword = isset($data["pagePassword"]) ? (string) $data["pagePassword"] : '';
+
     $page = [];
     $page["content"] = [];
     $page["editedUser"] = getCurrentUserId(); // could be null if user has been deleted
@@ -1545,6 +1636,15 @@ function generatePage($json, $isNewPage = false, $existingPage = null)
     $page["collection"] = $collectionID;
     $page["collectionSubpath"] = $collectionSubpath ?? "";
     $page["isPublished"] = isAuthor() ? (bool) ($existingPage["isPublished"] ?? false) : !empty($data["isPublished"]);
+    if ($shouldPasswordProtectPage) {
+        if ($requestedPagePassword !== '') {
+            $page["passwordHash"] = password_hash($requestedPagePassword, PASSWORD_DEFAULT);
+        } else if (!$isNewPage && isPagePasswordProtected($existingPage)) {
+            $page["passwordHash"] = getPagePasswordHash($existingPage);
+        } else {
+            return null;
+        }
+    }
     if ($isNewPage) {
         $page["order"] = getNextCollectionPageOrder($collectionID);
     } else if (is_array($existingPage) && isset($existingPage["order"]) && is_numeric($existingPage["order"])) {
@@ -1764,21 +1864,24 @@ function getPages($collection, $numEntries, $sort = null)
         : [["collection", "=", $collection], ["isPublished", "=", true]];
 
     if (is_array($sort) && count($sort) > 0) {
+        $pages = null;
         if ($numEntries > 0) {
-            return $pageStore->findBy($conditions, $sort, $numEntries);
+            $pages = $pageStore->findBy($conditions, $sort, $numEntries);
+        } else {
+            $pages = $pageStore->findBy($conditions, $sort);
         }
 
-        return $pageStore->findBy($conditions, $sort);
+        return preparePagesForResponse($pages);
     }
 
     $pages = $pageStore->findBy($conditions);
     $pages = sortPagesByCollectionSort($pages, getCollectionSortMode($collection, $sort));
 
     if ($numEntries > 0) {
-        return array_slice($pages, 0, $numEntries);
+        $pages = array_slice($pages, 0, $numEntries);
     }
 
-    return $pages;
+    return preparePagesForResponse($pages);
 };
 
 function generateMenuItemID()
@@ -2155,6 +2258,11 @@ function renderMenu($menuID, $options = [])
 function getMedia($mediaID)
 {
     global $mediaStore;
+    $mediaID = normalizeOptionalMediaReference($mediaID);
+    if ($mediaID === null) {
+        return null;
+    }
+
     $media = $mediaStore->findById($mediaID);
 
     return $media;
@@ -3397,6 +3505,110 @@ function includeThemeFile($filename, $data = [])
     echo injectMirageFrontendAssets($output, $data['page']);
 }
 
+function canRenderPublicPage($page)
+{
+    return is_array($page)
+        && empty($page['isPathless'])
+        && (!empty($page['isPublished']) || isLoggedIn());
+}
+
+function renderProtectedPagePrompt($page, $errorMessage = '', $statusCode = 200)
+{
+    if (!is_array($page)) {
+        getErrorPage(404);
+        return;
+    }
+
+    $pagePath = getMetaPagePath($page);
+    if ($pagePath === null) {
+        getErrorPage(404);
+        return;
+    }
+
+    $pageForResponse = preparePageForResponse($page);
+    $siteSettings = getCurrentSiteSettings();
+    $siteTitle = trim((string) ($siteSettings['siteTitle'] ?? ''));
+    $pageTitle = trim((string) ($pageForResponse['title'] ?? ''));
+    $documentTitle = $pageTitle !== '' ? $pageTitle : 'Protected Page';
+    if ($siteTitle !== '' && strcasecmp($documentTitle, $siteTitle) !== 0) {
+        $documentTitle .= ' | ' . $siteTitle;
+    }
+
+    $description = trim((string) ($pageForResponse['description'] ?? ''));
+    $promptTitle = $pageTitle !== '' ? $pageTitle : 'Protected Page';
+    $actionUrl = BASEPATH . $pagePath;
+    $siteTitleLabel = $siteTitle !== '' ? $siteTitle : 'Mirage';
+    $errorMessage = trim((string) $errorMessage);
+    $socialMetaTags = buildSocialMetaTagsHtml($pageForResponse, $siteSettings);
+
+    http_response_code($statusCode);
+    include './dashboard/pagePassword.php';
+}
+
+function handleProtectedPageAccess($page)
+{
+    if (!canRenderPublicPage($page) || !isPagePasswordProtected($page)) {
+        getErrorPage(404);
+        return;
+    }
+
+    if (isPageUnlockedForCurrentVisitor($page)) {
+        $pagePath = getMetaPagePath($page);
+        if ($pagePath === null) {
+            getErrorPage(404);
+            return;
+        }
+
+        header('Location: ' . BASEPATH . $pagePath);
+        return;
+    }
+
+    if (!requireCsrfToken()) {
+        return;
+    }
+
+    $submittedPassword = isset($_POST['pagePassword']) ? (string) $_POST['pagePassword'] : '';
+    $passwordHash = getPagePasswordHash($page);
+    if ($submittedPassword !== '' && $passwordHash !== '' && password_verify($submittedPassword, $passwordHash)) {
+        unlockPageForCurrentVisitor($page);
+
+        $pagePath = getMetaPagePath($page);
+        if ($pagePath === null) {
+            getErrorPage(404);
+            return;
+        }
+
+        header('Location: ' . BASEPATH . $pagePath);
+        return;
+    }
+
+    renderProtectedPagePrompt($page, 'Incorrect password. Please try again.', 401);
+}
+
+function outputPublicPage($page, $siteTitle)
+{
+    if (!canRenderPublicPage($page)) {
+        getErrorPage(404);
+        return;
+    }
+
+    if (isPagePasswordProtected($page) && !isPageUnlockedForCurrentVisitor($page)) {
+        renderProtectedPagePrompt($page);
+        return;
+    }
+
+    $filename = getThemeTemplatePhpPath((string) ($page["templateName"] ?? ''));
+    if ($filename === null) {
+        getErrorPage(404);
+        return;
+    }
+
+    includeThemeFile($filename, [
+        'page' => preparePageForResponse($page),
+        'siteTitle' => $siteTitle
+    ]);
+}
+
 function getRecentFormSubmission($formID, $ipAddress)
 {
     global $formStore;
@@ -3885,8 +4097,7 @@ if (!file_exists("config.php")) {
     Route::add('/api/collections/(.*)/pages', function ($who) {
         if (isset($_SESSION['loggedin'])) {
             $allPages = getPages($who, 0);
-            $myJSON = json_encode($allPages);
-            echo $myJSON;
+            sendJsonResponse($allPages);
         } else {
             getErrorPage(401);
         }
@@ -3971,8 +4182,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $allPages = $pageStore->findAll();
-            $myJSON = json_encode($allPages);
-            echo $myJSON;
+            sendJsonResponse(preparePagesForResponse($allPages));
         } else {
             getErrorPage(401);
         }
@@ -3982,8 +4192,7 @@ if (!file_exists("config.php")) {
         if (isset($_SESSION['loggedin'])) {
             global $pageStore;
             $selectedPage = $pageStore->findById($who);
-            $myJSON = json_encode($selectedPage);
-            echo $myJSON;
+            sendJsonResponse(preparePageForResponse($selectedPage));
         } else {
             getErrorPage(401);
         }
@@ -4008,7 +4217,7 @@ if (!file_exists("config.php")) {
             }
 
             $savedPage = $pageStore->insert($page);
-            sendJsonResponse($savedPage);
+            sendJsonResponse(preparePageForResponse($savedPage));
         } else {
             getErrorPage(401);
         }
@@ -4040,7 +4249,6 @@ if (!file_exists("config.php")) {
             }
 
             $page = $pageStore->updateById($who, $updatedPageData);
-            $myJSON = json_encode($page);
 
             $allMenuItems = $menuStore->findAll();
             foreach ($allMenuItems as &$menuItem) {
@@ -4055,7 +4263,7 @@ if (!file_exists("config.php")) {
                 }
             }
 
-            echo $myJSON;
+            sendJsonResponse(preparePageForResponse($page));
         } else {
             getErrorPage(401);
         }
@@ -4537,25 +4745,27 @@ if (!file_exists("config.php")) {
 
     /* Page Display */
 
+    Route::add('/(.*)/(.*)', function ($who1, $who2) {
+        global $pageStore;
+
+        $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
+        handleProtectedPageAccess($page);
+    }, 'POST');
+
+    Route::add('/(.*)', function ($who) {
+        global $pageStore;
+
+        $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
+        handleProtectedPageAccess($page);
+    }, 'POST');
+
     # Return pages under a collection subpath - currently only supports one collection subpath
     Route::add('/(.*)/(.*)', function ($who1, $who2) {
         global $pageStore;
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", $who1], "AND", ["path", "=", $who2]]);
-        if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
-            getErrorPage(404);
-        } else {
-            $filename = getThemeTemplatePhpPath((string) ($page["templateName"] ?? ''));
-            if ($filename !== null) {
-                includeThemeFile($filename, [
-                    'page' => $page,
-                    'siteTitle' => $siteTitle
-                ]);
-            } else {
-                getErrorPage(404);
-            }
-        }
+        outputPublicPage($page, $siteTitle);
     });
 
     # Return pages not under a collection subpath
@@ -4564,19 +4774,7 @@ if (!file_exists("config.php")) {
         global $siteTitle;
 
         $page = $pageStore->findOneBy([["collectionSubpath", "=", ""], "AND", ["path", "=", $who]]);
-        if ($page == null || $page["isPathless"] == true || ($page["isPublished"] == false && !isset($_SESSION['loggedin']))) {
-            getErrorPage(404);
-        } else {
-            $filename = getThemeTemplatePhpPath((string) ($page["templateName"] ?? ''));
-            if ($filename !== null) {
-                includeThemeFile($filename, [
-                    'page' => $page,
-                    'siteTitle' => $siteTitle
-                ]);
-            } else {
-                getErrorPage(404);
-            }
-        }
+        outputPublicPage($page, $siteTitle);
     });
 };
 

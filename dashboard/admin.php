@@ -269,8 +269,8 @@
                                 class="fa-solid fa-floppy-disk me-1"></i><span v-if="!pageOrderSaving">Save Order</span><span v-else>Saving...</span></button>
                         <button class="btn btn-success" v-if="viewPage == 'pages'" @click="addPage"><i
                                 class="fa-solid fa-plus me-1"></i> Add Page</button>
-                        <a v-bind:href="viewPath(editingPath)" class="btn btn-primary me-md-2 mb-1 mb-md-0"
-                            v-if="viewPage == 'editPage' && editingMode == 1 && editingPathless == false" target="_blank"><i
+                        <a v-bind:href="getEditingPageViewPath()" class="btn btn-primary me-md-2 mb-1 mb-md-0"
+                            v-if="viewPage == 'editPage' && editingMode == 1 && editingPathless == false && getEditingPageViewPath()" target="_blank"><i
                                 class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                         <button class="btn btn-danger me-md-2 mb-1 mb-md-0" @click="deletePage(editingID)"
                             v-if="viewPage == 'editPage' && editingMode == 1"><i class="fa-solid fa-trash-can me-1"></i>
@@ -609,6 +609,7 @@
                                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
                                                     <strong>{{page.title || 'Untitled Page'}}</strong>
                                                     <span class="badge" :class="page.isPublished === false ? 'text-bg-warning' : 'text-bg-success'">{{page.isPublished === false ? 'Draft' : 'Live'}}</span>
+                                                    <span class="badge text-bg-dark" v-if="page.isPasswordProtected">Protected</span>
                                                     <span class="badge text-bg-light border">{{getCollectionName(page.collection)}}</span>
                                                 </div>
                                                 <div class="mirage-dashboard-path">
@@ -638,6 +639,10 @@
                         <div class="row mt-1">
                             <div class="col-12 col-md-9">
                                 <h4><small class="text-warning me-1" v-if="page.isPublished == false">🔒</small>{{page.title}}</h4>
+                                <div class="d-flex flex-wrap gap-2 mb-1">
+                                    <span class="badge text-bg-warning" v-if="page.isPublished == false">Draft</span>
+                                    <span class="badge text-bg-dark" v-if="page.isPasswordProtected">Protected</span>
+                                </div>
                                 <h6 class="text-secondary" v-if="page.isPathless == false">T: {{page.templateName}} <i
                                         class="fa-solid fa-right-long"></i> /<span
                                         v-if="activeCollection.subpath">{{activeCollection.subpath}}/</span>{{page.path}}
@@ -649,7 +654,7 @@
                                         class="fa-solid fa-angle-up"></i></button>
                                 <button class="btn btn-outline-secondary btn-sm me-1" @click="movePageDown(page._id)" :disabled="pageOrderSaving || index === pages.length - 1" v-if="canReorderCollectionPages()"><i
                                         class="fa-solid fa-angle-down"></i></button>
-                                <a :href="viewPath(page.path)" class="btn btn-primary btn-sm me-1" target="_blank" v-if="page.isPathless == false"><i
+                                <a :href="getPageViewPath(page)" class="btn btn-primary btn-sm me-1" target="_blank" v-if="page.isPathless == false && getPageViewPath(page)"><i
                                         class="fa-solid fa-up-right-from-square me-1"></i> View</a>
                                 <button class="btn btn-danger btn-sm me-1" @click="deletePage(page._id)" v-if="activeUser.accountType != 2 || activeUser._id == page.createdUser || activeUser._id == page.editedUser"><i
                                         class="fa-solid fa-trash-can me-1"></i> Remove</button>
@@ -733,6 +738,18 @@
                                 <input class="form-check-input" type="checkbox" id="flexSwitchCheckDefault"
                                     v-model="editingPublished" v-bind:value="editingPublished">
                                 <label class="form-check-label" for="flexSwitchCheckDefault">Page Published</label>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="pagePasswordProtectionSwitch"
+                                    v-model="editingPasswordProtected">
+                                <label class="form-check-label" for="pagePasswordProtectionSwitch">Password Protect Page</label>
+                            </div>
+                            <div class="mb-3" v-if="editingPasswordProtected">
+                                <label class="form-label">Page Password:</label>
+                                <input v-model="editingPassword" type="password" class="form-control"
+                                    :placeholder="editingHasSavedPassword ? 'Leave blank to keep current password' : 'Enter a password'">
+                                <div class="form-text" v-if="editingHasSavedPassword">Leave this blank to keep the current password. Turn off password protection to remove it.</div>
+                                <div class="form-text" v-else>Visitors must enter this password before Mirage renders the page.</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Last Saved:</label>
@@ -1687,6 +1704,9 @@
                 editingTemplateName: "",
                 editingPath: "",
                 editingPathless: false,
+                editingPasswordProtected: false,
+                editingHasSavedPassword: false,
+                editingPassword: "",
                 editingMode: 0,
                 editingID: null,
                 editingPublished: true,
@@ -3064,6 +3084,9 @@
                 this.editingDescription = "";
                 this.editingPath = "";
                 this.editingTemplateName = "";
+                this.editingPasswordProtected = false;
+                this.editingHasSavedPassword = false;
+                this.editingPassword = "";
             },
             editNewPage() {
                 if (this.isAddPageDisabled) {
@@ -3078,6 +3101,9 @@
                     comp.editingPath = comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                     comp.editingMode = 0;
                     comp.editingPathless = comp.editingTemplate.isPathless;
+                    comp.editingPasswordProtected = false;
+                    comp.editingHasSavedPassword = false;
+                    comp.editingPassword = "";
                     comp.editingPublished = false;
                     comp.editingDate = "Never";
                     comp.editingEditedDate = "Never";
@@ -3121,6 +3147,9 @@
                     comp.editingDescription = page.description;
                     comp.editingPath = page.path;
                     comp.editingPathless = comp.editingTemplate.isPathless;
+                    comp.editingPasswordProtected = page.isPasswordProtected === true;
+                    comp.editingHasSavedPassword = page.isPasswordProtected === true;
+                    comp.editingPassword = "";
                     comp.editingID = page._id;
                     comp.editingPublished = page.isPublished;
                     var dateObject = new Date(page.edited * 1000);
@@ -3204,6 +3233,11 @@
                 xmlhttp.send(JSON.stringify(comp.siteSettings));
             },
             savePage() {
+                if (this.editingPasswordProtected && this.editingPassword === "" && !this.editingHasSavedPassword) {
+                    alert("Enter a password to protect this page.");
+                    return;
+                }
+
                 var data = {
                     template: this.editingTemplate,
                     templateName: this.editingTemplateName,
@@ -3214,7 +3248,9 @@
                     isPathless: this.editingTemplate.isPathless,
                     collection: this.activeCollection.id,
                     collectionSubpath: this.activeCollection.subpath,
-                    isPublished: this.editingPublished
+                    isPublished: this.editingPublished,
+                    isPasswordProtected: this.editingPasswordProtected,
+                    pagePassword: this.editingPassword
                 }
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
@@ -3526,27 +3562,33 @@
                 }
 
                 var path = typeof page.path === 'string' ? page.path.trim().replace(/^\/+/, '') : '';
-                if (path === '') {
-                    return '';
-                }
-
                 var collection = this.getCollectionById(page.collection);
                 var subpath = collection != null && typeof collection.subpath === 'string'
                     ? collection.subpath.trim().replace(/^\/+|\/+$/g, '')
                     : '';
 
-                return '/' + (subpath !== '' ? subpath + '/' : '') + path;
+                if (path === '' && subpath === '') {
+                    return '/';
+                }
+
+                return '/' + (subpath !== '' ? subpath + (path !== '' ? '/' : '') : '') + path;
             },
             getPageViewPath(page) {
                 var displayPath = this.getPageDisplayPath(page);
-                return displayPath !== '' ? ('<?php echo BASEPATH; ?>' + displayPath) : null;
-            },
-            viewPath(path) {
-                if (this.activeCollection.subpath && this.activeCollection.subpath != "") {
-                    return '<?php echo BASEPATH; ?>/' + this.activeCollection.subpath + "/" + path;
-                } else {
-                    return '<?php echo BASEPATH; ?>/' + path;
+                if (displayPath === '') {
+                    return null;
                 }
+
+                return '<?php echo BASEPATH; ?>' + displayPath;
+            },
+            getEditingPageViewPath() {
+                return this.getPageViewPath({
+                    collection: this.activeCollection.id,
+                    path: this.editingPath,
+                    isPathless: this.editingPathless,
+                    isPublished: this.editingPublished,
+                    isPasswordProtected: this.editingPasswordProtected
+                });
             },
             async deleteFormSubmission(submissionID) {
                 if (confirm("Are you sure you want to delete this?") == true) {
