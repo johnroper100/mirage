@@ -564,7 +564,7 @@
                                     <div class="mirage-dashboard-health-item" v-if="canAccessSettings()">
                                         <div>
                                             <div class="fw-semibold">Site settings</div>
-                                            <div class="small text-secondary">Title {{(siteSettings.siteTitle || '').trim() !== '' ? 'configured' : 'needs setup'}}, footer {{(siteSettings.footerText || '').trim() !== '' ? 'configured' : 'empty'}}.</div>
+                                            <div class="small text-secondary">Title {{(siteSettings.siteTitle || '').trim() !== '' ? 'configured' : 'needs setup'}}, social {{((siteSettings.siteDescription || '').trim() !== '' || hasSelectedMedia(siteSettings.socialImage) || (siteSettings.twitterSite || '').trim() !== '' || (siteSettings.facebookAppId || '').trim() !== '') ? 'configured' : 'empty'}}.</div>
                                         </div>
                                         <div class="text-end">
                                             <span class="badge" :class="(siteSettings.siteTitle || '').trim() !== '' ? 'text-bg-success' : 'text-bg-warning'">{{(siteSettings.siteTitle || '').trim() !== '' ? 'Ready' : 'Review'}}</span>
@@ -1032,6 +1032,43 @@
                             <input v-model="siteSettings.siteTitle" type="text" class="form-control" placeholder="My website">
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Default Meta Description:</label>
+                            <textarea v-model="siteSettings.siteDescription" rows="3" class="form-control" maxlength="220" placeholder="Fallback description used when a page does not have its own summary."></textarea>
+                            <div class="form-text">Mirage uses each page's own description first, then falls back to this value for standard, Open Graph, and Twitter description tags.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-block">Default Social Image:</label>
+                            <img v-bind:src="getMediaPreviewUrl(siteSettings.socialImage)" v-if="getMediaPreviewUrl(siteSettings.socialImage) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                            <button class="btn btn-sm btn-primary me-2" @click="selectSiteSocialImage"><span v-if="!hasSelectedMedia(siteSettings.socialImage)">Select</span><span v-else>Replace</span> Image</button>
+                            <button class="btn btn-sm btn-danger" v-if="hasSelectedMedia(siteSettings.socialImage)" @click="siteSettings.socialImage = null">Remove Image</button>
+                            <div class="form-text mt-2">Used only when a page does not have its own featured image.</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Open Graph Locale:</label>
+                                    <input v-model="siteSettings.socialLocale" type="text" class="form-control" placeholder="en_US">
+                                    <div class="form-text">Examples: <code>en_US</code>, <code>fr_CA</code>.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Twitter Site Handle:</label>
+                                    <input v-model="siteSettings.twitterSite" type="text" class="form-control" placeholder="@example">
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Twitter Creator Handle:</label>
+                                    <input v-model="siteSettings.twitterCreator" type="text" class="form-control" placeholder="@example">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Facebook App ID:</label>
+                            <input v-model="siteSettings.facebookAppId" type="text" class="form-control" placeholder="Optional">
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Footer Text:</label>
                             <textarea v-model="siteSettings.footerText" rows="3" class="form-control" placeholder="Optional footer text"></textarea>
                             <div class="form-text">Optional text shown above the copyright line. Tokens are supported here too.</div>
@@ -1053,11 +1090,12 @@
                             <p class="mb-0 text-secondary" v-if="siteSettings.footerText == '' && siteSettings.copyrightText == ''">Footer preview is empty.</p>
                         </div>
                         <div class="border rounded bg-light p-3 mt-3">
-                            <h6 class="mb-2">Analytics Integration</h6>
+                            <h6 class="mb-2">Head Integration</h6>
+                            <p class="mb-2 text-secondary">Mirage injects canonical URLs, standard description tags, Open Graph tags, Twitter card tags, and optional analytics from one native head slot.</p>
                             <p class="mb-2" v-if="(siteSettings.googleAnalyticsTrackingCode || '').trim() !== ''">Tracking code detected: <code>{{siteSettings.googleAnalyticsTrackingCode}}</code></p>
                             <p class="mb-2 text-secondary" v-else>Google Analytics is currently off.</p>
                             <p class="small text-secondary mb-1">Theme developers only need <code v-pre>&lt;?php echo $mirageMetaTag; ?&gt;</code> inside the template <code>&lt;head&gt;</code>.</p>
-                            <p class="small text-secondary mb-0">Mirage injects the Google tag for the site owner and keeps a live traffic view in the admin dashboard.</p>
+                            <p class="small text-secondary mb-0">Page-level descriptions and featured images override these site defaults automatically.</p>
                         </div>
                     </div>
                 </div>
@@ -1519,6 +1557,38 @@
         return html;
     }
 
+    function createEmptySiteSettings() {
+        return {
+            siteTitle: "",
+            siteDescription: "",
+            socialImage: null,
+            socialLocale: "en_US",
+            twitterSite: "",
+            twitterCreator: "",
+            facebookAppId: "",
+            footerText: "",
+            copyrightText: "",
+            googleAnalyticsTrackingCode: ""
+        };
+    }
+
+    function normalizeSiteSettingsResponse(settings) {
+        settings = settings && typeof settings === 'object' ? settings : {};
+
+        return {
+            siteTitle: settings.siteTitle || "",
+            siteDescription: settings.siteDescription || "",
+            socialImage: settings.socialImage == null ? null : settings.socialImage,
+            socialLocale: settings.socialLocale || "en_US",
+            twitterSite: settings.twitterSite || "",
+            twitterCreator: settings.twitterCreator || "",
+            facebookAppId: settings.facebookAppId || "",
+            footerText: settings.footerText || "",
+            copyrightText: settings.copyrightText || "",
+            googleAnalyticsTrackingCode: settings.googleAnalyticsTrackingCode || ""
+        };
+    }
+
     window.addEventListener('DOMContentLoaded', event => {
         const addPageModalElement = document.getElementById('addPageModal');
         const addUserModalElement = document.getElementById('addUserModal');
@@ -1590,12 +1660,7 @@
                     lastUpdated: 0
                 },
                 analyticsLoading: false,
-                siteSettings: {
-                    siteTitle: "",
-                    footerText: "",
-                    copyrightText: "",
-                    googleAnalyticsTrackingCode: ""
-                },
+                siteSettings: createEmptySiteSettings(),
                 activeUser: {
                     accountType: 2
                 },
@@ -2617,12 +2682,7 @@
             },
             getSiteSettings() {
                 if (!this.canAccessSettings()) {
-                    this.siteSettings = {
-                        siteTitle: "",
-                        footerText: "",
-                        copyrightText: "",
-                        googleAnalyticsTrackingCode: ""
-                    };
+                    this.siteSettings = createEmptySiteSettings();
                     return;
                 }
 
@@ -2634,12 +2694,7 @@
                     }
 
                     var settings = JSON.parse(this.responseText);
-                    comp.siteSettings = {
-                        siteTitle: settings.siteTitle || "",
-                        footerText: settings.footerText || "",
-                        copyrightText: settings.copyrightText || "",
-                        googleAnalyticsTrackingCode: settings.googleAnalyticsTrackingCode || ""
-                    };
+                    comp.siteSettings = normalizeSiteSettingsResponse(settings);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/settings", true);
                 xmlhttp.send();
@@ -2697,12 +2752,7 @@
                     if (comp.activeUser.accountType == 0) {
                         comp.getSiteSettings();
                     } else {
-                        comp.siteSettings = {
-                            siteTitle: "",
-                            footerText: "",
-                            copyrightText: "",
-                            googleAnalyticsTrackingCode: ""
-                        };
+                        comp.siteSettings = createEmptySiteSettings();
                     }
 
                     if (comp.activeUser.accountType != 2) {
@@ -3145,12 +3195,7 @@
                         return;
                     }
 
-                    comp.siteSettings = {
-                        siteTitle: response.siteTitle || "",
-                        footerText: response.footerText || "",
-                        copyrightText: response.copyrightText || "",
-                        googleAnalyticsTrackingCode: response.googleAnalyticsTrackingCode || ""
-                    };
+                    comp.siteSettings = normalizeSiteSettingsResponse(response);
                     comp.getAnalyticsSummary();
                     alert("Settings saved!");
                 }
@@ -3283,6 +3328,12 @@
 
                 if (comp.selectFileTarget != null && comp.selectFileTarget.type == "featuredImage") {
                     comp.editingFeaturedImage = id;
+                    selectFileModal.hide();
+                    comp.clearSelectFileTarget();
+                    return;
+                }
+                if (comp.selectFileTarget != null && comp.selectFileTarget.type == "siteSocialImage") {
+                    comp.siteSettings.socialImage = id;
                     selectFileModal.hide();
                     comp.clearSelectFileTarget();
                     return;
@@ -3534,6 +3585,13 @@
             selectFeaturedImage() {
                 this.selectFileTarget = {
                     type: "featuredImage"
+                };
+                this.setSelectMediaConstraint('image');
+                selectFileModal.show();
+            },
+            selectSiteSocialImage() {
+                this.selectFileTarget = {
+                    type: "siteSocialImage"
                 };
                 this.setSelectMediaConstraint('image');
                 selectFileModal.show();
