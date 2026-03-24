@@ -209,3 +209,42 @@
         sendJsonResponse($siteSettings);
     }, 'PUT');
 
+    \Steampixel\Route::add('/api/backups/full', function () {
+        if (!isLoggedIn()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'You must be logged in to download a full backup.'
+            ], 401);
+            return;
+        }
+
+        if (!isAdministrator()) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'Only administrators can download a full backup.'
+            ], 403);
+            return;
+        }
+
+        if (!requireCsrfToken(true)) {
+            return;
+        }
+
+        $backupArchive = createFullBackupArchive();
+        if (($backupArchive['success'] ?? false) !== true) {
+            sendJsonResponse([
+                'success' => false,
+                'message' => $backupArchive['message'] ?? 'The full backup could not be generated.'
+            ], 500);
+            return;
+        }
+
+        if (!streamFullBackupArchive($backupArchive)) {
+            deleteGeneratedFullBackupArchive($backupArchive);
+            sendJsonResponse([
+                'success' => false,
+                'message' => 'The full backup could not be downloaded.'
+            ], 500);
+        }
+    }, 'POST');
+

@@ -835,77 +835,129 @@
                 </div>
             </div>
             <div v-if="viewPage == 'settings' && canAccessSettings()">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Site Title:</label>
-                            <input v-model="siteSettings.siteTitle" type="text" class="form-control" placeholder="My website">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Default Meta Description:</label>
-                            <textarea v-model="siteSettings.siteDescription" rows="3" class="form-control" maxlength="220" placeholder="Fallback description used when a page does not have its own summary."></textarea>
-                            <div class="form-text">Mirage uses each page's own description first, then falls back to this value for standard, Open Graph, and Twitter description tags.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label d-block">Default Social Image:</label>
-                            <img v-bind:src="getMediaPreviewUrl(siteSettings.socialImage)" v-if="getMediaPreviewUrl(siteSettings.socialImage) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
-                            <button class="btn btn-sm btn-primary me-2" @click="selectSiteSocialImage"><span v-if="!hasSelectedMedia(siteSettings.socialImage)">Select</span><span v-else>Replace</span> Image</button>
-                            <button class="btn btn-sm btn-danger" v-if="hasSelectedMedia(siteSettings.socialImage)" @click="siteSettings.socialImage = null">Remove Image</button>
-                            <div class="form-text mt-2">Used only when a page does not have its own featured image.</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12 col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Open Graph Locale:</label>
-                                    <input v-model="siteSettings.socialLocale" type="text" class="form-control" placeholder="en_US">
-                                    <div class="form-text">Examples: <code>en_US</code>, <code>fr_CA</code>.</div>
-                                </div>
+                <div class="bg-light shadow-sm">
+                    <ul class="nav nav-tabs bg-secondary" id="settingsTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="settings-general-tab" data-bs-toggle="tab"
+                                data-bs-target="#settings-general" type="button" role="tab"
+                                aria-controls="settings-general" aria-selected="true">General</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="settings-social-tab" data-bs-toggle="tab"
+                                data-bs-target="#settings-social" type="button" role="tab"
+                                aria-controls="settings-social" aria-selected="false">Social &amp; SEO</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="settings-footer-tab" data-bs-toggle="tab"
+                                data-bs-target="#settings-footer" type="button" role="tab"
+                                aria-controls="settings-footer" aria-selected="false">Footer</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="settings-backup-tab" data-bs-toggle="tab"
+                                data-bs-target="#settings-backup" type="button" role="tab"
+                                aria-controls="settings-backup" aria-selected="false">Backup</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="settingsTabContent">
+                        <div class="tab-pane fade show active p-3" id="settings-general" role="tabpanel"
+                            aria-labelledby="settings-general-tab">
+                            <div class="mb-3">
+                                <label class="form-label">Site Title:</label>
+                                <input v-model="siteSettings.siteTitle" type="text" class="form-control" placeholder="My website">
+                                <div class="form-text">Used in the admin dashboard, page metadata fallbacks, and footer token output.</div>
                             </div>
-                            <div class="col-12 col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Twitter Site Handle:</label>
-                                    <input v-model="siteSettings.twitterSite" type="text" class="form-control" placeholder="@example">
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Twitter Creator Handle:</label>
-                                    <input v-model="siteSettings.twitterCreator" type="text" class="form-control" placeholder="@example">
-                                </div>
+                            <div class="mb-0">
+                                <label class="form-label">Default Meta Description:</label>
+                                <textarea v-model="siteSettings.siteDescription" rows="3" class="form-control" maxlength="220" placeholder="Fallback description used when a page does not have its own summary."></textarea>
+                                <div class="form-text">Mirage uses each page's own description first, then falls back to this value for standard, Open Graph, and Twitter description tags.</div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Facebook App ID:</label>
-                            <input v-model="siteSettings.facebookAppId" type="text" class="form-control" placeholder="Optional">
+                        <div class="tab-pane fade p-3" id="settings-social" role="tabpanel"
+                            aria-labelledby="settings-social-tab">
+                            <div class="mb-3">
+                                <label class="form-label d-block">Default Social Image:</label>
+                                <img v-bind:src="getMediaPreviewUrl(siteSettings.socialImage)" v-if="getMediaPreviewUrl(siteSettings.socialImage) != null" class="d-block img-thumbnail mb-1" style="width: auto; height: 10rem; object-fit: cover;">
+                                <button class="btn btn-sm btn-primary me-2" @click="selectSiteSocialImage"><span v-if="!hasSelectedMedia(siteSettings.socialImage)">Select</span><span v-else>Replace</span> Image</button>
+                                <button class="btn btn-sm btn-danger" v-if="hasSelectedMedia(siteSettings.socialImage)" @click="siteSettings.socialImage = null">Remove Image</button>
+                                <div class="form-text mt-2">Used only when a page does not have its own featured image.</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12 col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Open Graph Locale:</label>
+                                        <input v-model="siteSettings.socialLocale" type="text" class="form-control" placeholder="en_US">
+                                        <div class="form-text">Examples: <code>en_US</code>, <code>fr_CA</code>.</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Twitter Site Handle:</label>
+                                        <input v-model="siteSettings.twitterSite" type="text" class="form-control" placeholder="@example">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Twitter Creator Handle:</label>
+                                        <input v-model="siteSettings.twitterCreator" type="text" class="form-control" placeholder="@example">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Facebook App ID:</label>
+                                <input v-model="siteSettings.facebookAppId" type="text" class="form-control" placeholder="Optional">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Google Analytics Tracking Code:</label>
+                                <input v-model="siteSettings.googleAnalyticsTrackingCode" type="text" class="form-control" placeholder="G-XXXXXXXXXX">
+                                <div class="form-text">Paste a Google Analytics measurement ID or the full Google tag snippet. Mirage will extract the tracking code automatically.</div>
+                            </div>
+                            <div class="border rounded bg-white p-3">
+                                <h6 class="mb-2">Head Integration</h6>
+                                <p class="mb-2 text-secondary">Mirage injects canonical URLs, standard description tags, Open Graph tags, Twitter card tags, and optional analytics from one native head slot.</p>
+                                <p class="mb-2" v-if="(siteSettings.googleAnalyticsTrackingCode || '').trim() !== ''">Tracking code detected: <code>{{siteSettings.googleAnalyticsTrackingCode}}</code></p>
+                                <p class="mb-2 text-secondary" v-else>Google Analytics is currently off.</p>
+                                <p class="small text-secondary mb-1">Theme developers only need <code v-pre>&lt;?php echo $mirageMetaTag; ?&gt;</code> inside the template <code>&lt;head&gt;</code>.</p>
+                                <p class="small text-secondary mb-0">Page-level descriptions and featured images override these site defaults automatically.</p>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Footer Text:</label>
-                            <textarea v-model="siteSettings.footerText" rows="3" class="form-control" placeholder="Optional footer text"></textarea>
-                            <div class="form-text">Optional text shown above the copyright line. Tokens are supported here too.</div>
+                        <div class="tab-pane fade p-3" id="settings-footer" role="tabpanel"
+                            aria-labelledby="settings-footer-tab">
+                            <div class="mb-3">
+                                <label class="form-label">Footer Text:</label>
+                                <textarea v-model="siteSettings.footerText" rows="3" class="form-control" placeholder="Optional footer text"></textarea>
+                                <div class="form-text">Optional text shown above the copyright line. Tokens are supported here too.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Copyright Text:</label>
+                                <textarea v-model="siteSettings.copyrightText" rows="3" class="form-control" placeholder="{{year}} {{siteTitle}} - All Rights Reserved."></textarea>
+                                <div class="form-text">Available variables: <code v-pre>{{year}}</code> for the current year and <code v-pre>{{siteTitle}}</code> for the current site title.</div>
+                            </div>
+                            <div class="border rounded bg-white p-3">
+                                <h6 class="mb-2">Preview</h6>
+                                <p class="mb-1" v-if="siteSettings.footerText != ''">{{applySiteSettingTokens(siteSettings.footerText)}}</p>
+                                <p class="mb-0" v-if="siteSettings.copyrightText != ''">{{applySiteSettingTokens(siteSettings.copyrightText)}}</p>
+                                <p class="mb-0 text-secondary" v-if="siteSettings.footerText == '' && siteSettings.copyrightText == ''">Footer preview is empty.</p>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Copyright Text:</label>
-                            <textarea v-model="siteSettings.copyrightText" rows="3" class="form-control" placeholder="{{year}} {{siteTitle}} - All Rights Reserved."></textarea>
-                            <div class="form-text">Available variables: <code v-pre>{{year}}</code> for the current year and <code v-pre>{{siteTitle}}</code> for the current site title.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Google Analytics Tracking Code:</label>
-                            <input v-model="siteSettings.googleAnalyticsTrackingCode" type="text" class="form-control" placeholder="G-XXXXXXXXXX">
-                            <div class="form-text">Paste a Google Analytics measurement ID or the full Google tag snippet. Mirage will extract the tracking code automatically.</div>
-                        </div>
-                        <div class="border rounded bg-light p-3">
-                            <h6 class="mb-2">Preview</h6>
-                            <p class="mb-1" v-if="siteSettings.footerText != ''">{{applySiteSettingTokens(siteSettings.footerText)}}</p>
-                            <p class="mb-0" v-if="siteSettings.copyrightText != ''">{{applySiteSettingTokens(siteSettings.copyrightText)}}</p>
-                            <p class="mb-0 text-secondary" v-if="siteSettings.footerText == '' && siteSettings.copyrightText == ''">Footer preview is empty.</p>
-                        </div>
-                        <div class="border rounded bg-light p-3 mt-3">
-                            <h6 class="mb-2">Head Integration</h6>
-                            <p class="mb-2 text-secondary">Mirage injects canonical URLs, standard description tags, Open Graph tags, Twitter card tags, and optional analytics from one native head slot.</p>
-                            <p class="mb-2" v-if="(siteSettings.googleAnalyticsTrackingCode || '').trim() !== ''">Tracking code detected: <code>{{siteSettings.googleAnalyticsTrackingCode}}</code></p>
-                            <p class="mb-2 text-secondary" v-else>Google Analytics is currently off.</p>
-                            <p class="small text-secondary mb-1">Theme developers only need <code v-pre>&lt;?php echo $mirageMetaTag; ?&gt;</code> inside the template <code>&lt;head&gt;</code>.</p>
-                            <p class="small text-secondary mb-0">Page-level descriptions and featured images override these site defaults automatically.</p>
+                        <div class="tab-pane fade p-3" id="settings-backup" role="tabpanel"
+                            aria-labelledby="settings-backup-tab">
+                            <div class="border rounded bg-white p-3 mb-3">
+                                <h6 class="mb-2">Download Full Backup</h6>
+                                <p class="text-secondary mb-3">Create a portable archive with this site's stored content and configuration.</p>
+                                <button class="btn btn-success" type="button" @click="downloadFullBackup" :disabled="fullBackupDownloading">
+                                    <i class="fa-solid fa-download me-1"></i>
+                                    <span v-if="!fullBackupDownloading">Download Full Backup</span>
+                                    <span v-else>Preparing Backup...</span>
+                                </button>
+                            </div>
+                            <div class="border rounded bg-white p-3">
+                                <h6 class="mb-2">Included In The Archive</h6>
+                                <ul class="mb-0">
+                                    <li><code>config.php</code> with the current site settings.</li>
+                                    <li><code>database/</code> with all Mirage content, users, menus, analytics, and form records.</li>
+                                    <li><code>uploads/</code> with original uploads and generated previews.</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

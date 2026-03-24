@@ -69,7 +69,8 @@
                 selectMediaItemType: "image",
                 historyInitialized: false,
                 themeLoaded: false,
-                activeUserLoaded: false
+                activeUserLoaded: false,
+                fullBackupDownloading: false
             }
         },
         computed: {
@@ -2152,6 +2153,94 @@
                 }
 
                 return fallbackMessage;
+            },
+            getDownloadFilenameFromDisposition(headerValue, fallbackFilename = "mirage-backup.zip") {
+                var disposition = String(headerValue || '');
+                if (disposition === '') {
+                    return fallbackFilename;
+                }
+
+                var utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+                if (utfMatch && utfMatch[1]) {
+                    try {
+                        return decodeURIComponent(utfMatch[1]);
+                    } catch (error) {
+                    }
+                }
+
+                var plainMatch = disposition.match(/filename=\"?([^\";]+)\"?/i);
+                if (plainMatch && plainMatch[1]) {
+                    return plainMatch[1];
+                }
+
+                return fallbackFilename;
+            },
+            getBlobErrorMessage(blob, fallbackMessage = "Request failed. Please try again.") {
+                if (!(blob instanceof Blob)) {
+                    return Promise.resolve(fallbackMessage);
+                }
+
+                return blob.text()
+                    .then(function (text) {
+                        try {
+                            var response = JSON.parse(text);
+                            if (response && response.message) {
+                                return response.message;
+                            }
+                        } catch (error) {
+                        }
+
+                        var normalizedText = String(text || '').trim();
+                        return normalizedText !== '' ? normalizedText : fallbackMessage;
+                    })
+                    .catch(function () {
+                        return fallbackMessage;
+                    });
+            },
+            triggerBlobDownload(blob, filename) {
+                var downloadUrl = window.URL.createObjectURL(blob);
+                var downloadLink = document.createElement('a');
+                downloadLink.href = downloadUrl;
+                downloadLink.download = filename;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                window.setTimeout(function () {
+                    window.URL.revokeObjectURL(downloadUrl);
+                }, 1000);
+            },
+            downloadFullBackup() {
+                if (!this.canAccessSettings() || this.fullBackupDownloading) {
+                    return;
+                }
+
+                var comp = this;
+                var xmlhttp = new XMLHttpRequest();
+                comp.fullBackupDownloading = true;
+                xmlhttp.responseType = "blob";
+                xmlhttp.onload = function () {
+                    comp.fullBackupDownloading = false;
+
+                    if (this.status >= 200 && this.status < 300) {
+                        var filename = comp.getDownloadFilenameFromDisposition(
+                            this.getResponseHeader('Content-Disposition'),
+                            'mirage-backup.zip'
+                        );
+                        comp.triggerBlobDownload(this.response, filename);
+                        return;
+                    }
+
+                    comp.getBlobErrorMessage(this.response, "The full backup could not be generated.")
+                        .then(function (message) {
+                            alert(message);
+                        });
+                };
+                xmlhttp.onerror = function () {
+                    comp.fullBackupDownloading = false;
+                    alert("The full backup could not be generated.");
+                };
+                xmlhttp.open("POST", "<?php echo BASEPATH ?>/api/backups/full", true);
+                xmlhttp.send();
             },
             uploadMediaFiles() {
                 var comp = this;
