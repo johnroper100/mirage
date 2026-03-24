@@ -18,12 +18,12 @@
                 :class="{'active text-light': viewPage == 'media'}"><i class="fa-solid fa-folder-tree me-1"></i>
                 Media</span>
             <hr>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('menus'); getAllPages();"
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="openMenusPage()"
                 :class="{'active text-light': viewPage == 'menus'}" v-if="canAccessView('menus')"><i class="fa-solid fa-chart-bar me-1"></i>
                 Menus</span>
             <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('users')"
                 :class="{'active text-light': viewPage == 'users'}"><i class="fa-solid fa-users me-1"></i> Users</span>
-            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="setPage('settings'); getSiteSettings();"
+            <span class="p-2 ps-3 sidebarItem mt-2 text-secondary" @click="openSettingsPage()"
                 :class="{'active text-light': viewPage == 'settings'}" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</span>
             <hr>
             <form action="<?php echo BASEPATH ?>/logout" method="POST" class="m-0">
@@ -110,7 +110,7 @@
                                             <button type="button" class="btn btn-outline-secondary" @click="refreshGeneralDashboard" :disabled="dashboardPagesLoading"><i class="fa-solid fa-rotate-right me-1"></i> <span v-if="!dashboardPagesLoading">Refresh</span><span v-else>Refreshing...</span></button>
                                             <button type="button" class="btn btn-outline-secondary" @click="setPage('media')"><i class="fa-solid fa-folder-tree me-1"></i> Media</button>
                                             <button type="button" class="btn btn-outline-secondary" @click="setPage('forms')" v-if="canAccessMenus()"><i class="fa-solid fa-envelope-open-text me-1"></i> Forms</button>
-                                            <button type="button" class="btn btn-outline-secondary" @click="setPage('settings'); getSiteSettings();" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</button>
+                                            <button type="button" class="btn btn-outline-secondary" @click="openSettingsPage()" v-if="canAccessSettings()"><i class="fa-solid fa-gears me-1"></i> Settings</button>
                                         </div>
                                     </div>
                                     <div class="mirage-dashboard-glance">

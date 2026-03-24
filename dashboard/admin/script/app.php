@@ -66,7 +66,10 @@
                     caption: "",
                     altText: ""
                 },
-                selectMediaItemType: "image"
+                selectMediaItemType: "image",
+                historyInitialized: false,
+                themeLoaded: false,
+                activeUserLoaded: false
             }
         },
         computed: {
@@ -334,6 +337,282 @@
                 this.viewPage = 'general';
                 this.pageOrderDirty = false;
                 this.pageOrderSaving = false;
+
+                if (this.historyInitialized) {
+                    this.syncAdminHistory(true);
+                }
+            },
+            getCollectionById(collectionID) {
+                if (collectionID == null) {
+                    return null;
+                }
+
+                var normalizedCollectionID = String(collectionID);
+                var collections = Array.isArray(this.activeTheme.collections) ? this.activeTheme.collections : [];
+                return collections.find(function (collection) {
+                    return String(collection.id || '') === normalizedCollectionID;
+                }) || null;
+            },
+            normalizeAdminRoute(route) {
+                route = route && typeof route === 'object' ? route : {};
+
+                var normalizedView = String(route.view || 'general').trim();
+                var allowedViews = ['general', 'pages', 'editPage', 'menus', 'forms', 'media', 'users', 'settings'];
+                if (!allowedViews.includes(normalizedView)) {
+                    normalizedView = 'general';
+                }
+
+                var normalizedCollectionID = route.collection == null ? '' : String(route.collection).trim();
+                if ((normalizedView === 'pages' || normalizedView === 'editPage') && normalizedCollectionID === '') {
+                    return {
+                        view: 'general'
+                    };
+                }
+
+                if (normalizedView === 'pages') {
+                    return {
+                        view: 'pages',
+                        collection: normalizedCollectionID
+                    };
+                }
+
+                if (normalizedView === 'editPage') {
+                    var normalizedMode = String(route.mode || 'edit').trim().toLowerCase();
+                    if (normalizedMode === 'new') {
+                        var normalizedNewRoute = {
+                            view: 'editPage',
+                            collection: normalizedCollectionID,
+                            mode: 'new'
+                        };
+                        var normalizedTemplateName = route.template == null ? '' : String(route.template).trim();
+                        if (normalizedTemplateName !== '') {
+                            normalizedNewRoute.template = normalizedTemplateName;
+                        }
+
+                        return normalizedNewRoute;
+                    }
+
+                    var normalizedPageID = route.page == null ? '' : String(route.page).trim();
+                    if (normalizedPageID === '') {
+                        return {
+                            view: 'pages',
+                            collection: normalizedCollectionID
+                        };
+                    }
+
+                    return {
+                        view: 'editPage',
+                        collection: normalizedCollectionID,
+                        mode: 'edit',
+                        page: normalizedPageID
+                    };
+                }
+
+                return {
+                    view: normalizedView
+                };
+            },
+            parseAdminRouteFromLocation(url = window.location.href) {
+                var locationUrl = new URL(url, window.location.origin);
+                return this.normalizeAdminRoute({
+                    view: locationUrl.searchParams.get('adminView'),
+                    collection: locationUrl.searchParams.get('adminCollection'),
+                    page: locationUrl.searchParams.get('adminPage'),
+                    mode: locationUrl.searchParams.get('adminMode'),
+                    template: locationUrl.searchParams.get('adminTemplate')
+                });
+            },
+            buildAdminHistoryUrl(route) {
+                var normalizedRoute = this.normalizeAdminRoute(route);
+                var locationUrl = new URL(window.location.href, window.location.origin);
+
+                [
+                    'adminView',
+                    'adminCollection',
+                    'adminPage',
+                    'adminMode',
+                    'adminTemplate'
+                ].forEach(function (paramName) {
+                    locationUrl.searchParams.delete(paramName);
+                });
+
+                if (normalizedRoute.view !== 'general') {
+                    locationUrl.searchParams.set('adminView', normalizedRoute.view);
+                }
+
+                if (normalizedRoute.collection != null) {
+                    locationUrl.searchParams.set('adminCollection', normalizedRoute.collection);
+                }
+
+                if (normalizedRoute.mode != null) {
+                    locationUrl.searchParams.set('adminMode', normalizedRoute.mode);
+                }
+
+                if (normalizedRoute.page != null) {
+                    locationUrl.searchParams.set('adminPage', normalizedRoute.page);
+                }
+
+                if (normalizedRoute.template != null) {
+                    locationUrl.searchParams.set('adminTemplate', normalizedRoute.template);
+                }
+
+                return locationUrl.pathname + locationUrl.search + locationUrl.hash;
+            },
+            areAdminRoutesEqual(leftRoute, rightRoute) {
+                return JSON.stringify(this.normalizeAdminRoute(leftRoute)) === JSON.stringify(this.normalizeAdminRoute(rightRoute));
+            },
+            getCurrentAdminRoute() {
+                var route = {
+                    view: this.viewPage
+                };
+
+                if ((this.viewPage === 'pages' || this.viewPage === 'editPage') && this.activeCollection && this.activeCollection.id != null) {
+                    route.collection = String(this.activeCollection.id);
+                }
+
+                if (this.viewPage === 'editPage') {
+                    if (Number(this.editingMode) === 0) {
+                        route.mode = 'new';
+                        if (this.editingTemplateName != null && String(this.editingTemplateName).trim() !== '') {
+                            route.template = String(this.editingTemplateName).trim();
+                        }
+                    } else {
+                        route.mode = 'edit';
+                        if (this.editingID != null && String(this.editingID).trim() !== '') {
+                            route.page = String(this.editingID).trim();
+                        }
+                    }
+                }
+
+                return this.normalizeAdminRoute(route);
+            },
+            commitAdminHistory(historyMode = 'push') {
+                if (historyMode === 'none') {
+                    return;
+                }
+
+                this.syncAdminHistory(historyMode === 'replace');
+            },
+            syncAdminHistory(replace = false) {
+                if (!this.historyInitialized || typeof window.history === 'undefined' || typeof window.history.replaceState !== 'function') {
+                    return;
+                }
+
+                var route = this.getCurrentAdminRoute();
+                var currentRoute = this.parseAdminRouteFromLocation(window.location.href);
+                var targetUrl = this.buildAdminHistoryUrl(route);
+                var state = {
+                    mirageAdminRoute: route
+                };
+
+                if (!replace && this.areAdminRoutesEqual(route, currentRoute)) {
+                    window.history.replaceState(state, document.title, targetUrl);
+                    return;
+                }
+
+                if (replace) {
+                    window.history.replaceState(state, document.title, targetUrl);
+                    return;
+                }
+
+                window.history.pushState(state, document.title, targetUrl);
+            },
+            restoreAdminRoute(route, historyMode = 'replace') {
+                var normalizedRoute = this.normalizeAdminRoute(route);
+
+                if (normalizedRoute.view === 'general') {
+                    return this.openGeneralDashboard(historyMode);
+                }
+
+                if (normalizedRoute.view === 'menus') {
+                    if (!this.canAccessView('menus')) {
+                        return this.openGeneralDashboard(historyMode);
+                    }
+
+                    return this.openMenusPage(historyMode);
+                }
+
+                if (normalizedRoute.view === 'settings') {
+                    if (!this.canAccessView('settings')) {
+                        return this.openGeneralDashboard(historyMode);
+                    }
+
+                    return this.openSettingsPage(historyMode);
+                }
+
+                if (normalizedRoute.view === 'forms' || normalizedRoute.view === 'media' || normalizedRoute.view === 'users') {
+                    return this.setPage(normalizedRoute.view, false, historyMode);
+                }
+
+                var collection = this.getCollectionById(normalizedRoute.collection);
+                if (collection == null) {
+                    return this.openGeneralDashboard(historyMode);
+                }
+
+                if (normalizedRoute.view === 'pages') {
+                    return this.getPages(collection, false, historyMode);
+                }
+
+                if (normalizedRoute.mode === 'new') {
+                    if (this.viewPage === 'editPage'
+                        && Number(this.editingMode) === 0
+                        && String(this.activeCollection.id || '') === String(collection.id || '')) {
+                        this.activeCollection = collection;
+                        if (normalizedRoute.template != null && normalizedRoute.template !== '') {
+                            this.editingTemplateName = normalizedRoute.template;
+                        }
+
+                        this.commitAdminHistory(historyMode);
+                        return true;
+                    }
+
+                    this.activeCollection = collection;
+                    if (normalizedRoute.template != null && normalizedRoute.template !== '') {
+                        this.editingTemplateName = normalizedRoute.template;
+                    }
+
+                    return this.editNewPage(false, historyMode, normalizedRoute);
+                }
+
+                if (this.viewPage === 'editPage'
+                    && Number(this.editingMode) === 1
+                    && String(this.editingID || '') === normalizedRoute.page) {
+                    this.activeCollection = collection;
+                    this.commitAdminHistory(historyMode);
+                    return true;
+                }
+
+                this.activeCollection = collection;
+                return this.editPage(normalizedRoute.page, false, historyMode);
+            },
+            attemptHistoryInitialization() {
+                if (this.historyInitialized || !this.themeLoaded || !this.activeUserLoaded) {
+                    return;
+                }
+
+                this.historyInitialized = true;
+                var initialRoute = this.parseAdminRouteFromLocation(window.location.href);
+                if (initialRoute.view === 'general') {
+                    this.syncAdminHistory(true);
+                    return;
+                }
+
+                if (!this.restoreAdminRoute(initialRoute, 'replace')) {
+                    this.syncAdminHistory(true);
+                }
+            },
+            handleBrowserPopState(event) {
+                if (!this.historyInitialized) {
+                    return;
+                }
+
+                var route = event && event.state && event.state.mirageAdminRoute
+                    ? event.state.mirageAdminRoute
+                    : this.parseAdminRouteFromLocation(window.location.href);
+
+                if (!this.restoreAdminRoute(route, 'replace')) {
+                    this.syncAdminHistory(true);
+                }
             },
             getDate(dateItem) {
                 return new Date(dateItem * 1000).toLocaleString();
@@ -716,7 +995,7 @@
 
                 return true;
             },
-            setPage(page, update = false) {
+            setPage(page, update = false, historyMode = 'push') {
                 if (!this.canLeaveCurrentView(update)) {
                     return false;
                 }
@@ -732,14 +1011,35 @@
                     this.pageOrderSaving = false;
                 }
 
+                if (page !== 'pages' && page !== 'editPage') {
+                    this.commitAdminHistory(historyMode);
+                }
+
                 return true;
             },
-            openGeneralDashboard() {
-                if (!this.setPage('general')) {
+            openGeneralDashboard(historyMode = 'push') {
+                if (!this.setPage('general', false, historyMode)) {
                     return;
                 }
 
                 this.refreshGeneralDashboard();
+                return true;
+            },
+            openMenusPage(historyMode = 'push') {
+                if (!this.setPage('menus', false, historyMode)) {
+                    return false;
+                }
+
+                this.getAllPages();
+                return true;
+            },
+            openSettingsPage(historyMode = 'push') {
+                if (!this.setPage('settings', false, historyMode)) {
+                    return false;
+                }
+
+                this.getSiteSettings();
+                return true;
             },
             refreshGeneralDashboard() {
                 this.getCounts();
@@ -762,7 +1062,9 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeTheme = JSON.parse(this.responseText);
+                    comp.themeLoaded = true;
                     comp.ensureAuthorizedView();
+                    comp.attemptHistoryInitialization();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/theme", true);
                 xmlhttp.send();
@@ -1116,6 +1418,7 @@
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.activeUser = JSON.parse(this.responseText);
+                    comp.activeUserLoaded = true;
                     if (comp.activeUser.accountType == 0) {
                         comp.getSiteSettings();
                     } else {
@@ -1132,6 +1435,7 @@
                     }
 
                     comp.ensureAuthorizedView();
+                    comp.attemptHistoryInitialization();
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/users/active", true);
                 xmlhttp.send();
@@ -1348,9 +1652,13 @@
                     })
                 }));
             },
-            getPages(collection, update = false) {
+            getPages(collection, update = false, historyMode = 'push') {
+                if (collection == null) {
+                    return false;
+                }
+
                 if (!this.canLeaveCurrentView(update)) {
-                    return;
+                    return false;
                 }
 
                 var comp = this;
@@ -1361,10 +1669,12 @@
                     comp.syncPageOrders();
                     comp.pageOrderDirty = false;
                     comp.pageOrderSaving = false;
-                    comp.setPage('pages', true);
+                    comp.setPage('pages', true, 'none');
+                    comp.commitAdminHistory(historyMode);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/collections/" + collection.id + "/pages", true);
                 xmlhttp.send();
+                return true;
             },
             getAllPages() {
                 var comp = this;
@@ -1401,22 +1711,31 @@
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages", true);
                 xmlhttp.send();
             },
-            editPage(pageID, update) {
+            editPage(pageID, update = false, historyMode = 'push') {
+                if (pageID == null || String(pageID).trim() === '') {
+                    return false;
+                }
+
+                if (!this.canLeaveCurrentView(update)) {
+                    return false;
+                }
+
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     var pageDetails = JSON.parse(this.responseText);
-                    comp.editPageTemplate(pageDetails, update);
+                    comp.editPageTemplate(pageDetails, true, historyMode);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/pages/" + pageID, true);
                 xmlhttp.send();
+                return true;
             },
             deletePage(pageID) {
                 if (confirm("Are you sure you want to delete this?") == true) {
                     var comp = this;
                     var xmlhttp = new XMLHttpRequest();
                     xmlhttp.onload = function () {
-                        comp.getPages(comp.activeCollection, true);
+                        comp.getPages(comp.activeCollection, true, 'replace');
                         comp.getCounts();
                         comp.getMenus();
                     }
@@ -1435,32 +1754,60 @@
                 this.editingHasSavedPassword = false;
                 this.editingPassword = "";
             },
-            editNewPage() {
-                if (this.isAddPageDisabled) {
-                    return;
+            editNewPage(update = false, historyMode = 'push', routeState = null) {
+                if (routeState == null && this.isAddPageDisabled) {
+                    return false;
+                }
+
+                if (!this.canLeaveCurrentView(update)) {
+                    return false;
                 }
 
                 var comp = this;
+                var selectedTemplateName = routeState != null && typeof routeState.template === 'string'
+                    ? routeState.template.trim()
+                    : String(comp.editingTemplateName || '').trim();
+                var allowedTemplates = Array.isArray(comp.activeCollection.allowed_templates) ? comp.activeCollection.allowed_templates : [];
+
+                if (selectedTemplateName !== '' && allowedTemplates.length > 0 && !allowedTemplates.includes(selectedTemplateName)) {
+                    selectedTemplateName = '';
+                }
+
+                if (selectedTemplateName === '' && allowedTemplates.length > 0) {
+                    selectedTemplateName = allowedTemplates[0];
+                }
+
+                if (selectedTemplateName === '') {
+                    return false;
+                }
+
+                comp.editingTemplateName = selectedTemplateName;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.editingTemplate = JSON.parse(this.responseText);
-                    comp.setPage('editPage');
-                    comp.editingPath = comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                    if (!comp.setPage('editPage', true, 'none')) {
+                        return;
+                    }
+
+                    if (String(comp.editingPath || '').trim() === '') {
+                        comp.editingPath = comp.editingTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                    }
+
                     comp.editingMode = 0;
                     comp.editingPathless = comp.editingTemplate.isPathless;
                     comp.editingPasswordProtected = false;
                     comp.editingHasSavedPassword = false;
                     comp.editingPassword = "";
+                    comp.editingID = null;
                     comp.editingPublished = false;
                     comp.editingDate = "Never";
                     comp.editingEditedDate = "Never";
                     addPageModal.hide();
+                    comp.commitAdminHistory(historyMode);
                 }
-                if (comp.editingTemplateName == "" && Array.isArray(comp.activeCollection.allowed_templates) && comp.activeCollection.allowed_templates.length > 0) {
-                    comp.editingTemplateName = comp.activeCollection.allowed_templates[0];
-                }
-                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + comp.editingTemplateName, true);
+                xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + selectedTemplateName, true);
                 xmlhttp.send();
+                return true;
             },
             getTemplateValue(content, field) {
                 var comp = this;
@@ -1481,13 +1828,21 @@
                     }
                 }
             },
-            editPageTemplate(page, update) {
+            editPageTemplate(page, update, historyMode = 'push') {
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
                     comp.editingTemplate = JSON.parse(this.responseText);
                     comp.editingTemplateName = page.templateName;
-                    comp.setPage('editPage', update);
+                    var activeCollection = comp.getCollectionById(page.collection);
+                    if (activeCollection != null) {
+                        comp.activeCollection = activeCollection;
+                    }
+
+                    if (!comp.setPage('editPage', update, 'none')) {
+                        return;
+                    }
+
                     comp.editingMode = 1;
                     comp.editingTitle = page.title;
                     comp.editingFeaturedImage = comp.normalizeOptionalMediaId(page.featuredImage);
@@ -1508,6 +1863,7 @@
                             comp.getTemplateValue(page.content, field);
                         });
                     });
+                    comp.commitAdminHistory(historyMode);
                 }
                 xmlhttp.open("GET", "<?php echo BASEPATH ?>/api/templates/" + page.templateName, true);
                 xmlhttp.send();
@@ -1602,7 +1958,7 @@
                 var comp = this;
                 var xmlhttp = new XMLHttpRequest();
                 xmlhttp.onload = function () {
-                    comp.editPage(JSON.parse(this.responseText)._id, true);
+                    comp.editPage(JSON.parse(this.responseText)._id, true, 'replace');
                     alert("Page saved!");
                     comp.getCounts();
                 }
@@ -1994,7 +2350,15 @@
                 this.addPage();
             }
         },
+        beforeUnmount() {
+            if (this._miragePopStateHandler != null) {
+                window.removeEventListener('popstate', this._miragePopStateHandler);
+                this._miragePopStateHandler = null;
+            }
+        },
         mounted() {
+            this._miragePopStateHandler = this.handleBrowserPopState.bind(this);
+            window.addEventListener('popstate', this._miragePopStateHandler);
             this.getTheme();
             this.getMedia();
             this.getCounts();
